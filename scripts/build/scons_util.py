@@ -71,6 +71,22 @@ def import_zlib(env):
 
 ################################################################################
 ###
+### FUNCTION import_pthread
+###
+################################################################################
+def import_pthread(env):
+	addlib(env, 'pthread')
+
+################################################################################
+###
+### FUNCTION import_dlsym
+###
+################################################################################
+def import_dlsym(env):
+	addlib(env, 'dl')
+
+################################################################################
+###
 ### FUNCTION import_python
 ###
 ################################################################################
@@ -104,7 +120,7 @@ def import_Qt(env,
 	if PFM == 'linux':
 		qthome = None
 		PFM_CPPPATH = ['/usr/share/qt$VERSION/include/$MODULE']
-
+		qtversion = 4
 		env.Append( CPPPATH = expand(['/usr/share/qt$VERSION/include/']) )
 	elif PFM == 'mac':
 		qthome = os.path.expanduser( '~/QtSDK/Desktop/Qt/4.8.1/gcc' )
@@ -148,12 +164,10 @@ def import_Qt(env,
 	###
 	### Executables Path
 	###
-	if qthome:
+	if PFM == 'mac':
 		env.Replace( QT_BINPATH = [qthome + '/bin'] )
-	else:
-		env.Replace( QT_BINPATH = [which('moc',
-										 dir = True,
-										 err = "Cannot locate Qt executables")] )
+	elif PFM == 'linux':
+		env.Replace( QT_BINPATH = expand(['/usr/share/qt$VERSION/bin']) )
 
 	###
 	### Misc
