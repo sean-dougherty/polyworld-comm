@@ -55,9 +55,10 @@ which you can verify via:
 ls ./Polyworld
 ```
 
-## Verify Polyworld Runs
+### Verify Polyworld Runs
 Now, let's see if Polyworld runs on your machine. Execute the following:
 ```
 ./Polyworld worldfiles/hello_world.wf
 ```
+You should see a graphical window appear containing a 3D simulation.
 
