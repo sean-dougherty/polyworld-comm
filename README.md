@@ -48,7 +48,7 @@ It's finally time to compile the source! Issue the following command:
 ```
 make
 ```
-If it worked then the file you should see a message like
+If it worked then you should see a message like
 "scons: done building targets." and ./Polyworld should exist,
 which you can verify via:
 ```
