@@ -39,8 +39,8 @@ const char *CppProperties::PropertyMetadata::toString()
 		sprintf( __toStringBuf, "%d", *((int *)value) );
 		break;
 	case datalib::FLOAT:
-		sprintf( __toStringBuf, "%g", *((float *)value) );
-		break;
+		sprintf( __toStringBuf, "%f", *((float *)value) );
+        break;
 	case datalib::BOOL:
 		sprintf( __toStringBuf, "%s", *((bool *)value) ? "True" : "False" );
 		break;
