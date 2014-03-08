@@ -16,6 +16,7 @@ packages="\
 	gnuplot \
 	zlib1g-dev \
 	python2.7-dev \
+	python-scipy \
 "
 
 for pkg in $packages; do
