@@ -1,8 +1,5 @@
 @version 2
 
-# Warning! It's important to start file with "@version 2" so the parser knows
-# which grammar to use.
-
 ################################################################################
 #
 # Brain Type
@@ -76,7 +73,7 @@ MaxEatYaw dyn (1.0)
 # Simulation
 #
 ################################################################################
-MaxSteps        500000
+MaxSteps        150000
 MinFood         15
 MaxFood         45
 FoodHeight      2.0

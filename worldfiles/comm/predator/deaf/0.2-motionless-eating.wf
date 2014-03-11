@@ -1,8 +1,5 @@
 @version 2
 
-# Warning! It's important to start file with "@version 2" so the parser knows
-# which grammar to use.
-
 ################################################################################
 #
 # Brain Type
