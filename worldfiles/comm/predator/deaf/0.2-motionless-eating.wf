@@ -1,5 +1,10 @@
 @version 2
 
+#
+# Using the final generation from 0.1, push the MaxEatVelocity towards 0 so
+# they can't move forwards while eating.
+#
+
 ################################################################################
 #
 # Brain Type

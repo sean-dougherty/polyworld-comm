@@ -1,5 +1,10 @@
 @version 2
 
+#
+# Using the final generation from 0.0, this world has a smaller area where
+# food grows.
+#
+
 ################################################################################
 #
 # Brain Type

@@ -1,5 +1,10 @@
 @version 2
 
+#
+# An easy form of the D0 world, with plentiful food throughout. Allows the
+# agents to evolve basic behaviors before we start pushing them.
+#
+
 ################################################################################
 #
 # Brain Type

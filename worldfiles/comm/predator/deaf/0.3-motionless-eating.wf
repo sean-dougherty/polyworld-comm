@@ -1,5 +1,10 @@
 @version 2
 
+#
+# Using the final generation from 0.2, push the MaxEatYaw towards 0 so
+# they can't turn while eating.
+#
+
 ################################################################################
 #
 # Brain Type
