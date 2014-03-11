@@ -1,0 +1,144 @@
+@version 2
+
+# Warning! It's important to start file with "@version 2" so the parser knows
+# which grammar to use.
+
+################################################################################
+#
+# Brain Type
+#
+################################################################################
+NeuronModel         T
+BrainArchitecture   Groups
+
+################################################################################
+#
+# Groups Brain
+#
+################################################################################
+MinInternalNeuralGroups             0
+MaxInternalNeuralGroups             10
+EnableTopologicalDistortionRngSeed  True
+EnableInitWeightRngSeed             True
+
+################################################################################
+#
+# Genome
+#
+################################################################################
+SeedGenomeFromRun   True
+
+GenomeLayout        NeurGroup
+MinMutationRate     0.001
+MaxMutationRate     0.005
+MaxCrossoverPoints  8
+GrayCoding          True
+
+################################################################################
+#
+# Agent
+#
+################################################################################
+EnableCarry         False
+EnableVisionPitch   True   # Allow them to look up/down so they can see patches on ground.
+EnableSpeedFeedback True
+MaxAgentSize        0.75   # Reduced max size to prevent cheap solutions to low MaxEatVelocity
+AgentHeight         1.0
+MaxEatVelocity      0.001
+
+################################################################################
+#
+# MaxEatYaw (Dynamic Property)
+#
+################################################################################
+MaxEatYaw dyn (1.0)
+{
+  if( Step < 2000 )
+    return value;
+    
+  if( AgentCount < (MinAgents * 1.1) )
+    return min(1.0, value * 1.0001);
+
+  if( AgentCount < (MinAgents * 1.3) )
+    return min(1.0, value * 1.00001);
+
+  if( AgentCount > (MaxAgents * 0.95) )
+    return value * 0.9999;
+
+  if( AgentCount > (MaxAgents * 0.85) )
+    return value * 0.99999;
+
+  return value;
+}
+
+################################################################################
+#
+# Simulation
+#
+################################################################################
+MaxSteps        500000
+MinFood         15
+MaxFood         45
+FoodHeight      2.0
+FoodRemoveEnergy 100.0
+SeedAgents      180
+AgentsAreFood   False
+
+################################################################################
+#
+# Barriers (Brown wall)
+#
+################################################################################
+Barriers
+[
+  {
+    X1  0.0
+    Z1  -1.0
+    X2  0.0
+    Z2  0.0
+  }
+  ,
+  {
+    X1  1.0
+    Z1  -1.0
+    X2  1.0
+    Z2  0.0
+  }
+]
+
+################################################################################
+#
+# Domains
+#
+################################################################################
+Domains
+[
+  {
+    CenterX 0.5
+    CenterZ 0.5
+    SizeX   1.0
+    SizeZ   1.0
+
+    FoodPatches
+    [
+      {
+        SizeX                   1.0 / 2.0
+        SizeZ                   1.0
+        CenterX                 0.5
+        CenterZ                 0.5
+        FoodFraction            1.0
+      }
+    ]
+
+  }
+]
+
+################################################################################
+#
+# Logging
+#
+################################################################################
+RecordBirthsDeaths      True
+RecordGenomes           True
+RecordSeparations       Contact
+CompressFiles           True
