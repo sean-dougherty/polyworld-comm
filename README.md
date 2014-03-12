@@ -67,7 +67,7 @@ You should see a graphical window appear containing a 3D simulation.
 ## Getting source/worldfile updates from Github
 
 To download updates posted to Github by another author, you should first open
-a terminal and then change directories to where you original downloaded the
+a terminal and then change directories to where you originally downloaded the
 source. For example, if you originally downloaded to ~/polyworld-comm, then
 you would execute:
 
