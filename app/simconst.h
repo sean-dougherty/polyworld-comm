@@ -85,4 +85,20 @@ namespace sim
 #define GIVE__PREVENTED__CARRY			(1 << 1)
 #define GIVE__PREVENTED__ENERGY			(1 << 2)
 
+
+#define EAT__NIL                        0
+#define EAT__DESIRED                    (1 << 0)
+#define EAT__PREVENTED__CARRY           (1 << 1)
+#define EAT__PREVENTED__YAW             (1 << 2)
+#define EAT__PREVENTED__VELOCITY        (1 << 3)
+#define EAT__PREVENTED__MINAGE          (1 << 4)
+#define EAT__PREVENTED__EATWAIT         (1 << 5)
+#define EAT__PREVENTED__COLLAB          (1 << 6)
+
+#define EAT__PREVENTED                  (EAT__PREVENTED__CARRY | \
+                                            EAT__PREVENTED__YAW | \
+                                            EAT__PREVENTED__VELOCITY | \
+                                            EAT__PREVENTED__MINAGE | \
+                                            EAT__PREVENTED__EATWAIT | \
+                                            EAT__PREVENTED__COLLAB)
 }

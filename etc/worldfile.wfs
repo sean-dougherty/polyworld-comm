@@ -858,6 +858,15 @@ EatWait {
   cppsym  "$[sim]->fEatWait"
 }
 
+# -1 = Disabled
+MinEatCollaborators {
+  type    Float
+  default -1.0
+  min     -1.0
+  exmax   MaxAgents
+  cppsym  "$[sim]->fMinEatCollaborators"
+}
+
 MateWait {
   type    Int
   default 25

@@ -67,6 +67,9 @@ public:
 
 	long getAge( long step );
 
+    void addCollaborator( long step );
+    long getCollaboratorCount( long step );
+
 protected:
     void initfood( const FoodType *foodType, long step );
     void initfood( const FoodType *foodType, long step, const Energy &e );
@@ -88,6 +91,11 @@ protected:
 	// allows us to remove this object from the list without having to
 	// search for it.
 	FoodList::iterator fAllFoodIterator;
+
+    struct {
+        long step;
+        long n;
+    } collaborators;
 };
 
 //===========================================================================

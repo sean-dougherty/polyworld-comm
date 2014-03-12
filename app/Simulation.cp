@@ -308,6 +308,7 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	Brain::init();
     agent::agentinit();
 	SeparationCache::init();
+    fEatStatusSlot = AgentAttachedData::createSlot();
 
 	GenomeUtil::createSchema();
 
@@ -1664,7 +1665,7 @@ void TSimulation::Interact()
 
 	// -----------------------
 	// --- Mate (Lockstep) ---
-	//------------------------
+	// -----------------------
 	if( fLockStepWithBirthsDeathsLog )
 	{
 		if( fLockstepTimestep == fStep )
@@ -1673,6 +1674,11 @@ void TSimulation::Interact()
 			SetNextLockstepEvent();		// set the timestep, NumBirths, and NumDeaths for the next Lockstep events.
 		}
 	}
+
+    // ------------------
+    // --- Eat Status ---
+    // ------------------
+    UpdateEatStatus();
 
 	// Now go through the list, and use the influence radius to determine
 	// all possible interactions
@@ -2703,58 +2709,98 @@ void TSimulation::Give( agent *x,
 	debugcheck( "after %lu gave %g energy to %lu%s", xnum, energy, y->Number(), energy == 0.0 ? " (did NOT give)" : "" );
 }
 
-
-
 //---------------------------------------------------------------------------
-// TSimulation::Eat
+// TSimulation::UpdateEatStatus
 //---------------------------------------------------------------------------
-void TSimulation::Eat( agent *c, bool *cDied )
+void TSimulation::UpdateEatStatus()
 {
-	bool ateBackwardFood;
-	food* f = NULL;
-	bool eatAllowed = true;
-	bool eatFailedYaw = false;
-	bool eatFailedVel = false;
-	bool eatFailedMinAge = false;
-	bool eatAttempted = false;
+    agent *c;
+    objectxsortedlist::gXSortedObjects.reset();
+    while( objectxsortedlist::gXSortedObjects.nextObj( AGENTTYPE, (gobject**) &c ) )
+    {
+        size_t eatStatus = EAT__NIL;
+
+        if( c->Eat() > fEatThreshold )
+            eatStatus |= EAT__DESIRED;
+
+        if( IS_PREVENTED_BY_CARRY(Eat, c) )
+            eatStatus |= EAT__PREVENTED__CARRY;
+        if( (c->NormalizedSpeed() > fMaxEatVelocity) || (c->NormalizedSpeed() < fMinEatVelocity) )
+            eatStatus |= EAT__PREVENTED__VELOCITY;
+        if( fabs(c->NormalizedYaw()) > fMaxEatYaw )
+            eatStatus |= EAT__PREVENTED__YAW;
+        if( c->Age() < c->GetMetabolism()->minEatAge )
+            eatStatus |= EAT__PREVENTED__MINAGE;
+        if( (fStep - c->LastEat()) < fEatWait )
+            eatStatus |= EAT__PREVENTED__EATWAIT;
+
+        AgentAttachedData::set( c, fEatStatusSlot, (AgentAttachedData::SlotData)eatStatus );
+
+        // If collaborative eating feature is enabled.
+        if( fMinEatCollaborators >= 0.0 )
+        {
+            // If agent is not prevented from eating and desires to eat, then add as collaborator.
+            if( !(eatStatus & EAT__PREVENTED) && (eatStatus & EAT__DESIRED) )
+            {
+                objectxsortedlist::gXSortedObjects.setMark( AGENTTYPE ); // so we can restore position later.
+
+                food *f;
+
+                // Search backward in list.
+                while( objectxsortedlist::gXSortedObjects.prevObj( FOODTYPE, (gobject**) &f ) )
+                {
+                    if( (f->x() + 2.0*food::gMaxFoodRadius) < (c->x() - c->radius()) )
+                        // Stop searching in this direction, no more intersections possible.
+                        break;
+
+                    if( ((f->x() + f->radius()) > (c->x() - c->radius()) ) &&
+                        (fabs( f->z() - c->z() ) < (f->radius() + c->radius())) )
+                    {
+                        // Food and agent intersect.
+                        f->addCollaborator( fStep );
+                    }
+                }
+
+                objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point back to c
+
+                // Search forward in list.
+                while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
+                {
+                    if( (f->x() - f->radius()) > (c->x() + c->radius()) )
+                        // Stop searching in this direction.
+                        break;
+
+                    if( fabs( f->z() - c->z() ) < (f->radius() + c->radius()) )
+                    {
+                        // Food and agent intersect.
+                        f->addCollaborator( fStep );
+                    }
+                }
+
+                objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point back to c
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------------------------
+// TSimulation::FindFood
+//
+// Returns true if the agent is in contact with food. If the agent is allowed
+// to eat that food, then *result is non-null.
+//---------------------------------------------------------------------------
+bool TSimulation::FindFood(agent *c, food **result)
+{
+    food *f;
+    bool found = false;
+    size_t eatStatus = (size_t)AgentAttachedData::get( c, fEatStatusSlot );
+
+    *result = NULL;
 
 	// Just to be slightly more like the old multi-x-sorted list version of the code, look backwards first
-
 	// set the list back to the agent mark, so we can look backward from that point
 	objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
 
-	if( IS_PREVENTED_BY_CARRY(Eat, c) )
-	{
-		eatAllowed = false;
-	}
-	if( c->NormalizedSpeed() > fMaxEatVelocity )
-	{
-		eatAllowed = false;
-		eatFailedVel = true;
-	}
-	else if( c->NormalizedSpeed() < fMinEatVelocity )
-	{
-		eatAllowed = false;
-		eatFailedVel = true;
-	}
-	if( fabs(c->NormalizedYaw()) > fMaxEatYaw )
-	{
-		eatAllowed = false;
-		eatFailedYaw = true;
-	}
-	if( c->Age() < c->GetMetabolism()->minEatAge )
-	{
-		eatAllowed = false;
-		eatFailedMinAge = true;
-	}
-	if( (fStep - c->LastEat()) < fEatWait )
-	{
-		eatAllowed = false;
-	}
-
-	// look for food in the -x direction
-	ateBackwardFood = false;
-#if CompatibilityMode
 	// go backwards in the list until we reach a place where even the largest possible piece of food
 	// would entirely precede our agent, and no smaller piece of food sorting after it, but failing
 	// to reach the agent can prematurely terminate the scan back (hence the factor of 2.0),
@@ -2762,113 +2808,92 @@ void TSimulation::Eat( agent *c, bool *cDied )
 	while( objectxsortedlist::gXSortedObjects.prevObj( FOODTYPE, (gobject**) &f ) )
 		if( (f->x() + 2.0*food::gMaxFoodRadius) < (c->x() - c->radius()) )
 			break;
-#else // CompatibilityMode
-	while( objectxsortedlist::gXSortedObjects.prevObj( FOODTYPE, (gobject**) &f ) )
-	{
-		if( (f->x() + f->radius()) < (c->x() - c->radius()) )
-		{
-			// end of food comes before beginning of agent, so there is no overlap
-			// if we've gone so far back that the largest possible piece of food could not overlap us,
-			// then we can stop searching for this agent's possible foods in the backward direction
-			if( (f->x() + 2.0*food::gMaxFoodRadius) < (c->x() - c->radius()) )
-				break;  // so get out of the backward food while loop
-		}
-		else
-		{
-			// beginning of food comes before end of agent, so there is overlap in x
-			// time to check for overlap in z
-			if( fabs( f->z() - c->z() ) < ( f->radius() + c->radius() ) )
-			{
-				eatAttempted = true;
-				if( !eatAllowed )
-					break;
-				// also overlap in z, so they really interact
-				ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
-				Energy foodEnergyLost;
-				Energy energyEaten;
-				c->eat( f, fEatFitnessParameter, fEat2Consume, fEatThreshold, fStep, foodEnergyLost, energyEaten );
-				logs->postEvent( EnergyEvent(c, f, c->Eat(), energyEaten, EnergyEvent::Eat) );
-				if( fEvents )
-					fEvents->AddEvent( fStep, c->Number(), 'e' );
 
-				FoodEnergyOut( foodEnergyLost );
-				fEnergyEaten += energyEaten;
+    // look for food in the +x direction
+    while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
+    {
+        if( fMinEatCollaborators >= 0.0 )
+        {
+            bool proceed = false;
+            float delta = fMinEatCollaborators - f->getCollaboratorCount(fStep);
 
-				eatPrint( "at step %ld, agent %ld at (%g,%g) with rad=%g wasted %g units of food at (%g,%g) with rad=%g\n", fStep, c->Number(), c->x(), c->z(), c->radius(), foodEaten, f->x(), f->z(), f->radius() );
+            if( delta <= 0.0 )
+                // Enough collaborators.
+                proceed = true;
+            else if( delta < 1.0 )
+                // Short by just a fraction. Chance of success.
+                proceed = randpw() > delta;
+            else
+                proceed = false;
 
-				if( f->isDepleted() || fFoodRemoveFirstEat )  // all gone
-				{
-					RemoveFood( f );
-				}
+            if( !proceed )
+            {
+                eatStatus |= EAT__PREVENTED__COLLAB;
+                continue;
+            }
+            else
+            {
+                eatStatus &= ~EAT__PREVENTED__COLLAB;
+            }
+        }
 
-				// but this guy only gets to eat from one food source
-				ateBackwardFood = true;
-				break;  // so get out of the backward food while loop
-			}
-		}
-	}	// backward while loop on food
-#endif // CompatibilityMode
+        if( (f->x() - f->radius()) > (c->x() + c->radius()) )
+        {
+            // beginning of food comes after end of agent, so there is no overlap,
+            // and we can stop searching for this agent's possible foods in the forward direction
+            break;
+        }
+        else
+        {
+            if( ((f->x() + f->radius()) > (c->x() - c->radius()))  &&		// end of food comes after beginning of agent, and
+                (fabs( f->z() - c->z() ) < (f->radius() + c->radius())) )	// there is overlap in z
+            {
+                found = true;
+                *result = f;
+                break;
+            }
+        }
+    }
 
-	if( !ateBackwardFood && !eatAttempted )
-	{
-	#if ! CompatibilityMode
-		// set the list back to the agent mark, so we can look forward from that point
-		objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
-	#endif
+    AgentAttachedData::set( c, fEatStatusSlot, (AgentAttachedData::SlotData)eatStatus );
 
-		// look for food in the +x direction
-		while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
-		{
-			if( (f->x() - f->radius()) > (c->x() + c->radius()) )
-			{
-				// beginning of food comes after end of agent, so there is no overlap,
-				// and we can stop searching for this agent's possible foods in the forward direction
-				break;  // so get out of the forward food while loop
-			}
-			else
-			{
-	#if CompatibilityMode
-				if( ((f->x() + f->radius()) > (c->x() - c->radius()))  &&		// end of food comes after beginning of agent, and
-					(fabs( f->z() - c->z() ) < (f->radius() + c->radius())) )	// there is overlap in z
-	#else
-				// beginning of food comes before end of agent, so there is overlap in x
-				// time to check for overlap in z
-				if( fabs( f->z() - c->z() ) < (f->radius() + c->radius()) )
-	#endif
-				{
-					eatAttempted = true;
-					if( !eatAllowed )
-						break;
-					// also overlap in z, so they really interact
-					ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
-					Energy foodEnergyLost;
-					Energy energyEaten;
-					c->eat( f, fEatFitnessParameter, fEat2Consume, fEatThreshold, fStep, foodEnergyLost, energyEaten );
-					logs->postEvent( EnergyEvent(c, f, c->Eat(), energyEaten, EnergyEvent::Eat) );
-					if( fEvents )
-						fEvents->AddEvent( fStep, c->Number(), 'e' );
+    return found;
+}
 
-					FoodEnergyOut( foodEnergyLost );
-					fEnergyEaten += energyEaten;
+//---------------------------------------------------------------------------
+// TSimulation::Eat
+//---------------------------------------------------------------------------
+void TSimulation::Eat( agent *c, bool *cDied )
+{
+    food *f;
+    if( FindFood(c, &f) )
+    {
+        size_t eatStatus = (size_t)AgentAttachedData::get( c, fEatStatusSlot );
 
-					eatPrint( "at step %ld, agent %ld at (%g,%g) with rad=%g wasted %g units of food at (%g,%g) with rad=%g\n", fStep, c->Number(), c->x(), c->z(), c->radius(), foodEaten, f->x(), f->z(), f->radius() );
+        if( (f != NULL) && !(eatStatus & EAT__PREVENTED) )
+        {
+            // also overlap in z, so they really interact
+            ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
+            Energy foodEnergyLost;
+            Energy energyEaten;
+            c->eat( f, fEatFitnessParameter, fEat2Consume, fEatThreshold, fStep, foodEnergyLost, energyEaten );
+            logs->postEvent( EnergyEvent(c, f, c->Eat(), energyEaten, EnergyEvent::Eat) );
+            if( fEvents )
+                fEvents->AddEvent( fStep, c->Number(), 'e' );
 
-					if( f->isDepleted() || fFoodRemoveFirstEat )  // all gone
-					{
-						RemoveFood( f );
-					}
+            FoodEnergyOut( foodEnergyLost );
+            fEnergyEaten += energyEaten;
 
-					// but this guy only gets to eat from one food source
-					break;  // so get out of the forward food while loop
-				}
-			}
-		} // forward while loop on food
-	} // if( !ateBackwardFood )
+            eatPrint( "at step %ld, agent %ld at (%g,%g) with rad=%g wasted %g units of food at (%g,%g) with rad=%g\n", fStep, c->Number(), c->x(), c->z(), c->radius(), foodEaten, f->x(), f->z(), f->radius() );
 
-	if( eatAttempted )
-	{
-		fEatStatistics.AgentEatAttempt( eatAllowed, eatFailedYaw, eatFailedVel, eatFailedMinAge );
-	}
+            if( f->isDepleted() || fFoodRemoveFirstEat )  // all gone
+            {
+                RemoveFood( f );
+            }
+        }
+
+		fEatStatistics.AgentEatAttempt( eatStatus );
+    }
 
 	objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
 	if( !fLockStepWithBirthsDeathsLog )
@@ -4180,6 +4205,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fCarryPreventsMate = doc.get( "CarryPreventsMate" );
 
 	fEatWait = doc.get( "EatWait" );
+    fMinEatCollaborators = doc.get( "MinEatCollaborators" );
     fMateWait = doc.get( "MateWait" );
 	fEatMateSpan = doc.get( "EatMateWait" );
 	fEatMateMinDistance = doc.get( "EatMateMinDistance" );

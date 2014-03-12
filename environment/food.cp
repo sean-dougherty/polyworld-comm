@@ -134,6 +134,32 @@ long food::getAge(long step)
 	return step - fCreationStep;
 }
 
+//-------------------------------------------------------------------------------------------
+// food::addCollaborator
+//-------------------------------------------------------------------------------------------
+void food::addCollaborator(long step)
+{
+    if( step != collaborators.step )
+    {
+        collaborators.step = step;
+        collaborators.n = 1;
+    }
+    else
+    {
+        collaborators.n++;
+    }
+}
+
+//-------------------------------------------------------------------------------------------
+// food::getCollaboratorCount
+//-------------------------------------------------------------------------------------------
+long food::getCollaboratorCount( long step )
+{
+    if( step != collaborators.step )
+        return 0;
+    else
+        return collaborators.n;
+}
 
 //-------------------------------------------------------------------------------------------
 // food::initfood
@@ -196,6 +222,7 @@ void food::initrest()
 	setType( FOODTYPE );
 	setTypeNumber( ++food::fFoodEver );
 	setcolor( foodType->color );
+    collaborators.step = -1;
 }
 
 

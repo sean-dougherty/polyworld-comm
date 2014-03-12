@@ -5,6 +5,8 @@
 #include <iostream>
 #include <limits>
 
+#include "simconst.h"
+
 using namespace std;
 
 #define EAT_STATS_AVERAGE_STEPS 100
@@ -93,16 +95,16 @@ void EatStatistics::StepEnd()
 	} 
 }
 
-void EatStatistics::AgentEatAttempt( bool success, bool failedYaw, bool failedVel, bool failedMinAge )
+void EatStatistics::AgentEatAttempt( size_t eatStatus )
 {
 	step.numAttempts++;
 
-	if( !success )
+	if( eatStatus & EAT__PREVENTED )
 	{
 		step.numFailed++;
-		if( failedYaw )
+		if( eatStatus & EAT__PREVENTED__YAW )
 			step.numFailedYaw++;
-		if( failedVel )
+		if( eatStatus & EAT__PREVENTED__VELOCITY )
 			step.numFailedVel++;
 	}
 }

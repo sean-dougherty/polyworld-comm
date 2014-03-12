@@ -9,7 +9,7 @@ class EatStatistics
 	void Init();
 	void StepBegin();
 	void StepEnd();
-	void AgentEatAttempt( bool success, bool failedYaw, bool failedVel, bool failedMinAge );
+	void AgentEatAttempt( size_t eatStatus );
 
 	const float *GetProperty( const std::string &name );
 

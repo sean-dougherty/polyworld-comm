@@ -196,6 +196,8 @@ private:
 			   AgentContactBeginEvent *contactEvent,
 			   bool *xDied,
 			   bool toMarkOnDeath );
+    void UpdateEatStatus();
+    bool FindFood(agent *c, food **result);
 	void Eat( agent *c,
 			  bool *cDied );
 	void Carry( agent *c );
@@ -322,9 +324,11 @@ private:
 	float fMinEatVelocity;
 	float fMaxEatVelocity;
 	float fMaxEatYaw;
+    float fMinEatCollaborators;
 	EatStatistics fEatStatistics;
 	long fEatMateSpan;
 	float fEatMateMinDistance;
+    AgentAttachedData::SlotHandle fEatStatusSlot;
 	float fFightThreshold;
 	float fFightFraction;
 	enum
