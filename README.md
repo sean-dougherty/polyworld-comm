@@ -62,3 +62,27 @@ Now, let's see if Polyworld runs on your machine. Execute the following:
 ```
 You should see a graphical window appear containing a 3D simulation.
 
+# Collaborating on the Project
+
+## Getting source/worldfile updates from Github
+
+To download updates posted to Github by another author, you should first open
+a terminal and then change directories to where you original downloaded the
+source. For example, if you originally downloaded to ~/polyworld-comm, then
+you would execute:
+
+```
+cd ~/polyworld-comm
+```
+
+Next, download the github content:
+
+```
+git pull origin master
+```
+
+Finally, you should do a build to make sure your binaries are current:
+
+```
+make
+```
