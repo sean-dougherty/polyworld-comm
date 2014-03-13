@@ -148,7 +148,7 @@ SeedAgents 180
 ```
 
 If you want to preserve agent position information, then you must include
-the following in A's worldfile:
+the following in B's worldfile:
 
 ```
 SeedPositionFromRun True
@@ -171,7 +171,7 @@ mkdir -p runs/comm/predator/deaf/0.0-motionless-eating
 mv run runs/comm/predator/deaf/0.0-motionless-eating/run_0
 ```
 
-### 4. Create ./seedGenomes.txt
+### 4. Create ./seedGenomes.txt and ./seedPositions.txt
 
 Simulation B requires the presence of the file *./genomeSeeds.txt*, which
 can be conveniently generated with the tool *scripts/genomeSeed*. The tool
@@ -185,6 +185,13 @@ assuming the run directory is located at
 
 ```
 ./scripts/genomeSeed runs/comm/predator/deaf/0.0-motionless-eating/run_0
+```
+
+If would you like to also import agent positions, then you must specify the
+*--pos* flag:
+
+```
+./scripts/genomeSeed --pos runs/comm/predator/deaf/0.0-motionless-eating/run_0
 ```
 
 ### 5. Execute Simulation B
