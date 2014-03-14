@@ -1185,7 +1185,7 @@ void TSimulation::ReadSeedFilePaths()
 		exit( 1 );
 	}
 
-	SYSTEM( "cp genomeSeeds.txt run/genome" );
+	SYSTEM( "mkdir -p run/genome ; cp genomeSeeds.txt run/genome" );
 
 	char buf[1024 * 4];
 	while( !in.eof() )

@@ -117,12 +117,12 @@ important in simulations that have distinct sub-populations, then you must
 have the following in A's worldfile:
 
 ```
-RecordPosition Approximate
+RecordPosition Precise
 ```
 
-You may also use the *RecordAll* property to cause the recording of positions,
-but this will result in the much larger *Precise* positions log, which takes
-more disk space.
+You may also use the *RecordAll* property to cause the recording of positions.
+Note that there is also an *Approximate* setting for the position log, but
+that format is not currently supported by the seed code.
 
 ### 2. Worldfile B: Seed from run
 
