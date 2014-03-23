@@ -1,0 +1,13 @@
+/.bld/
+/.sconsign.dblite
+/bin/
+/src/
+/tmp/
+/run/
+/run_*/
+/runs/
+/Polyworld
+*.pyc
+/*.wf
+/genomeSeeds.txt
+/seedPositions.txt
