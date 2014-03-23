@@ -84,6 +84,6 @@ void HearingSensor::Receptor::update(std::vector<Sound> &sounds) {
 
     for(int i = 0; i < globals::numSoundFrequencies; i++) {
         nerve->set( neuron_index + i,
-                    max(1.0f, total_intensity[i]) );
+                    min(1.0f, total_intensity[i]) );
     }
 }
