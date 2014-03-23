@@ -203,6 +203,7 @@ private:
 	void Carry( agent *c );
 	void Pickup( agent *c );
 	void Drop( agent *c );
+    void Voice( agent *c );
 	void Fitness( agent *c );
 	void CreateAgents();
 	void MaintainBricks();
@@ -340,6 +341,9 @@ private:
 	float fGiveFraction;
 	float fPickupThreshold;
 	float fDropThreshold;
+    float fVoiceThreshold;
+    float fVoiceFrequencyRange;
+    float fMaxVoiceRadius;
 	
 	long fNumberAlive;
 	long fNumberAliveWithMetabolism[ MAXMETABOLISMS ];

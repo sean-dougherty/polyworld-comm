@@ -52,6 +52,7 @@ public:
 	static bool		blockedEdges;
 	static bool     stickyEdges;
 	static int      numEnergyTypes;
+    static int      numSoundFrequencies;
 	static AbstractFile::ConcreteFileType recordFileType;
 };
 

@@ -1026,6 +1026,26 @@ EyeHeight {
   max     1.0
 }
 
+EnableVoice {
+  type    Bool
+  default False
+}
+
+MaxVoiceRadius {
+  type    Float
+  default 10.0
+}
+
+NumSoundFrequencies {
+  type    Int
+  default 2
+}
+
+EnableHearing {
+  type    Bool
+  default False
+}
+
 BodyRedChannel {
   type    Enum
   default Fight
@@ -2044,6 +2064,11 @@ DropThreshold {
   default 0.5
 }
 
+VoiceThreshold {
+  type    Float
+  default 0.2
+}
+
 FightMode {
   type    Enum
   default Normal
@@ -2143,6 +2168,11 @@ EnergyUseCarryFood {
 EnergyUseCarryBrick {
   type    Float
   default 0.01
+}
+
+EnergyUseVoice {
+  type    Float
+  default 0.01;
 }
 
 EnergyUseNeurons {

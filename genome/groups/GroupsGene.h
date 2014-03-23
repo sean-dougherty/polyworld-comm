@@ -100,7 +100,8 @@ namespace genome
 	{
 	public:
 		ImmutableNeurGroupGene( const char *name,
-								NeurGroupType group_type );
+								NeurGroupType group_type,
+                                int neuronCount = 1);
 		virtual ~ImmutableNeurGroupGene() {}
 
 		virtual Scalar get( Genome *genome );

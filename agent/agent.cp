@@ -30,6 +30,7 @@
 #include "GroupsBrain.h"
 #include "misc.h"
 #include "Logs.h" // tmp include
+#include "HearingSensor.h"
 #include "MateWaitSensor.h"
 #include "Metabolism.h"
 #include "NervousSystem.h"
@@ -41,8 +42,6 @@
 #include "SpeedSensor.h"
 
 using namespace genome;
-
-#pragma mark -
 
 // UniformPopulationEnergyPenalty controls whether or not the population energy penalty
 // is the same for all agents (1) or based on each agent's own maximum energy capacity (0).
@@ -162,6 +161,7 @@ void agent::processWorldfile( proplib::Document &doc )
 	agent::config.drop2Energy = doc.get( "EnergyUseDrop" );
 	agent::config.carryAgent2Energy = doc.get( "EnergyUseCarryAgent" );
 	agent::config.carryAgentSize2Energy = doc.get( "EnergyUseCarryAgentSize" );
+    agent::config.voice2Energy = doc.get( "EnergyUseVoice" );
     agent::config.fixedEnergyDrain = doc.get( "EnergyUseFixed" );
 
 	agent::config.enableMateWaitFeedback = doc.get( "EnableMateWaitFeedback" );
@@ -170,6 +170,8 @@ void agent::processWorldfile( proplib::Document &doc )
 	agent::config.enableCarry = doc.get( "EnableCarry" );
 	agent::config.enableVisionPitch = doc.get( "EnableVisionPitch" );
 	agent::config.enableVisionYaw = doc.get( "EnableVisionYaw" );
+	agent::config.enableVoice = doc.get( "EnableVoice" );
+	agent::config.enableHearing = doc.get( "EnableHearing" );
 }
 
 //---------------------------------------------------------------------------
@@ -190,7 +192,8 @@ agent::agent(TSimulation* sim, gstage* stage)
 		fMateWaitSensor(NULL),
 		fSpeedSensor(NULL),
 		fCarryingSensor(NULL),
-		fBeingCarriedSensor(NULL)
+        fBeingCarriedSensor(NULL),
+        fHearingSensor(NULL)
 {
 	Q_CHECK_PTR(sim);
 	Q_CHECK_PTR(stage);
@@ -248,6 +251,7 @@ agent::~agent()
 	delete fCarryingSensor;
 	delete fBeingCarriedSensor;
 	delete fRetina;
+    delete fHearingSensor;
 
 	AgentAttachedData::dispose( this );
 }
@@ -362,9 +366,6 @@ void agent::agentload(istream&)
     }
 #endif
 }
-
-
-#pragma mark -
 
 
 //---------------------------------------------------------------------------
@@ -492,6 +493,8 @@ void agent::grow( long mateWait )
 	INPUT_NERVE( "Red" );
 	INPUT_NERVE( "Green" );
 	INPUT_NERVE( "Blue" );
+    if( agent::config.enableHearing )
+        INPUT_NERVE( "Hearing" );
 #undef INPUT_NERVE
 
 	// ---
@@ -518,6 +521,8 @@ void agent::grow( long mateWait )
 		OUTPUT_NERVE(pickup, "Pickup");
 		OUTPUT_NERVE(drop, "Drop");
 	}
+    if( agent::config.enableVoice )
+        OUTPUT_NERVE(voice, "Voice");
 #undef OUTPUT_NERVE
 
 	// ---
@@ -530,13 +535,13 @@ void agent::grow( long mateWait )
 		fCns->addSensor( fMateWaitSensor = new MateWaitSensor(this, mateWait) );
 	if( agent::config.enableSpeedFeedback )
 		fCns->addSensor( fSpeedSensor = new SpeedSensor(this) );
-	if( agent::config.enableSpeedFeedback )
-		fCns->addSensor( fSpeedSensor = new SpeedSensor(this) );
 	if( agent::config.enableCarry )
 	{
 		fCns->addSensor( fCarryingSensor = new CarryingSensor(this) );
 		fCns->addSensor( fBeingCarriedSensor = new BeingCarriedSensor(this) );
 	}
+    if( agent::config.enableHearing )
+        fCns->addSensor( fHearingSensor = new HearingSensor(this) );
 
 	// ---
 	// --- Grow Nervous System (Brain)
@@ -781,6 +786,12 @@ Energy agent::mating( float mateFitnessParam, long mateWait, bool lockstep )
 	return mymateenergy;
 }
     
+//---------------------------------------------------------------------------
+// agent::sound
+//---------------------------------------------------------------------------        
+void agent::sound(float intensity, int frequency, float x, float z) {
+    fHearingSensor->add_sound(intensity, frequency, x, z);
+}
 
 //---------------------------------------------------------------------------
 // agent::rewardmovement
@@ -1000,7 +1011,7 @@ float agent::UpdateBody( float moveFitnessParam,
 		setx( carrier->x() );
 		setz( carrier->z() );
 		dx = x() - LastX();
-		dz = z() - LastX();
+		dz = z() - LastZ();
 	}
 	else  // this is a normal update (the agent is not being carried)
 	{
@@ -1057,6 +1068,11 @@ float agent::UpdateBody( float moveFitnessParam,
 	{
 		energyused += CarryEnergy();	// depends on number and size of items being carried
 	}
+
+    if( agent::config.enableVoice )
+    {
+        energyused += outputNerves.voice->get() * agent::config.voice2Energy;
+    }
 
     float denergy = energyused * Strength();
 

@@ -37,6 +37,7 @@ class CarryingSensor;
 class DataLibWriter;
 class EnergySensor;
 class food;
+class HearingSensor;
 class MateWaitSensor;
 class Metabolism;
 class NervousSystem;
@@ -87,6 +88,7 @@ public:
 		float	drop2Energy;
 		float	carryAgent2Energy;
 		float	carryAgentSize2Energy;
+        float   voice2Energy;
 		float	fixedEnergyDrain;
 		float	maxCarries;
 		bool	vision;
@@ -123,6 +125,8 @@ public:
 		bool	enableCarry;
 		bool	enableVisionPitch;
 		bool	enableVisionYaw;
+        bool    enableVoice;
+        bool    enableHearing;
 		
 	} config;
 
@@ -170,6 +174,7 @@ public:
     Energy damage(const Energy &e, bool nullMode);
     float MateProbability(agent* c);
     Energy mating( float mateFitnessParam, long mateWait, bool lockstep );
+    void sound(float intensity, int frequency, float x, float z);
     void rewardmovement(float moveFitnessParam, float speed2dpos);
     void lastrewards(float energyFitness, float ageFitness);
     void Die();
@@ -208,6 +213,7 @@ public:
     float Mate();
 	float Pickup();
 	float Drop();
+    float Voice();
     float Size();
     long Age();
     long MaxAge();
@@ -317,6 +323,7 @@ protected:
 	SpeedSensor *fSpeedSensor;
 	CarryingSensor *fCarryingSensor;
 	BeingCarriedSensor *fBeingCarriedSensor;
+    HearingSensor *fHearingSensor;
 	struct OutputNerves
 	{
 		Nerve *eat;
@@ -332,6 +339,7 @@ protected:
 		Nerve *give;
 		Nerve *pickup;
 		Nerve *drop;
+        Nerve *voice;
 	} outputNerves;
 
     gcamera fCamera;
@@ -384,6 +392,7 @@ inline float agent::Strength() { return geneCache.strength; }
 inline float agent::Mate() { return outputNerves.mate->get(); }
 inline float agent::Pickup() { return outputNerves.pickup->get(); }
 inline float agent::Drop() { return outputNerves.drop->get(); }
+inline float agent::Voice() { return outputNerves.voice->get(); }
 inline float agent::Size() { return geneCache.size; }
 inline long agent::Age() { return fAge; }
 inline long agent::MaxAge() { return geneCache.lifespan; }

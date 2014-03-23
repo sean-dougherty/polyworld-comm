@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "GroupsBrain.h"
 #include "GroupsGenome.h"
+#include "HearingSensor.h"
 
 using namespace genome;
 
@@ -55,6 +56,9 @@ void GroupsGenomeSchema::define()
 
 #define INPUT1(NAME) add( new ImmutableNeurGroupGene(#NAME,			\
 													 NGT_INPUT) )
+#define INPUTN(NAME, NEURCOUNT) add( new ImmutableNeurGroupGene(#NAME,  \
+                                                                NGT_INPUT, \
+                                                                NEURCOUNT) )
 #define INPUT(NAME, MINNEUR, MAXNEUR) add( new MutableNeurGroupGene(#NAME, \
 																	NGT_INPUT, \
 																	MINNEUR, \
@@ -95,6 +99,8 @@ void GroupsGenomeSchema::define()
 	INPUT( Blue,
 		   GroupsBrain::config.minvisneurpergroup,
 		   GroupsBrain::config.maxvisneurpergroup );
+    if( agent::config.enableHearing )
+        INPUTN( Hearing, HearingSensor::ReceptorCount * globals::numSoundFrequencies );
 
 	OUTPUT( Eat );
 	OUTPUT( Mate );
@@ -120,6 +126,11 @@ void GroupsGenomeSchema::define()
 		OUTPUT( Pickup );
 		OUTPUT( Drop );
 	}
+
+    if( agent::config.enableVoice )
+    {
+        OUTPUT( Voice );
+    }
 
 	INTERNAL( InternalNeuronGroupCount,
 			  GroupsBrain::config.mininternalneurgroups,

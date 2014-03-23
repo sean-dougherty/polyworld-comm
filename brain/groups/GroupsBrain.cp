@@ -81,6 +81,8 @@ void GroupsBrain::init()
 		numinputneurgroups++;
 	if( agent::config.enableCarry )
 		numinputneurgroups += 2;
+    if( agent::config.enableHearing )
+        numinputneurgroups++;
 	config.numinputneurgroups = numinputneurgroups;
 
 	int numoutneurgroups = 7;
@@ -88,6 +90,8 @@ void GroupsBrain::init()
 		numoutneurgroups++;
 	if( agent::config.enableCarry )
 		numoutneurgroups += 2;
+    if( agent::config.enableVoice )
+        numoutneurgroups++;
 	config.numoutneurgroups = numoutneurgroups;
 
     config.maxnoninputneurgroups = config.maxinternalneurgroups + config.numoutneurgroups;

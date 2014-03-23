@@ -291,6 +291,9 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	GenomeSchema::processWorldfile( *worldfile );
 	Brain::processWorldfile( *worldfile );
 
+    // Use 0.001f fudge factor so that voice frequency index < numSoundFrequences (see Voice())
+    fVoiceFrequencyRange = 0.001f + (1.0f - fVoiceThreshold) / globals::numSoundFrequencies;
+
 	// If this is a lockstep run, then we need to force certain parameter values (and warn the user)
 	if( fLockStepWithBirthsDeathsLog )
 	{
@@ -1787,6 +1790,12 @@ void TSimulation::Interact()
 		if( agent::config.enableCarry )
 			Carry( c );
 
+        // -----------------------
+        // -------- Voice --------
+        // -----------------------
+        if( agent::config.enableVoice )
+            Voice( c );
+
 		// -----------------------
 		// ------- Fitness -------
 		// -----------------------
@@ -3031,6 +3040,43 @@ void TSimulation::Drop( agent* c )
 }
 
 //---------------------------------------------------------------------------
+// TSimulation::Voice
+//---------------------------------------------------------------------------
+void TSimulation::Voice( agent* c )
+{
+    float voice = c->Voice();
+    if( voice < fVoiceThreshold )
+        return;
+
+    int frequency = int( (voice - fVoiceThreshold) / fVoiceFrequencyRange );
+    const float intensity = 1.0;
+    
+    agent *receiver;
+    objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE );
+    while( objectxsortedlist::gXSortedObjects.prevObj( AGENTTYPE, (gobject**) &receiver ) )
+    {
+        if( (receiver->x() - receiver->radius() + agent::config.maxRadius) < c->x() - fMaxVoiceRadius )
+            break;
+
+        if( (receiver->x() > c->x() - fMaxVoiceRadius) && (fabs(receiver->z() - c->z()) < fMaxVoiceRadius)  )
+            receiver->sound(intensity, frequency, c->x(), c->z());
+    }
+
+    objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE );
+
+    while( objectxsortedlist::gXSortedObjects.nextObj( AGENTTYPE, (gobject**) &receiver ) )
+    {
+        if( receiver->x() > c->x() + fMaxVoiceRadius )
+            break;
+
+        if( (receiver->x() < c->x() + fMaxVoiceRadius) && (fabs(receiver->z() - c->z()) < fMaxVoiceRadius)  )
+            receiver->sound(intensity, frequency, c->x(), c->z());
+    }
+
+    objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE );
+}
+
+//---------------------------------------------------------------------------
 // TSimulation::Fitness
 //---------------------------------------------------------------------------
 void TSimulation::Fitness( agent *c )
@@ -4109,6 +4155,8 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 			assert( false );
 	}
 	globals::numEnergyTypes = doc.get( "NumEnergyTypes" );
+    globals::numSoundFrequencies = doc.get( "NumSoundFrequencies" );
+    fMaxVoiceRadius = doc.get( "MaxVoiceRadius" );
 	fStaticTimestepGeometry = doc.get( "StaticTimestepGeometry" );
 	if( fStaticTimestepGeometry )
 	{
@@ -4248,6 +4296,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		__SET( "Bricks", BRICK );
 #undef __SET
 	}
+    fVoiceThreshold = doc.get( "VoiceThreshold" );
     food::gFoodHeight = doc.get( "FoodHeight" );
     food::gFoodColor = doc.get( "FoodColor" );
 	brick::gBrickHeight = doc.get( "BrickHeight" );

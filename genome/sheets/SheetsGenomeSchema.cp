@@ -204,6 +204,8 @@ void SheetsGenomeSchema::define()
 		const IntMinMax VisionNeuronCount( SheetsBrain::config.minVisionNeuronsPerSheet,
 										   SheetsBrain::config.maxVisionNeuronsPerSheet );
 
+        errif( agent::config.enableHearing || agent::config.enableVoice, "Implement sheets sound support." );
+
 		// If you are adding a new input, please append to this list in order to maintain stable layout.
 		vector<InputSheetDef> defs =
 			{

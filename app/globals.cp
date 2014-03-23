@@ -13,5 +13,6 @@ bool	globals::wraparound;	// agent, sceneview, simulation
 bool	globals::blockedEdges;	// agent, simulation
 bool	globals::stickyEdges;
 int     globals::numEnergyTypes;
+int     globals::numSoundFrequencies;
 AbstractFile::ConcreteFileType globals::recordFileType;
 
