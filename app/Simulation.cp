@@ -3050,6 +3050,8 @@ void TSimulation::Voice( agent* c )
 
     int frequency = int( (voice - fVoiceThreshold) / fVoiceFrequencyRange );
     const float intensity = 1.0;
+
+    logs->postEvent( VoiceEvent(c, frequency) );
     
     agent *receiver;
     objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE );

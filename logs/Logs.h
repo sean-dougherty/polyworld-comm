@@ -304,4 +304,16 @@ class Logs
 		std::list<class agent *> _births;
 	} _separation;
 
+	//===========================================================================
+	// VoiceLog
+	//===========================================================================
+	class VoiceLog : public DataLibLogger
+	{
+	protected:
+		virtual void init( class TSimulation *sim, proplib::Document *doc );
+		virtual void processEvent( const sim::AgentBirthEvent &birth );
+		virtual void processEvent( const sim::AgentDeathEvent &death );
+		virtual void processEvent( const sim::VoiceEvent &e );
+	} _voice;
+
 };

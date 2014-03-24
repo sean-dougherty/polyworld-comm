@@ -42,6 +42,7 @@ namespace sim
 	static const EventType Event_BrainAnalysisEnd = (1 << 13);
 	static const EventType Event_StepEnd = (1 << 14);
 	static const EventType Event_EpochEnd = (1 << 15);
+	static const EventType Event_Voice = (1 << 16);
 
 	//===========================================================================
 	// SimInitedEvent
@@ -289,6 +290,19 @@ namespace sim
 		EpochEndEvent( long _epoch ) : epoch(_epoch) {}
 
 		long epoch;
+	};
+
+	//===========================================================================
+	// VoiceEvent
+	//===========================================================================
+	struct VoiceEvent
+	{
+		inline EventType getType() const { return Event_Voice; }
+
+        VoiceEvent( agent *a_, int frequency_ ) : a(a_), frequency(frequency_) {}
+
+		agent *a;
+        int frequency;
 	};
 
 	//===========================================================================

@@ -1440,3 +1440,63 @@ void Logs::SeparationLog::processEvent( const sim::StepEndEvent &e )
 		_births.clear();
 	}
 }
+
+//===========================================================================
+// VoiceLog
+//===========================================================================
+
+//---------------------------------------------------------------------------
+// Logs::VoiceLog::init
+//---------------------------------------------------------------------------
+void Logs::VoiceLog::init( TSimulation *sim, Document *doc )
+{
+	if( (bool)doc->get("RecordVoice") )
+	{
+		initRecording( sim,
+					   AgentStateScope,
+					   sim::Event_Voice
+                       | sim::Event_AgentBirth
+                       | sim::Event_AgentDeath );
+	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::VoiceLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::VoiceLog::processEvent( const sim::AgentBirthEvent &e )
+{
+	if( e.reason == LifeSpan::BR_VIRTUAL )
+		return;
+
+	char path[512];
+	sprintf( path,
+			 "run/sound/voice/voice_%ld.txt",
+			 e.a->getTypeNumber() );
+
+    DataLibWriter *writer = createWriter( e.a, path );
+
+    static const char *colnames[] = {"Timestep", "frequency", NULL};
+    static const datalib::Type coltypes[] = {datalib::INT, datalib::INT};
+    static const char *colformats[] = {"%d", "%d"};
+
+    writer->beginTable( "Voice",
+                        colnames,
+                        coltypes,
+                        colformats );
+}
+
+//---------------------------------------------------------------------------
+// Logs::VoiceLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::VoiceLog::processEvent( const sim::AgentDeathEvent &e )
+{
+	delete getWriter( e.a );
+}
+
+//---------------------------------------------------------------------------
+// Logs::VoiceLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::VoiceLog::processEvent( const VoiceEvent &e )
+{
+    getWriter( e.a )->addRow( getStep(), e.frequency );
+}
