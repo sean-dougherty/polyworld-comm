@@ -1,6 +1,6 @@
 from common_functions import warn
 import itertools
-from math import sqrt
+from math import sqrt, log
 from scipy import stats
 # following special treatment of isnan() is to allow scripts to work with Python 2.5 and earlier
 try:
@@ -511,3 +511,29 @@ def w_to_d(mw, min_weight=0.0):
 
 	return md
 
+####################################################################################
+###
+### FUNCTION entropy
+###
+####################################################################################
+def entropy(population):
+	def log2(x):
+		return log(x,2) if x != 0 else 0
+
+	alphabet = []
+	frequency = {}
+
+	for x in population:
+		try:
+			frequency[x] += 1
+		except:
+			alphabet.append(x)
+			frequency[x] = 1
+
+	P = [ frequency[x] / float(len(population)) for x in alphabet ]
+
+	H = 0
+	for x in P:
+		H -= x * log2(x)
+
+	return H

@@ -738,3 +738,12 @@ def print_matrix(m, fmt):
 			print fmt % (col),
 		print
 
+####################################################################################
+###
+### FUNCTION get_epoch()
+###
+####################################################################################
+def get_epoch(step, epoch_len):
+	step = max(1, step - 1)
+	return (step / epoch_len) * epoch_len
+	

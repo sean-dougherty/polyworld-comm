@@ -1,0 +1,196 @@
+#!/usr/bin/python
+
+import collections
+import getopt
+import os
+import sys
+
+import algorithms
+import common_functions
+import common_logs
+import datalib
+
+DEFAULT_EPOCH = 1000
+
+####################################################################################
+###
+### function main()
+###
+####################################################################################
+def main():
+	epoch_len = DEFAULT_EPOCH
+
+	#
+	# Process command line arguments
+	#
+	shortopts = ''
+	longopts = []
+
+	try:
+		opts, args = getopt.getopt( sys.argv[1:], shortopts, longopts )
+	except getopt.GetoptError, e:
+		show_usage( e )
+
+	for opt, val in opts:
+		if opt == '--epoch':
+			try:
+				epoch_len = int(val)
+			except:
+				show_usage("Invalid epoch (%s). Expecting integer." % val)
+			if epoch_len <= 0:
+				show_usage("Epoch must be > 0")
+
+	if len(args) < 2:
+		show_usage("Missing arguments")
+
+	mode = args[0]
+	arg_paths = args[1:]
+
+	if mode == 've':
+		subpath_log = 'sound/voice/voice_1.txt'
+	else:
+		show_usage("invalid mode (%s)" % mode)
+
+	#
+	# Find run directories
+	#
+	try:
+		run_paths = common_functions.find_run_paths( arg_paths,
+													 subpath_log )
+	except:
+		show_usage(str(sys.exc_info()[1]))
+	
+	#
+	# Process runs
+	#
+	for run in run_paths:
+		if mode == 've':
+			calc_voice_entropy( run, epoch_len )
+		else:
+			raise 'Not implemented: ' + mode
+
+####################################################################################
+###
+### function calc_voice_entropy
+###
+####################################################################################
+def calc_voice_entropy( path_run, epoch_len ):
+	path_output = os.path.join( path_run, 'sound/voice_entropy.txt' )
+	
+	epoch_entropy = collections.OrderedDict()
+
+	#
+	# Get list of all agents with info on birth/deaths timesteps
+	#
+	print 'reading lifespans...',
+	lifespans = common_logs.LifeSpans( path_run )
+	print 'OK'
+
+	status_epoch = -1
+	
+	#
+	# Compute entropy of each agent, updating epoch stats along the way
+	#
+	for agent in lifespans.getAll():
+		#
+		# Determine time of birth/death
+		#
+		birth = lifespans.getBirth( agent )
+		death = lifespans.getDeath( agent )
+		epoch_birth = common_functions.get_epoch( birth, epoch_len )
+		epoch_death = common_functions.get_epoch( death, epoch_len )
+
+		if epoch_birth > status_epoch:
+			print 'Processing step', epoch_birth
+			status_epoch = epoch_birth
+
+		#
+		# Load the voice log
+		#
+		path_voice_log = os.path.join( path_run, 'sound/voice/voice_%d.txt' % agent )
+		voice_table = datalib.parse( path_voice_log, keycolname = 'Timestep' )['Voice']
+
+		#
+		# Create fully populated frequency table, including '-1' for silence.
+		#
+		frequencies = []
+		for step in range(birth, death):
+			try:
+				freq = voice_table[step]['frequency']
+			except:
+				freq = -1
+
+			frequencies.append( freq )
+
+		#
+		# Compute entropy
+		#
+		H = algorithms.entropy( frequencies )
+
+		#
+		# Update epochs to contain agent's entropy
+		#
+		for epoch in range(epoch_birth, epoch_death + epoch_len, epoch_len):
+			try:
+				entropies = epoch_entropy[epoch]
+			except KeyError:
+				entropies = []
+				epoch_entropy[epoch] = entropies
+
+			entropies.append(H)
+
+	#
+	# Process epochs
+	#
+	colnames = ['T', 'mean']
+	coltypes = ['int', 'float']
+	table_entropy = datalib.Table( 'VoiceEntropy', colnames, coltypes )
+
+	for epoch, entropies in epoch_entropy.items():
+		n = len(entropies)
+		sum_ = sum(entropies)
+		mean = sum_ / n
+
+		row = table_entropy.createRow()
+		row['T'] = epoch
+		row['mean'] = mean
+
+	datalib.write( path_output, [table_entropy] )
+
+####################################################################################
+###
+### function show_usage()
+###
+####################################################################################
+
+# 80 columns:
+################################################################################
+def show_usage(msg = None):
+	print """\
+USAGE
+
+	 sound [option]... mode <directory>...
+
+DESCRIPTION
+
+	 Performs a variety of analysis tasks on logs in run/sound
+
+	 Valid modes are:
+
+	   ve : voice entropy
+
+OPTIONS
+
+	 --epoch <steps>
+			   Length of epochs. Used by mode c.
+
+			   (default %d)
+""" % (DEFAULT_EPOCH)
+
+	if msg:
+		print str(msg)
+
+	sys.exit(1)
+	
+
+main()

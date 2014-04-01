@@ -19,6 +19,9 @@ class LifeSpans:
     def getBirth( self, agentNumber ):
         return self.table[agentNumber]['BirthStep']
 
+    def getDeath( self, agentNumber ):
+        return self.table[agentNumber]['DeathStep']
+
     def getBounds( self ):
         lo = sys.maxint
         hi = -lo

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+scripts/plot -l --color adhoc sound/voice_entropy.txt VoiceEntropy T mean : s --y2 -v voice $1
