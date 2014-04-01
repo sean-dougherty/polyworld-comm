@@ -205,3 +205,28 @@ from a previous run. An example line of output follows:
 ```
 seeding agent #1 genome from runs/comm/predator/deaf/0.0-motionless-eating/run_0/genome/agents/genome_184850.txt
 ```
+
+# Simulation Analysis
+
+## Voice Entropy
+
+These instructions assume you are currently in the *polyworld-comm* directory
+in a terminal session and that the run you want to analyze is located at
+./runs/comm/predator/hearing/1.0-collaborative-eating/run_0
+
+### 1. Compute Entropy
+
+Execute the following, which might take a long time:
+
+```
+./scripts/CalcSound ve ./runs/comm/predator/hearing/1.0-collaborative-eating/run_0
+```
+
+### 2. Plot Entropy
+
+Execute the following:
+
+```
+./scripts/comm/plot_voice_entropy ./runs/comm/predator/hearing/1.0-collaborative-eating/run_0
+```
+
