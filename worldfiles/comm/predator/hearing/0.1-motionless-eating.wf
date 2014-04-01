@@ -1,0 +1,130 @@
+@version 2
+
+#
+# Using the final generation from 0.0, this world has a smaller area where
+# food grows.
+#
+
+################################################################################
+#
+# Sound
+#
+################################################################################
+NumSoundFrequencies     2
+EnableVoice             True
+EnableHearing           True
+RecordVoice             True
+
+################################################################################
+#
+# Brain Type
+#
+################################################################################
+NeuronModel         T
+BrainArchitecture   Groups
+
+################################################################################
+#
+# Groups Brain
+#
+################################################################################
+MinInternalNeuralGroups             0
+MaxInternalNeuralGroups             10
+EnableTopologicalDistortionRngSeed  True
+EnableInitWeightRngSeed             True
+
+################################################################################
+#
+# Genome
+#
+################################################################################
+SeedGenomeFromRun   True
+
+GenomeLayout        NeurGroup
+MinMutationRate     0.001
+MaxMutationRate     0.005
+MaxCrossoverPoints  8
+GrayCoding          True
+
+################################################################################
+#
+# Agent
+#
+################################################################################
+EnableCarry         False
+EnableVisionPitch   True   # Allow them to look up/down so they can see patches on ground.
+EnableSpeedFeedback True
+MaxAgentSize        0.75   # Reduced max size to prevent cheap solutions to low MaxEatVelocity
+AgentHeight         1.0
+
+################################################################################
+#
+# Simulation
+#
+################################################################################
+MaxSteps        10000
+MinFood         15
+MaxFood         45
+FoodHeight      2.0
+FoodRemoveEnergy 100.0
+SeedAgents      180
+AgentsAreFood   False
+
+################################################################################
+#
+# Barriers (Brown wall)
+#
+################################################################################
+Barriers
+[
+  {
+    X1  0.0
+    Z1  -1.0
+    X2  0.0
+    Z2  0.0
+  }
+  ,
+  {
+    X1  1.0
+    Z1  -1.0
+    X2  1.0
+    Z2  0.0
+  }
+]
+
+################################################################################
+#
+# Domains
+#
+################################################################################
+Domains
+[
+  {
+    CenterX 0.5
+    CenterZ 0.5
+    SizeX   1.0
+    SizeZ   1.0
+
+    FoodPatches
+    [
+      {
+        SizeX                   1.0 / 2.0
+        SizeZ                   1.0
+        CenterX                 0.5
+        CenterZ                 0.5
+        FoodFraction            1.0
+      }
+    ]
+
+  }
+]
+
+################################################################################
+#
+# Logging
+#
+################################################################################
+RecordBirthsDeaths      True
+RecordGenomes           True
+RecordSeparations       Contact
+CompressFiles           True
