@@ -344,6 +344,7 @@ private:
     float fVoiceThreshold;
     float fVoiceFrequencyRange;
     float fMaxVoiceRadius;
+    long fNumberVoice;
 	
 	long fNumberAlive;
 	long fNumberAliveWithMetabolism[ MAXMETABOLISMS ];

@@ -673,6 +673,8 @@ void TSimulation::Step()
 	fFoodEnergyOut = 0.0;
 	fEnergyEaten.zero();
 
+    fNumberVoice = 0;
+
 	// Update dynamic properties
 	proplib::CppProperties::update();
 
@@ -3047,6 +3049,8 @@ void TSimulation::Voice( agent* c )
     float voice = c->Voice();
     if( voice < fVoiceThreshold )
         return;
+
+    fNumberVoice++;
 
     int frequency = int( (voice - fVoiceThreshold) / fVoiceFrequencyRange );
     const float intensity = 1.0;
@@ -5436,6 +5440,12 @@ void TSimulation::getStatusText( StatusText& statusText,
 			statusText.push_back( strdup( t ) );
 		}
 	}
+
+    if( agent::config.enableVoice )
+    {
+        sprintf( t, "voice = %f", float(fNumberVoice) / fNumberAlive );
+        statusText.push_back( strdup(t) );
+    }
 
 	// Dynamic Properties
 	{
