@@ -10,7 +10,7 @@ import common_functions
 import common_logs
 import datalib
 
-DEFAULT_EPOCH = 1000
+DEFAULT_EPOCH = 10000
 
 ####################################################################################
 ###
@@ -24,7 +24,7 @@ def main():
 	# Process command line arguments
 	#
 	shortopts = ''
-	longopts = []
+	longopts = ['epoch=']
 
 	try:
 		opts, args = getopt.getopt( sys.argv[1:], shortopts, longopts )
