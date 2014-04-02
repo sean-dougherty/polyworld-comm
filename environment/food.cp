@@ -35,6 +35,7 @@ float food::gSize2Energy;
 float food::gMaxFoodRadius;
 float food::gCarryFood2Energy;
 long food::gMaxLifeSpan;
+bool food::gConstRadius;
 food::FoodList food::gAllFood;
 
 //===========================================================================
@@ -111,7 +112,8 @@ Energy food::eat(const Energy &e)
 
 	fEnergy -= actual;
 
-	initlen();
+    if( !gConstRadius )
+        initlen();
 	
 	return actual;
 }
@@ -208,9 +210,16 @@ void food::initfood( const FoodType *foodType, long step, const Energy &e, float
 //-------------------------------------------------------------------------------------------       
 void food::initlen()
 {
-	float lxz = 0.75 * fEnergy.mean() / gSize2Energy;
-	float ly = gFoodHeight;
-	setlen( lxz, ly, lxz );
+    if( gConstRadius )
+    {
+        setlen( gMaxFoodRadius, gFoodHeight, gMaxFoodRadius );
+    }
+    else
+    {
+        float lxz = 0.75 * fEnergy.mean() / gSize2Energy;
+        float ly = gFoodHeight;
+        setlen( lxz, ly, lxz );
+    }
 }
 
 

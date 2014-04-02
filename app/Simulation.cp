@@ -2887,7 +2887,14 @@ void TSimulation::Eat( agent *c, bool *cDied )
             ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
             Energy foodEnergyLost;
             Energy energyEaten;
-            c->eat( f, fEatFitnessParameter, fEat2Consume, fEatThreshold, fStep, foodEnergyLost, energyEaten );
+
+            float eat2consume = fEat2Consume;
+            if( fMinEatCollaborators >= 0.0 )
+            {
+                eat2consume /= f->getCollaboratorCount( fStep );
+            }
+
+            c->eat( f, fEatFitnessParameter, eat2consume, fEatThreshold, fStep, foodEnergyLost, energyEaten );
             logs->postEvent( EnergyEvent(c, f, c->Eat(), energyEaten, EnergyEvent::Eat) );
             if( fEvents )
                 fEvents->AddEvent( fStep, c->Number(), 'e' );
@@ -4197,6 +4204,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fFoodRemoveEnergy = doc.get( "FoodRemoveEnergy" );
 	fFoodRemoveFirstEat = doc.get( "FoodRemoveFirstEat" );
 	food::gMaxLifeSpan = doc.get( "FoodMaxLifeSpan" );
+	food::gConstRadius = doc.get( "FoodConstRadius" );
     fPositionSeed = doc.get( "PositionSeed" );
     fGenomeSeed = doc.get( "InitSeed" );
 	fSimulationSeed = doc.get( "SimulationSeed" );

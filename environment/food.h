@@ -40,6 +40,7 @@ public:
 	static float gMaxFoodRadius;
 	static float gCarryFood2Energy;
 	static long gMaxLifeSpan;
+    static bool gConstRadius;
 
 	typedef list<food *> FoodList;
 	static FoodList gAllFood;

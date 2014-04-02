@@ -192,6 +192,11 @@ FoodMaxLifeSpan {
   min 0
 }
 
+FoodConstRadius {
+  type    Bool
+  default False
+}
+
 MinFoodEnergy {
   type    Float
   default 200.0
