@@ -11,6 +11,9 @@ case `uname` in
 		PW_OPEN=`which gnome-open`
 		if [ -z "${PW_OPEN}" ]; then
 			PW_OPEN=`which kde-open`
+            if [ -z "${PW_OPEN}" ]; then
+			    PW_OPEN=`which gvfs-open`
+            fi
 		fi
 		;;
     Darwin)
