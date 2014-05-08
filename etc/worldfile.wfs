@@ -2360,6 +2360,11 @@ RecordPosition {
   default Approximate if RecordAll else False
 }
 
+RecordFoodPosition {
+  type    Bool
+  default RecordAll
+}
+
 RecordBarrierPosition {
   type    Bool
   default RecordAll

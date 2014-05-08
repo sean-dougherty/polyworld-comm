@@ -66,6 +66,7 @@ public:
 	short domain();
 	void domain(short id);
 
+    long getBirth();
 	long getAge( long step );
 
     void addCollaborator( long step );

@@ -1534,3 +1534,59 @@ void Logs::VoiceLog::processEvent( const VoiceEvent &e )
 {
     getWriter( e.a )->addRow( getStep(), e.frequency );
 }
+
+//===========================================================================
+// FoodPositionLog
+//===========================================================================
+
+//---------------------------------------------------------------------------
+// Logs::FoodPositionLog::init
+//---------------------------------------------------------------------------
+void Logs::FoodPositionLog::init( TSimulation *sim, Document *doc )
+{
+	if( (bool)doc->get("RecordFoodPosition") )
+	{
+		initRecording( sim,
+					   SimulationStateScope,
+					   sim::Event_FoodDeath );
+
+		DataLibWriter *writer = createWriter( "run/motion/position/food.log" );
+
+		const char *colnames[] =
+			{
+				"Number",
+                "Birth",
+				"Death",
+				"X",
+				"Z",
+				NULL
+			};
+		const datalib::Type coltypes[] =
+			{
+				datalib::INT,
+				datalib::INT,
+				datalib::INT,
+				datalib::FLOAT,
+				datalib::FLOAT
+			};
+        const char *colformats[] = {"%d", "%d", "%d", "%.2f", "%.2f"};
+
+		writer->beginTable( "Positions",
+							colnames,
+							coltypes,
+                            colformats);
+	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::FoodPositionLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::FoodPositionLog::processEvent( const FoodDeathEvent &e )
+{
+    food *f = e.f;
+    getWriter()->addRow( (long)f->getTypeNumber(),
+                         f->getBirth(),
+                         getStep(),
+                         f->x(),
+                         f->z() );
+}

@@ -19,7 +19,8 @@
 #include "agent.h"
 #include "globals.h"
 #include "graphics.h"
-
+#include "Logs.h"
+#include "simtypes.h"
 
 using namespace std;
 
@@ -77,6 +78,8 @@ food::~food()
 {
 	assert( *fAllFoodIterator == this );
 	gAllFood.erase( fAllFoodIterator );
+
+    logs->postEvent( sim::FoodDeathEvent(this) );
 }
 
 
@@ -127,6 +130,13 @@ bool food::isDepleted()
 	return fEnergy.isDepleted( foodType->depletionThreshold );
 }
 
+//-------------------------------------------------------------------------------------------
+// food::getBirth
+//-------------------------------------------------------------------------------------------
+long food::getBirth()
+{
+	return fCreationStep;
+}
 
 //-------------------------------------------------------------------------------------------
 // food::getAge

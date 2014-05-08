@@ -319,4 +319,14 @@ class Logs
 		virtual void processEvent( const sim::VoiceEvent &e );
 	} _voice;
 
+	//===========================================================================
+	// FoodPositionLog
+	//===========================================================================
+	class FoodPositionLog : public DataLibLogger
+	{
+	protected:
+		virtual void init( class TSimulation *sim, proplib::Document *doc );
+		virtual void processEvent( const sim::FoodDeathEvent &e );
+	} _foodpos;
+
 };

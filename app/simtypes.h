@@ -16,6 +16,7 @@
 // Forward declarations
 namespace genome { class Genome; }
 class agent;
+class food;
 class gobject;
 
 
@@ -43,6 +44,8 @@ namespace sim
 	static const EventType Event_StepEnd = (1 << 14);
 	static const EventType Event_EpochEnd = (1 << 15);
 	static const EventType Event_Voice = (1 << 16);
+	static const EventType Event_FoodBirth = (1 << 17);
+	static const EventType Event_FoodDeath = (1 << 18);
 
 	//===========================================================================
 	// SimInitedEvent
@@ -303,6 +306,20 @@ namespace sim
 
 		agent *a;
         int frequency;
+	};
+
+	//===========================================================================
+	// FoodDeathEvent
+	//===========================================================================
+	struct FoodDeathEvent
+	{
+		inline EventType getType() const { return Event_FoodDeath; }
+
+		FoodDeathEvent( food *f_ )
+		: f(f_)
+		{}
+
+        food *f;
 	};
 
 	//===========================================================================
