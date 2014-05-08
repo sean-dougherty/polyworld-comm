@@ -2427,7 +2427,12 @@ AdamiComplexityRecordFrequency {
 }
 
 RecordGenomes {
-  type    Bool
+  type    Enum
+  enum    Values {
+    False,
+    True,
+    SimEnd
+  }
   default RecordAll
 }
 

@@ -1110,11 +1110,26 @@ void Logs::GeneStatsLog::processEvent( const sim::StepEndEvent &e )
 //---------------------------------------------------------------------------
 void Logs::GenomeLog::init( TSimulation *sim, Document *doc )
 {
-	if( doc->get("RecordGenomes") )
+    string mode_ = doc->get("RecordGenomes");
+
+    if( mode_ != "False" )
 	{
-		initRecording( sim,
-					   NullStateScope,
-					   sim::Event_AgentBirth );
+        if( mode_ == "True" )
+        {
+            initRecording( sim,
+                           NullStateScope,
+                           sim::Event_AgentBirth );
+        }
+        else if( mode_ == "SimEnd" )
+        {
+            initRecording( sim,
+                           NullStateScope,
+                           sim::Event_AgentDeath );
+        }
+        else
+        {
+            assert(false);
+        }
 	}
 }
 
@@ -1125,13 +1140,32 @@ void Logs::GenomeLog::processEvent( const sim::AgentBirthEvent &birth )
 {
 	if( birth.reason != LifeSpan::BR_VIRTUAL )
 	{
-		char path[256];
-		sprintf( path, "run/genome/agents/genome_%ld.txt", birth.a->Number() );
-
-		AbstractFile *out = createFile( path );
-		birth.a->Genes()->dump( out );
-		delete out;
+        log( birth.a );
 	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::GenomeLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::GenomeLog::processEvent( const sim::AgentDeathEvent &death )
+{
+	if( death.reason == LifeSpan::DR_SIMEND )
+	{
+        log( death.a );
+	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::GenomeLog::log
+//---------------------------------------------------------------------------
+void Logs::GenomeLog::log( agent *a )
+{
+    char path[256];
+    sprintf( path, "run/genome/agents/genome_%ld.txt", a->Number() );
+
+    AbstractFile *out = createFile( path );
+    a->Genes()->dump( out );
+    delete out;
 }
 
 

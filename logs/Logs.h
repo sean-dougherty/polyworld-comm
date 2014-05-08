@@ -252,6 +252,9 @@ class Logs
 	protected:
 		virtual void init( class TSimulation *sim, proplib::Document *doc );
 		virtual void processEvent( const sim::AgentBirthEvent &birth );
+		virtual void processEvent( const sim::AgentDeathEvent &death );
+    private:
+        void log( agent *a );
 	} _genome;
 
 	//===========================================================================
