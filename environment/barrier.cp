@@ -138,12 +138,8 @@ void barrier::updateVertices()
 	}
 	else
 		f = 1. / sqrt( a*a + b*b );
-	sna = -b * f;
-		
-	if( a < 0. )
-		sna *= -1.;
-			
-	csa =  fabs(a * f);	
+	sna = b * f;
+	csa = -a * f;
 }
 
 
