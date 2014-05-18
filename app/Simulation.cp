@@ -4344,6 +4344,8 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 
 			barrier::gXSortedBarriers.add( b );
 		}
+
+		barrier::gXSortedBarriers.reset();
 	}
 
 	globals::numEnergyTypes = doc.get( "NumEnergyTypes" );
