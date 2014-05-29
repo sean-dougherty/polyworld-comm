@@ -964,15 +964,10 @@ void TSimulation::InitAgents()
 
 			fStage.AddObject(c);
 
-			float x = randpw() * (fDomains[id].absoluteSizeX - 0.02) + fDomains[id].startX + 0.01;
-			float z = randpw() * (fDomains[id].absoluteSizeZ - 0.02) + fDomains[id].startZ + 0.01;
-			//float z = -0.01 - randpw() * (globals::worldsize - 0.02);
+			float x = randpw() * (fDomains[id].initAgentsSizeX - 0.02) + fDomains[id].initAgentsStartX + 0.01;
+			float z = randpw() * (fDomains[id].initAgentsSizeZ - 0.02) + fDomains[id].initAgentsStartZ + 0.01;
 			float y = 0.5 * agent::config.agentHeight;
-#if TestWorld
-			// evenly distribute the agents
-			x = fDomains[id].xleft  +  0.666 * fDomains[id].xsize;
-			z = - globals::worldsize * ((float) (i+1) / (fDomains[id].initNumAgents + 1));
-#endif
+
 			if( isSeed )
 			{
 				SetSeedPosition( c, numSeededDomain + numSeededTotal - 1, x, y, z );
@@ -4491,6 +4486,13 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 					fDomains[id].endX = globals::worldsize;
 				if( fDomains[id].endZ < -globals::worldsize * 0.9994 )
 					fDomains[id].endZ = -globals::worldsize;
+
+				fDomains[id].initAgentsSizeX = (float)dom.get( "InitAgentsSizeX" ) * fDomains[id].absoluteSizeX;
+				fDomains[id].initAgentsSizeZ = (float)dom.get( "InitAgentsSizeZ" ) * fDomains[id].absoluteSizeZ;
+
+				fDomains[id].initAgentsStartX = fDomains[id].startX + (float)dom.get( "InitAgentsCenterX" ) * fDomains[id].absoluteSizeX - (fDomains[id].initAgentsSizeX / 2);
+				fDomains[id].initAgentsStartZ = fDomains[id].startZ + (float)dom.get( "InitAgentsCenterZ" ) * fDomains[id].absoluteSizeZ - (fDomains[id].initAgentsSizeZ / 2);
+
 			}
 
 			{
@@ -4657,7 +4659,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 				}
 
 				// Make sure fractions add up to 1.0 (allowing a little slop for floating point precision)
-				if( (patchFractionSpecified < 0.99999) || (patchFractionSpecified > 1.00001) )
+				if( (patchFractionSpecified < 0.99997) || (patchFractionSpecified > 1.00003) )
 				{
 					printf( "Patch Fractions sum to %f, when they must sum to 1.0!\n", patchFractionSpecified );
 					exit( 1 );

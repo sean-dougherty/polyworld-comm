@@ -1,6 +1,61 @@
 import math
 
-worldsize = 200.0
+worldsize = 375.0
+
+def yreflect(coords):
+	result = []
+	for orig in coords:
+		reflected = list(orig)
+		reflected[0] *= -1
+		if len(reflected) > 2:
+			reflected[2] *= -1
+		result.append(reflected)
+
+	return result
+
+def xtranslate(coords, shift):
+	result = []
+	for orig in coords:
+		trans = list(orig)
+		trans[0] += shift
+		if len(orig) > 2:
+			trans[2] += shift
+		result.append(trans)
+
+	return result
+
+def ytranslate(coords, shift):
+	result = []
+	for orig in coords:
+		trans = list(orig)
+		trans[1] += shift
+		if len(orig) > 2:
+			trans[3] += shift
+		result.append(trans)
+
+	return result
+
+def rotate(x, y, rotation):
+	theta = math.atan2(y, x)
+	length = math.sqrt(x*x + y*y)
+	
+	return length * math.cos(theta + rotation), length * math.sin(theta + rotation)
+
+def to_polyworld_coords(coords):
+	result = []
+	for c in coords:
+		rc = list(c)
+		for i in range(len(c)):
+			rc[i] /= worldsize
+			rc[i] += 0.5
+		
+		rc[1] *= -1
+		if len(c) > 2:
+			rc[3] *= -1
+
+		result.append(rc)
+
+	return result
 
 def make_branch(rotation):
 	coords = [
@@ -23,50 +78,93 @@ def make_branch(rotation):
 		[-1.48, 66.18, -1.48, 78.61],
 		[-1.48, 78.61, 0.00, 78.61]
 	]
+
+	coords = xtranslate(coords, -0.02)
+	coords = ytranslate(coords, 2.47)
+	coords += yreflect(coords)
 	
-	for i in range(len(coords)):
-		nc = list(coords[i])
-		nc[0] *= -1
-		nc[2] *= -1
-		coords.append(nc)
-
-	def rotate(x, y):
-		theta = math.atan2(y, x)
-		length = math.sqrt(x*x + y*y)
-		
-		return length * math.cos(theta + rotation), length * math.sin(theta + rotation)
-
 	for c in coords:
-		c[0], c[1] = rotate(c[0], c[1])
-		c[2], c[3] = rotate(c[2], c[3])
+		c[0], c[1] = rotate(c[0], c[1], rotation)
+		c[2], c[3] = rotate(c[2], c[3], rotation)
 
 	return coords
 
-coords = make_branch(0) + make_branch(0.94) + make_branch(-0.94) + make_branch(2.20) + make_branch(-2.20)
+def make_food_patches(rotation):
+	axis_coords = [
+		[0, 31.14],
+		[0, 60.81],
+		[0, 77.45]
+	]
+	axis_coords = xtranslate(axis_coords, -0.02)
+	axis_coords = ytranslate(axis_coords, 2.47)
+
+	coords = [
+		[-10.29, 42.0],
+		[-20.0, 43.0],
+		[-20.0, 51.7],
+		[-11.0, 52.0],
+		[-6.42, 69.42],
+	]
+	coords += yreflect(coords)
+	coords = xtranslate(coords, -0.02)
+	coords = ytranslate(coords, 2.47)
+
+	coords = axis_coords + coords
+	for c in coords:
+		c[0], c[1] = rotate(c[0], c[1], rotation)
+
+	return coords
+
+def make_trunk():
+	return [
+		[-1.5, -136.93, -1.5, -2.56],
+		[1.5, -136.93, 1.5, -2.56]
+	]
+
+def make_nest():
+	coords = [
+		[-1.5, -136.93, -24.28, -151.35],
+		[-24.28, -151.35, -24.28, -175.21],
+		[-24.28, -175.21, 0, -175.21]
+	]
+	return coords + yreflect(coords)
+
+coords = []
+food_coords = []
+
+for rotation in [0, 1.05, -1.05, 2.10, -2.10]:
+	coords += make_branch(rotation)
+	food_coords += make_food_patches(rotation)
+
+coords += make_trunk() + make_nest()
+
+nest_walls = make_nest()
+nest_centerX = 0.5
+nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
+nest_sizeX = 0.95 * ((abs(nest_walls[1][0]) * 2) / worldsize)
+nest_sizeY = 0.95 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
+
+coords = to_polyworld_coords(coords)
+food_coords = to_polyworld_coords(food_coords)
+
 
 print """\
 @version 2
 
+EnableVisionPitch True
+MinVisionPitch -90
+MaxVisionPitch -1.146
+
 WorldSize %f
-MinAgents 200
-MaxAgents MinAgents
-InitAgents MinAgents
-SeedAgents MinAgents
+MinAgents 1
+MaxAgents 300
+InitAgents 200
+SeedAgents 200
 
 MaxSteps 1000
 
 Barriers [""" % worldsize
 
-for c in coords:
-	for i in range(4):
-		c[i] /= worldsize
-
-	c[0] += 0.5
-	c[2] += 0.5
-	c[1] += 0.5
-	c[3] += 0.5
-	c[1] *= -1
-	c[3] *= -1
 
 for i in range(len(coords)):
 	c = coords[i]
@@ -84,6 +182,42 @@ for i in range(len(coords)):
 
 print """\
 ]
+
+Domains [
+    {
+      CenterX                   0.5
+      CenterZ                   0.5
+      SizeX                     1.0
+      SizeZ                     1.0
+      InitAgentsCenterX			%f
+      InitAgentsCenterZ			%f
+      InitAgentsSizeX		    %f
+      InitAgentsSizeZ			%f
+      FoodPatches [
+""" % (nest_centerX, nest_centerY, nest_sizeX, nest_sizeY)
+
+foodFraction = 1.0 / len(food_coords)
+
+for i in range(len(food_coords)):
+	print """\
+        {
+          FoodFraction              %f
+          MaxFoodFraction           1.0
+          MaxFoodGrownFraction      1.0
+          CenterX                   %f
+          CenterZ                   %f
+          SizeX                     0.001
+          SizeZ                     0.001
+        }
+""" % (foodFraction, food_coords[i][0], 1+food_coords[i][1])
+
+	if i != (len(food_coords) - 1):
+		print '        ,'
+
+print """\
+      ]
+    }
+  ]
 
 BarrierHeight  1.0
 

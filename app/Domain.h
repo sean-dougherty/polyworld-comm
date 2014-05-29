@@ -25,6 +25,10 @@ class Domain
     float startZ;
     float endX;
     float endZ;
+    float initAgentsStartX;
+    float initAgentsStartZ;
+    float initAgentsSizeX;
+    float initAgentsSizeZ;
     int numFoodPatches;
     int numBrickPatches;
     float fraction;

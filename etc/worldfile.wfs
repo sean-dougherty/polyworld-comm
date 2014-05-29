@@ -519,6 +519,34 @@ Domains {
         assert  ( (InitSeedsFraction == -1.0) or (InitSeedsFraction >= 0.0) )
       }
 
+      InitAgentsCenterX {
+        type    Float
+        default 0.5
+        exmin   0.0
+        exmax   1.0
+      }
+
+      InitAgentsCenterZ {
+        type    Float
+        default 0.5
+        exmin   0.0
+        exmax   1.0
+      }
+
+      InitAgentsSizeX {
+        type    Float
+        default 1.0
+        exmin   0.0
+        max     1.0
+      }
+
+      InitAgentsSizeZ {
+        type    Float
+        default 1.0
+        exmin   0.0
+        max     1.0
+      }
+
       ProbabilityOfMutatingSeeds {
         type    Float
         default -1.0
@@ -1001,7 +1029,7 @@ MinVisionPitch {
 MaxVisionPitch {
   type    Float
   default 7.5
-  min     0
+  min     MinVisionPitch
   max     90.0
 }
 
