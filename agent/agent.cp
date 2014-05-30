@@ -1141,9 +1141,13 @@ float agent::UpdateBody( float moveFitnessParam,
 		// it on the other side or let the carried agent mate with an agent on the
 		// other side.
 
+        // The ncollisions tracking is an imperfect hack to get around a bug where an agent can walk
+		// through barriers if barriers are intersecting. A more correct solution should eventually
+		// be implemented.
+        int ncollisions = 0;
 		barrier* b = NULL;
 		barrier::gXSortedBarriers.reset();
-		while( barrier::gXSortedBarriers.next(b) )
+		while( barrier::gXSortedBarriers.next(b) && (ncollisions < 2) )
 		{
 			if( (b->xmax() > (    x() - FF * CarryRadius())) ||
 				(b->xmax() > (LastX() - FF * CarryRadius())) )
@@ -1190,9 +1194,10 @@ float agent::UpdateBody( float moveFitnessParam,
 									if( dist < 0. ) p = -p;
 								}
 
-								addz(  p * b->sina() );
+								addz( p * b->sina() );
 								addx( -p * b->cosa() );
 
+                                ncollisions++;
 							} // actual intersection
 							else if( (disto * dist) < 0.0 )
 							{
@@ -1204,6 +1209,8 @@ float agent::UpdateBody( float moveFitnessParam,
 															
 								addz(  p * b->sina() );
 								addx( -p * b->cosa() );
+
+                                ncollisions++;
 							}
 						}
 
@@ -1212,6 +1219,11 @@ float agent::UpdateBody( float moveFitnessParam,
 				} // beginning of barrier comes after end of agent
 			} // end of barrier comes after beginning of agent
 		} // while( barrier::gXSortedBarriers.next(b) )
+
+        if(ncollisions > 1) {
+            fPosition[0] = LastX();
+            fPosition[2] = LastZ();
+        }
 
 		// If there are solid objects besides bricks, or
 		// if only bricks are solid and bricks are present in the simulation...
