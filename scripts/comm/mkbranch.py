@@ -116,17 +116,20 @@ def make_food_patches(rotation):
 	return coords
 
 def make_trunk():
-	return [
-		[-1.5, -136.93, -1.5, -2.56],
-		[1.5, -136.93, 1.5, -2.56]
+	coords = [
+		[-2.05, -137.93, -1.5, -2.56]
 	]
+	coords = ytranslate(coords, 2.47)
+	coords = coords + yreflect(coords)
+	return coords
 
 def make_nest():
 	coords = [
-		[-1.5, -136.93, -24.28, -151.35],
-		[-24.28, -151.35, -24.28, -175.21],
+		[-1.75, -136.75, -24.85, -151.35],
+		[-24.85, -151.35, -24.28, -175.21],
 		[-24.28, -175.21, 0, -175.21]
 	]
+	coords = ytranslate(coords, 2.47)
 	return coords + yreflect(coords)
 
 coords = []
@@ -141,8 +144,8 @@ coords += make_trunk() + make_nest()
 nest_walls = make_nest()
 nest_centerX = 0.5
 nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
-nest_sizeX = 0.95 * ((abs(nest_walls[1][0]) * 2) / worldsize)
-nest_sizeY = 0.95 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
+nest_sizeX = 0.75 * ((abs(nest_walls[1][0]) * 2) / worldsize)
+nest_sizeY = 0.75 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
 
 coords = to_polyworld_coords(coords)
 food_coords = to_polyworld_coords(food_coords)
@@ -153,7 +156,7 @@ print """\
 
 EnableVisionPitch True
 MinVisionPitch -90
-MaxVisionPitch -1.146
+MaxVisionPitch -1.4
 
 WorldSize %f
 MinAgents 1
