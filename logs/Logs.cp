@@ -1126,6 +1126,12 @@ void Logs::GenomeLog::init( TSimulation *sim, Document *doc )
                            NullStateScope,
                            sim::Event_AgentDeath );
         }
+        else if( mode_ == "Fittest" )
+        {
+            initRecording( sim,
+                           NullStateScope,
+                           sim::Event_SimEnd );
+        }
         else
         {
             assert(false);
@@ -1140,7 +1146,7 @@ void Logs::GenomeLog::processEvent( const sim::AgentBirthEvent &birth )
 {
 	if( birth.reason != LifeSpan::BR_VIRTUAL )
 	{
-        log( birth.a );
+        log( "agents", birth.a->Genes(), birth.a->Number() );
 	}
 }
 
@@ -1151,20 +1157,34 @@ void Logs::GenomeLog::processEvent( const sim::AgentDeathEvent &death )
 {
 	if( death.reason == LifeSpan::DR_SIMEND )
 	{
-        log( death.a );
+        log( "agents", death.a->Genes(), death.a->Number() );
 	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::GenomeLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::GenomeLog::processEvent( const sim::SimEndEvent &end )
+{
+    FittestList *fittest = _simulation->getFittest(FS_OVERALL);
+
+    for(int i = 0; i < fittest->size(); i++)
+    {
+        FitStruct *fs = fittest->get(i);
+        log( "Fittest", fs->genes, fs->agentID );
+    }
 }
 
 //---------------------------------------------------------------------------
 // Logs::GenomeLog::log
 //---------------------------------------------------------------------------
-void Logs::GenomeLog::log( agent *a )
+void Logs::GenomeLog::log( const char *subpath, genome::Genome *g, long number )
 {
     char path[256];
-    sprintf( path, "run/genome/agents/genome_%ld.txt", a->Number() );
+    sprintf( path, "run/genome/%s/genome_%ld.txt", subpath, number );
 
     AbstractFile *out = createFile( path );
-    a->Genes()->dump( out );
+    g->dump( out );
     delete out;
 }
 

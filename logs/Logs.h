@@ -8,6 +8,10 @@
 #include "misc.h"
 #include "simconst.h"
 
+namespace genome {
+    class Genome;
+}
+
 //===========================================================================
 // Logs
 //===========================================================================
@@ -253,8 +257,9 @@ class Logs
 		virtual void init( class TSimulation *sim, proplib::Document *doc );
 		virtual void processEvent( const sim::AgentBirthEvent &birth );
 		virtual void processEvent( const sim::AgentDeathEvent &death );
+		virtual void processEvent( const sim::SimEndEvent &end );
     private:
-        void log( agent *a );
+        void log( const char *subpath, genome::Genome *g, long number );
 	} _genome;
 
 	//===========================================================================

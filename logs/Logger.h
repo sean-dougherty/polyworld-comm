@@ -45,6 +45,7 @@ class Logger
 	// override processEvent( AgentBirthEvent )
 	// 
 	virtual void processEvent( const sim::SimInitedEvent &e ) { assert(false); }
+	virtual void processEvent( const sim::SimEndEvent &e ) { assert(false); }
 	virtual void processEvent( const sim::AgentBirthEvent &e ) { assert(false); }
 	virtual void processEvent( const sim::BrainGrownEvent &e ) { assert(false); }
 	virtual void processEvent( const sim::AgentGrownEvent &e ) { assert(false); }

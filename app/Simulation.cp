@@ -805,6 +805,8 @@ void TSimulation::Step()
 //---------------------------------------------------------------------------
 void TSimulation::End( const string &reason )
 {
+    logs->postEvent( SimEndEvent() );
+
 	{
 		ofstream fout( "run/endReason.txt" );
 		fout << reason << endl;
@@ -978,11 +980,7 @@ void TSimulation::InitAgents()
 			}
 			c->SaveLastPosition();
 
-			float yaw =  360.0 * randpw();
-#if TestWorld
-			// point them all the same way
-			yaw = 95.0;
-#endif
+			float yaw = GetInitYaw();
 			c->setyaw(yaw);
 
 			objectxsortedlist::gXSortedObjects.add(c);	// stores c->listLink
@@ -1048,8 +1046,8 @@ void TSimulation::InitAgents()
 			c->settranslation(x, y, z);
 		}
 
-		float yaw =  360.0 * randpw();
-		c->setyaw(yaw);
+        float yaw = GetInitYaw();
+        c->setyaw(yaw);
 
 		objectxsortedlist::gXSortedObjects.add(c);	// stores c->listLink
 
@@ -2146,7 +2144,7 @@ void TSimulation::MateLockstep( void )
 		float z = -0.01 - randpw() * (globals::worldsize - 0.02);
 		float y = 0.5 * agent::config.agentHeight;
 		e->settranslation(x, y, z);
-		float yaw =  360.0 * randpw();
+        float yaw = GetInitYaw();
 		c->setyaw(yaw);
 		short kd = WhichDomain(x, z, 0);
 		e->Domain(kd);
@@ -2352,10 +2350,11 @@ void TSimulation::Mate( agent *c,
 				Energy eenergy = c->mating( fMateFitnessParameter, fMateWait, /*lockstep*/ false )
 							   + d->mating( fMateFitnessParameter, fMateWait, /*lockstep*/ false );
 
-				float x = 0.5*(c->x() + d->x());
-				float y = 0.5*(c->y() + d->y());
-				float z = 0.5*(c->z() + d->z());
-				float yaw = AverageAngles( c->yaw(), d->yaw() );
+				float x = c->x();
+				float y = c->y();
+				float z = c->z();
+				float yaw = c->yaw();
+
 				if( fRandomBirthLocation )
 				{
 					float distance = globals::worldsize * fRandomBirthLocationRadius * randpw();
@@ -3292,7 +3291,7 @@ void TSimulation::CreateAgents( void )
 				float x = randpw() * (fDomains[id].absoluteSizeX - 0.02) + fDomains[id].startX + 0.01;
 				float z = randpw() * (fDomains[id].absoluteSizeZ - 0.02) + fDomains[id].startZ + 0.01;
 				float y = 0.5 * agent::config.agentHeight;
-				float yaw = randpw() * 360.0;
+                float yaw = GetInitYaw();
 			#if TestWorld
 				x = fDomains[id].xleft  +  0.666 * fDomains[id].xsize;
 				z = - globals::worldsize * ((float) (i+1) / (fDomains[id].initNumAgents + 1));
@@ -3387,7 +3386,7 @@ void TSimulation::CreateAgents( void )
 			FoodEnergyIn( newAgent->GetFoodEnergy() );
 
             newAgent->settranslation(randpw() * globals::worldsize, 0.5 * agent::config.agentHeight, randpw() * -globals::worldsize);
-            newAgent->setyaw(randpw() * 360.0);
+            newAgent->setyaw(GetInitYaw());
             id = WhichDomain(newAgent->x(), newAgent->z(), 0);
             newAgent->Domain(id);
             fDomains[id].numcreated++;
@@ -3706,6 +3705,17 @@ void TSimulation::Birth( agent* a,
 }
 
 //---------------------------------------------------------------------------
+// TSimulation::GetInitYaw
+//---------------------------------------------------------------------------
+float TSimulation::GetInitYaw()
+{
+    if( fYawInit < 0 )
+        return 360.0 * randpw();
+    else
+        return fYawInit;
+}
+
+//---------------------------------------------------------------------------
 // TSimulation::Kill
 //
 // Perform all actions needed to agent before list removal and deletion
@@ -3732,7 +3742,8 @@ void TSimulation::Kill( agent* c,
 		logs->postEvent( deathEvent );
 		SeparationCache::death( deathEvent );
 		c->Die();
-
+        if( fFitnessMode == FM_MazeFood )
+            updateFittest(c);
 		return;
 	}
 
@@ -4087,37 +4098,64 @@ float TSimulation::AgentFitness( agent* c )
 		exit(1);
 	}
 
-	if( fComplexityFitnessWeight == 0.0 )	// complexity as fitness is turned off
-	{
-		fitness = c->HeuristicFitness() / fTotalHeuristicFitness;
-	}
-	else if( fComplexityType == "Z" )	// hack to evolve towards zero velocity, for testing purposes only
-	{
-		fitness = 0.01 / (c->MaxSpeed() + 0.01);
-	}
-	else	// we are using complexity as a fitness function (and may be using heuristic fitness too)
-	{
-		if( c->Complexity() < 0.0 )
-		{
-			fprintf( stderr, "********** complexity being calculated when it should already be known **********\n" );
-			char filename[256];
-			sprintf( filename, "run/brain/function/brainFunction_%ld.txt", c->Number() );
-			if( fComplexityType == "D" )	// difference between I and P complexity being used for fitness
-			{
-				float pComplexity = CalcComplexity_brainfunction( filename, "P" );
-				float iComplexity = CalcComplexity_brainfunction( filename, "I" );
-				c->SetComplexity( pComplexity - iComplexity );
-			}
-			else	// fComplexityType contains the appropriate string to select the type of complexity
-				c->SetComplexity( CalcComplexity_brainfunction( filename, fComplexityType.c_str(), fEvents ) );
-		}
-		// fitness is normalized (by the sum of the weights) after doing a weighted sum of normalized heuristic fitness and complexity
-		// (Complexity runs between 0.0 and 1.0 in the early simulations.  Is there a way to guarantee this?  Do we want to?)
-		fitness = (fHeuristicFitnessWeight*c->HeuristicFitness()/fTotalHeuristicFitness + fComplexityFitnessWeight*c->Complexity()) / (fHeuristicFitnessWeight+fComplexityFitnessWeight);
+    if( fFitnessMode == FM_MazeFood )
+    {
+        printf("AGENT_FITNESS\n");
+        gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
+
+        float min_dist = globals::worldsize;
+
+        // and as long as there's a single legitimate agent for killing, we will find and kill it
+        food *f;
+        objectxsortedlist::gXSortedObjects.reset();
+        while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
+        {
+            float dx = c->x() - f->x();
+            float dz = c->z() - f->z();
+            float fdist = sqrt( dx*dx + dz*dz );
+            if( fdist < min_dist )
+                min_dist = fdist;
+        }
+
+        objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
+
+        fitness = 1.0 - (min_dist / globals::worldsize);
+        //cout << "agent = " << c->Number() << "min_dist = " << min_dist << ", fitness = " << fitness << endl;
+    }
+    else
+    {
+        if( fComplexityFitnessWeight == 0.0 )	// complexity as fitness is turned off
+        {
+            fitness = c->HeuristicFitness() / fTotalHeuristicFitness;
+        }
+        else if( fComplexityType == "Z" )	// hack to evolve towards zero velocity, for testing purposes only
+        {
+            fitness = 0.01 / (c->MaxSpeed() + 0.01);
+        }
+        else	// we are using complexity as a fitness function (and may be using heuristic fitness too)
+        {
+            if( c->Complexity() < 0.0 )
+            {
+                fprintf( stderr, "********** complexity being calculated when it should already be known **********\n" );
+                char filename[256];
+                sprintf( filename, "run/brain/function/brainFunction_%ld.txt", c->Number() );
+                if( fComplexityType == "D" )	// difference between I and P complexity being used for fitness
+                {
+                    float pComplexity = CalcComplexity_brainfunction( filename, "P" );
+                    float iComplexity = CalcComplexity_brainfunction( filename, "I" );
+                    c->SetComplexity( pComplexity - iComplexity );
+                }
+                else	// fComplexityType contains the appropriate string to select the type of complexity
+                    c->SetComplexity( CalcComplexity_brainfunction( filename, fComplexityType.c_str(), fEvents ) );
+            }
+            // fitness is normalized (by the sum of the weights) after doing a weighted sum of normalized heuristic fitness and complexity
+            // (Complexity runs between 0.0 and 1.0 in the early simulations.  Is there a way to guarantee this?  Do we want to?)
+            fitness = (fHeuristicFitnessWeight*c->HeuristicFitness()/fTotalHeuristicFitness + fComplexityFitnessWeight*c->Complexity()) / (fHeuristicFitnessWeight+fComplexityFitnessWeight);
 // 		cout << "fitness" eql fitness sp "hwt" eql fHeuristicFitnessWeight sp "hf" eql c->HeuristicFitness()/fTotalHeuristicFitness sp "cwt" eql fComplexityFitnessWeight sp "cf" eql c->Complexity() nl;
-	}
+        }
 
 // 	printf( "%s (end): %ld %g (%g)\n", __func__, c->Number(), c->Complexity(), fitness );
+    }
 
 	return( fitness );
 }
@@ -4230,6 +4268,15 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else
 			fRecentFittest = NULL;
 	}
+    {
+        string mode = doc.get( "FitnessMode" );
+        if( mode == "Standard" )
+            fFitnessMode = FM_Standard;
+        else if( mode == "MazeFood" )
+            fFitnessMode = FM_MazeFood;
+        else
+            assert(false);
+    }
     fEatFitnessParameter = doc.get( "FitnessWeightEating" );
     fMateFitnessParameter = doc.get( "FitnessWeightMating" );
     fMoveFitnessParameter = doc.get( "FitnessWeightMoving" );
@@ -4270,6 +4317,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fMinEatVelocity = doc.get( "MinEatVelocity" );
 	fMaxEatVelocity = doc.get( "MaxEatVelocity" );
 	fMaxEatYaw = doc.get( "MaxEatYaw" );
+    fYawInit = doc.get( "YawInit" );
 
     fMinMateFraction = doc.get( "MinMateEnergyFraction" );
     fPower2Energy = doc.get( "DamageRate" );

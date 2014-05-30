@@ -223,6 +223,7 @@ private:
 				agent* a_parent1 = NULL,
 				agent* a_parent2 = NULL );
  private:
+    float GetInitYaw();
 	void Kill( agent* inAgent,
 			   LifeSpan::DeathReason reason );
 	void analyzeBrain( agent *c );
@@ -273,6 +274,7 @@ private:
 	std::string fComplexityType;
 	bool fCalcComplexity;
 	float fComplexityFitnessWeight;
+    enum {FM_Standard, FM_MazeFood} fFitnessMode;
 	float fHeuristicFitnessWeight;
 
 	long fNewLifes;
@@ -325,6 +327,7 @@ private:
 	float fMinEatVelocity;
 	float fMaxEatVelocity;
 	float fMaxEatYaw;
+    float fYawInit;
     float fMinEatCollaborators;
 	EatStatistics fEatStatistics;
 	long fEatMateSpan;

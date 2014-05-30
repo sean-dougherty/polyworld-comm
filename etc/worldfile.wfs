@@ -1246,6 +1246,13 @@ YawEncoding {
   defaults { default Oppose; legacy Squash }
 }
 
+YawInit {
+  type    Float
+  default -1.0
+  min     -1.0
+  max     360.0
+}
+
 MinAgentMaxEnergy {
   type    Float
   default 500.0
@@ -2464,7 +2471,8 @@ RecordGenomes {
   enum    Values {
     False,
     True,
-    SimEnd
+    SimEnd,
+    Fittest
   }
   default RecordAll
 }
@@ -2571,6 +2579,15 @@ TournamentSize {
 #-------------------------------------------------------------------
 # SECTION Heuristic fitness function parameters
 #-------------------------------------------------------------------
+
+FitnessMode {
+  type    Enum
+  default Standard
+  enum    Values {
+    Standard,
+    MazeFood
+  }
+}
 
 FitnessWeightEating {
   type    Float

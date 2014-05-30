@@ -46,6 +46,7 @@ namespace sim
 	static const EventType Event_Voice = (1 << 16);
 	static const EventType Event_FoodBirth = (1 << 17);
 	static const EventType Event_FoodDeath = (1 << 18);
+	static const EventType Event_SimEnd = (1 << 19);
 
 	//===========================================================================
 	// SimInitedEvent
@@ -53,6 +54,14 @@ namespace sim
 	struct SimInitedEvent
 	{
 		inline EventType getType() const { return Event_SimInited; }
+	};
+
+	//===========================================================================
+	// SimEndEvent
+	//===========================================================================
+	struct SimEndEvent
+	{
+		inline EventType getType() const { return Event_SimEnd; }
 	};
 
 	//===========================================================================

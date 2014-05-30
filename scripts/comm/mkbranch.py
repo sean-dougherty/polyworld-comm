@@ -144,8 +144,10 @@ coords += make_trunk() + make_nest()
 nest_walls = make_nest()
 nest_centerX = 0.5
 nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
-nest_sizeX = 0.75 * ((abs(nest_walls[1][0]) * 2) / worldsize)
-nest_sizeY = 0.75 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
+#nest_sizeX = 0.75 * ((abs(nest_walls[1][0]) * 2) / worldsize)
+#nest_sizeY = 0.75 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
+nest_sizeX = 1.0 / worldsize
+nest_sizeY = 1.0 / worldsize
 
 coords = to_polyworld_coords(coords)
 food_coords = to_polyworld_coords(food_coords)
@@ -225,4 +227,11 @@ print """\
 BarrierHeight  1.0
 
 MaxAgentSize 0.75
+RecordGenomes Fittest
+FitnessMode MazeFood
+YawInit 0
+FightMultiplier 0.0
+MinAgentMaxEnergy 1000.0
+MaxAgentMaxEnergy 1000.1
+EnergyUseMultiplier 0.05
 """
