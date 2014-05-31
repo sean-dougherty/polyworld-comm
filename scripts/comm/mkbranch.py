@@ -156,10 +156,6 @@ food_coords = to_polyworld_coords(food_coords)
 print """\
 @version 2
 
-EnableVisionPitch True
-MinVisionPitch -90
-MaxVisionPitch -1.4
-
 WorldSize %f
 MinAgents 1
 MaxAgents 300
@@ -234,4 +230,12 @@ FightMultiplier 0.0
 MinAgentMaxEnergy 1000.0
 MaxAgentMaxEnergy 1000.1
 EnergyUseMultiplier 0.05
+StickyBarriers True
+EnableSpeedFeedback True
+EyeHeight 1.2
+EnableVisionPitch True
+MinVisionPitch -90
+MaxVisionPitch -3.4
+MinLifeSpan 1000
+MaxLifeSpan 1001
 """
