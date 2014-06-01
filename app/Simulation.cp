@@ -390,7 +390,7 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	// --- Set Maximum Open Files
 	// ---
 	{
-		int maxOpenFiles = 100; // just a fudge
+		int maxOpenFiles = 150; // just a fudge
 
 		maxOpenFiles += logs->getMaxOpenFiles();
 
@@ -516,6 +516,8 @@ TSimulation::~TSimulation()
 	{
 		Kill( a, LifeSpan::DR_SIMEND );
 	}
+
+    logs->postEvent( SimEndEvent() );
 
 	delete monitorManager;
 
@@ -805,8 +807,6 @@ void TSimulation::Step()
 //---------------------------------------------------------------------------
 void TSimulation::End( const string &reason )
 {
-    logs->postEvent( SimEndEvent() );
-
 	{
 		ofstream fout( "run/endReason.txt" );
 		fout << reason << endl;
@@ -1690,6 +1690,8 @@ void TSimulation::Interact()
 		// don't want to do that until the next time step.
 		if( c->Age() <= 0 )
 			continue;
+
+        c->UpdateCustomFitness();
 
 		objectxsortedlist::gXSortedObjects.setMark( AGENTTYPE ); // so can point back to this agent later
         cDied = false;
@@ -2877,6 +2879,11 @@ void TSimulation::Eat( agent *c, bool *cDied )
 
         if( (f != NULL) && !(eatStatus & EAT__PREVENTED) )
         {
+            if( fEndOnEat )
+            {
+                End( "Eat" );
+            }
+
             // also overlap in z, so they really interact
             ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
             Energy foodEnergyLost;
@@ -4100,27 +4107,7 @@ float TSimulation::AgentFitness( agent* c )
 
     if( fFitnessMode == FM_MazeFood )
     {
-        printf("AGENT_FITNESS\n");
-        gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
-
-        float min_dist = globals::worldsize;
-
-        // and as long as there's a single legitimate agent for killing, we will find and kill it
-        food *f;
-        objectxsortedlist::gXSortedObjects.reset();
-        while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
-        {
-            float dx = c->x() - f->x();
-            float dz = c->z() - f->z();
-            float fdist = sqrt( dx*dx + dz*dz );
-            if( fdist < min_dist )
-                min_dist = fdist;
-        }
-
-        objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
-
-        fitness = 1.0 - (min_dist / globals::worldsize);
-        //cout << "agent = " << c->Number() << "min_dist = " << min_dist << ", fitness = " << fitness << endl;
+        fitness = c->GetCustomFitness();
     }
     else
     {
@@ -4170,6 +4157,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fLockStepWithBirthsDeathsLog = doc.get( "PassiveLockstep" );
 	fMaxSteps = doc.get( "MaxSteps" );
 	fEndOnPopulationCrash = doc.get( "EndOnPopulationCrash" );
+	fEndOnEat = doc.get( "EndOnEat" );
 	fDumpFrequency = doc.get( "CheckPointFrequency" );
 	{
 		string prop = doc.get( "Edges" );

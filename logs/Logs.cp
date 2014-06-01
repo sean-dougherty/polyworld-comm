@@ -727,6 +727,82 @@ void Logs::BrainFunctionLog::recordEpochFittest( long step, sim::FitnessScope sc
 
 
 //===========================================================================
+// BrainBehaviorNeuronsLog
+//===========================================================================
+
+//---------------------------------------------------------------------------
+// Logs::BrainBehaviorNeuronsLog::init
+//---------------------------------------------------------------------------
+void Logs::BrainBehaviorNeuronsLog::init( TSimulation *sim, Document *doc )
+{
+	if( doc->get("RecordBrainBehaviorNeurons") )
+	{
+		initRecording( sim,
+					   AgentStateScope,
+					   sim::Event_BrainUpdated
+                       | sim::Event_AgentDeath );
+	}
+}
+
+//---------------------------------------------------------------------------
+// Logs::BrainBehaviorNeuronsLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::BrainBehaviorNeuronsLog::processEvent( const sim::BrainUpdatedEvent &e )
+{
+    NervousSystem *cvs = e.a->GetNervousSystem();
+    NervousSystem::NerveList nerves = cvs->getNerves( Nerve::OUTPUT );
+
+    DataLibWriter *writer;
+    writer = getWriter(e.a);
+    if( writer == NULL )
+    {
+        char path[256];
+        sprintf( path, "run/brain/behaviorNeurons/behaviorNeurons_%ld.log", e.a->Number() );
+
+        writer = createWriter( e.a, path );
+
+        const char *colnames[nerves.size() + 1];
+        datalib::Type coltypes[nerves.size()];
+        
+        {
+            int i = 0;
+            for(auto &nerve: nerves)
+            {
+                assert( nerve->getNeuronCount() == 1 );
+                coltypes[i] = datalib::FLOAT;
+                colnames[i] = nerve->name.c_str();
+                i++;
+            }
+            colnames[i++] = NULL;
+        }
+
+        writer->beginTable( "Activation",
+                            colnames,
+                            coltypes );
+    }
+
+    Variant rowdata[nerves.size()];
+    {
+        int i = 0;
+        for(auto &nerve: nerves)
+        {
+            rowdata[i++] = nerve->get( 0 );
+        }
+    }
+
+    writer->addRow( rowdata );
+}
+
+//---------------------------------------------------------------------------
+// Logs::BrainBehaviorNeuronsLog::processEvent
+//---------------------------------------------------------------------------
+void Logs::BrainBehaviorNeuronsLog::processEvent( const sim::AgentDeathEvent &e )
+{
+	delete getWriter( e.a );
+}
+
+
+//===========================================================================
 // CarryLog
 //===========================================================================
 
@@ -1168,11 +1244,18 @@ void Logs::GenomeLog::processEvent( const sim::SimEndEvent &end )
 {
     FittestList *fittest = _simulation->getFittest(FS_OVERALL);
 
+    const char *path = "run/genome/Fittest/fitness.txt";
+	makeParentDir( path );
+    FILE *ffitness = fopen( path, "w" );
+
     for(int i = 0; i < fittest->size(); i++)
     {
         FitStruct *fs = fittest->get(i);
         log( "Fittest", fs->genes, fs->agentID );
+        fprintf( ffitness, "%ld %f\n", fs->agentID, fs->fitness );
     }
+
+    fclose( ffitness );
 }
 
 //---------------------------------------------------------------------------

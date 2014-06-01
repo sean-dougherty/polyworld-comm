@@ -100,6 +100,7 @@ public:
 		float	maxMaxEnergy;
 		float	yaw2DYaw;
 		YawEncoding yawEncoding;
+        float   yawOpposeThreshold;
 		float	minFocus;
 		float	maxFocus;
 		float	agentFOV;
@@ -226,6 +227,8 @@ public:
 	float CurrentHeuristicFitness();
 	float ProjectedHeuristicFitness();
 	float HeuristicFitness();
+    void UpdateCustomFitness();
+    float GetCustomFitness();
     float Complexity();
     virtual void print();
     float FieldOfView();
@@ -305,6 +308,7 @@ protected:
 	
     float fHeuristicFitness;	// rough estimate along evolutionary biology lines
 	float fComplexity;
+    float fCustomFitness;
 	
 	genome::Genome* fGenome;
 	struct GeneCache

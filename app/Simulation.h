@@ -248,6 +248,7 @@ private:
 	
 	long fMaxSteps;
 	bool fEndOnPopulationCrash;
+	bool fEndOnEat;
 	int fDumpFrequency;
 	bool fLoadState;
 	

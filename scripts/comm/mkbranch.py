@@ -1,4 +1,23 @@
+#!/usr/bin/python
+
 import math
+import random
+import sys
+
+random_single_food = False
+seed_from_run = False
+
+args = sys.argv[1:]
+while True:
+	if len(args) and args[0] == '--random-single-food':
+		random_single_food = True
+		seed_random_single_food = int(args[1])
+		args = args[2:]
+	elif len(args) and args[0] == '--seed-from-run':
+		seed_from_run = True
+		args = args[1:]
+	else:
+		break
 
 worldsize = 375.0
 
@@ -141,6 +160,12 @@ for rotation in [0, 1.05, -1.05, 2.10, -2.10]:
 
 coords += make_trunk() + make_nest()
 
+if random_single_food:
+	random.seed(seed_random_single_food)
+	food_index = random.randint(0, len(food_coords)-1)
+	food_coords = [food_coords[food_index]]
+
+
 nest_walls = make_nest()
 nest_centerX = 0.5
 nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
@@ -164,7 +189,9 @@ SeedAgents 200
 
 MaxSteps 1000
 
-Barriers [""" % worldsize
+SeedGenomeFromRun %s
+
+Barriers [""" % (worldsize, seed_from_run)
 
 
 for i in range(len(coords)):
@@ -224,8 +251,12 @@ BarrierHeight  1.0
 
 MaxAgentSize 0.75
 RecordGenomes Fittest
+RecordPosition Approximate
+RecordBrainBehaviorNeurons True
+EndOnEat True
 FitnessMode MazeFood
 YawInit 0
+YawOpposeThreshold 0.1
 FightMultiplier 0.0
 MinAgentMaxEnergy 1000.0
 MaxAgentMaxEnergy 1000.1

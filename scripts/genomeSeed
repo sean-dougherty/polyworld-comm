@@ -3,6 +3,7 @@
 import abstractfile
 import datalib
 import getopt
+import glob
 import os
 import sys
 
@@ -64,7 +65,7 @@ def main():
 
 	if mode == 'fittest':
 		fittest_dir = os.path.join(rundir, 'genome/Fittest')
-		paths = os.listdir( fittest_dir )
+		paths = glob.glob( fittest_dir + '/genome*.txt*')
 		paths = map(lambda p: p[:-3] if p.endswith('.gz') else p, paths)
 		paths = map(lambda p: os.path.join(fittest_dir, p), paths)
 		

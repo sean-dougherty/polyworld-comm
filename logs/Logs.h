@@ -193,6 +193,17 @@ class Logs
 	} _brainFunction;
 
 	//===========================================================================
+	// BrainBehaviorNeuronsLog
+	//===========================================================================
+	class BrainBehaviorNeuronsLog : public DataLibLogger
+	{
+	protected:
+		virtual void init( class TSimulation *sim, proplib::Document *doc );
+		virtual void processEvent( const sim::BrainUpdatedEvent &e );
+        virtual void processEvent( const sim::AgentDeathEvent &e );
+    } _brainBehaviorNeurons;
+
+	//===========================================================================
 	// CarryLog
 	//===========================================================================
 	class CarryLog : public DataLibLogger

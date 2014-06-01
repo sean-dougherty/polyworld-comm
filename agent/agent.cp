@@ -96,6 +96,7 @@ void agent::processWorldfile( proplib::Document &doc )
 		else
 			assert( false );
 	}
+    agent::config.yawOpposeThreshold = doc.get( "YawOpposeThreshold" );
     agent::config.minFocus = doc.get( "MinHorizontalFieldOfView" );
     agent::config.maxFocus = doc.get( "MaxHorizontalFieldOfView" );
     agent::config.agentFOV = doc.get( "VerticalFieldOfView" );
@@ -184,6 +185,7 @@ agent::agent(TSimulation* sim, gstage* stage)
 		fMass(0.0), 		// mass - not used
 		fHeuristicFitness(0.0),  	// crude guess for keeping minimum population early on
 		fComplexity(-1.0),	// < 0.0 indicates not yet computed
+        fCustomFitness(0.0),
 		fGenome(NULL),
 		fCns(NULL),
 		fRetina(NULL),
@@ -827,6 +829,44 @@ float agent::ProjectedHeuristicFitness()
 		return( fHeuristicFitness );
 }
 
+void agent::UpdateCustomFitness()
+{
+    gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
+
+    float min_dist = globals::worldsize;
+
+    food *f;
+    objectxsortedlist::gXSortedObjects.reset();
+    while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
+    {
+        float dx = x() - f->x();
+        float dz = z() - f->z();
+        float fdist = sqrt( dx*dx + dz*dz );
+        if( fdist < min_dist )
+            min_dist = fdist;
+    }
+
+    objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
+
+    float dist_fitness = 0.7f * float(1.0 - (min_dist / globals::worldsize));
+
+    const float t = fSimulation->getStep();
+    const float T = fSimulation->GetMaxSteps();
+    float time_fitness = 0.3f * (T - t) / T;
+
+    float fitness = dist_fitness + time_fitness;
+
+    fCustomFitness = max( fitness, fCustomFitness );
+}
+
+float agent::GetCustomFitness()
+{
+    if( fLastEat != 0 )
+        return 1.0;
+    else
+        return fCustomFitness;
+}
+
 //---------------------------------------------------------------------------
 // agent::Die
 //---------------------------------------------------------------------------    
@@ -1037,6 +1077,15 @@ float agent::UpdateBody( float moveFitnessParam,
 	{
 	case YE_OPPOSE:
 		dyaw = outputNerves.yaw->get() - outputNerves.yawOppose->get();
+        if( fabs(dyaw) < agent::config.yawOpposeThreshold )
+        {
+            dyaw = 0.0;
+        }
+        else if( agent::config.yawOpposeThreshold > 0.0 )
+        {
+            dyaw = copysign( (fabs(dyaw) - agent::config.yawOpposeThreshold) / (1.0 - agent::config.yawOpposeThreshold), dyaw );
+                
+        }
 		break;
 	case YE_SQUASH:
 		dyaw = 2.0 * outputNerves.yaw->get() - 1.0;
@@ -1168,51 +1217,62 @@ float agent::UpdateBody( float moveFitnessParam,
 					if( ((b->zmin() < ( z() + FF * CarryRadius())) || (b->zmin() < (LastZ() + FF * CarryRadius()))) &&
 						((b->zmax() > ( z() - FF * CarryRadius())) || (b->zmax() > (LastZ() - FF * CarryRadius()))) )
 					{
-						if( barrier::gStickyBarriers )
-						{
-							fPosition[0] = LastX();
-							fPosition[2] = LastZ();
-						}
-						else
-						{
-							// also overlap in z, so there may be an intersection
-							float dist  = b->dist(     x(),     z() );
-							float disto = b->dist( LastX(), LastZ() );
-							float p;
+                        // also overlap in z, so there may be an intersection
+                        float dist  = b->dist(     x(),     z() );
+                        float disto = b->dist( LastX(), LastZ() );
+                        float p;
 						
-							if( fabs( dist ) < FF * CarryRadius() )
-							{
-								// they actually overlap/intersect
-								if( (disto*dist) < 0.0 )
-								{   // sign change, so crossed the barrier already
-									p = fabs( dist ) + FF * CarryRadius();
-									if( disto < 0.0 ) p = -p;
-								}
-								else
-								{
-									p = FF * CarryRadius() - fabs( dist );
-									if( dist < 0. ) p = -p;
-								}
+                        if( fabs( dist ) < FF * CarryRadius() )
+                        {
+                            if( barrier::gStickyBarriers )
+                            {
+                                fPosition[0] = LastX();
+                                fPosition[2] = LastZ();
+                                break;
+                            }
+                            else
+                            {
 
-								addz( p * b->sina() );
-								addx( -p * b->cosa() );
+                                // they actually overlap/intersect
+                                if( (disto*dist) < 0.0 )
+                                {   // sign change, so crossed the barrier already
+                                    p = fabs( dist ) + FF * CarryRadius();
+                                    if( disto < 0.0 ) p = -p;
+                                }
+                                else
+                                {
+                                    p = FF * CarryRadius() - fabs( dist );
+                                    if( dist < 0. ) p = -p;
+                                }
+
+                                addz( p * b->sina() );
+                                addx( -p * b->cosa() );
 
                                 ncollisions++;
-							} // actual intersection
-							else if( (disto * dist) < 0.0 )
-							{
-								// the agent completely passed through the barrier
-								p = fabs( dist ) + FF * CarryRadius();
+                            }
+                        } // actual intersection
+                        else if( (disto * dist) < 0.0 )
+                        {
+                            if( barrier::gStickyBarriers )
+                            {
+                                fPosition[0] = LastX();
+                                fPosition[2] = LastZ();
+                                break;
+                            }
+                            else
+                            {
+                                // the agent completely passed through the barrier
+                                p = fabs( dist ) + FF * CarryRadius();
 							
-								if( disto < 0.0 )
-									p = -p;
+                                if( disto < 0.0 )
+                                    p = -p;
 															
-								addz(  p * b->sina() );
-								addx( -p * b->cosa() );
+                                addz(  p * b->sina() );
+                                addx( -p * b->cosa() );
 
                                 ncollisions++;
-							}
-						}
+                            }
+                        }
 
 						logs->postEvent( CollisionEvent(this, OT_BARRIER) );
 					} // overlap in z

@@ -1056,7 +1056,7 @@ EyeHeight {
   type    Float
   default 0.5
   min     0.0
-  max     1.0
+  max     1.2
 }
 
 EnableVoice {
@@ -1244,6 +1244,11 @@ YawEncoding {
     Squash
   }
   defaults { default Oppose; legacy Squash }
+}
+
+YawOpposeThreshold {
+  type    Float
+  default 0.0
 }
 
 YawInit {
@@ -2250,6 +2255,11 @@ EndOnPopulationCrash {
   default False
 }
 
+EndOnEat {
+  type    Bool
+  default False
+}
+
 StaticTimestepGeometry {
   type    Bool
   defaults { default True; legacy False }
@@ -2443,6 +2453,11 @@ RecordBrainBestRecent {
 RecordBrainBestSoFar {
   type    Bool
   default RecordBrain
+}
+
+RecordBrainBehaviorNeurons {
+  type    Bool
+  default False
 }
 
 RecordGeneStats {
