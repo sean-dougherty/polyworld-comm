@@ -17,6 +17,16 @@
 #include "SimulationController.h"
 #include "TerminalUI.h"
 
+//#define UNIT_TESTS
+
+#ifdef UNIT_TESTS
+#include "PathDistance.h"
+
+static void unit_tests()
+{
+    PathDistance::test();
+}
+#endif
 
 using namespace std;
 
@@ -50,6 +60,11 @@ void usage()
 //===========================================================================
 int main( int argc, char** argv )
 {
+#ifdef UNIT_TESTS
+    unit_tests();
+    exit(0);
+#endif
+
 	const char *worldfilePath = NULL;
 	string ui = "gui";
 	

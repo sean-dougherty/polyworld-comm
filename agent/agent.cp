@@ -34,6 +34,7 @@
 #include "MateWaitSensor.h"
 #include "Metabolism.h"
 #include "NervousSystem.h"
+#include "PathDistance.h"
 #include "RandomNumberGenerator.h"
 #include "RandomSensor.h"
 #include "Resources.h"
@@ -839,13 +840,20 @@ void agent::UpdateCustomFitness()
     objectxsortedlist::gXSortedObjects.reset();
     while( objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f ) )
     {
-        float dx = x() - f->x();
-        float dz = z() - f->z();
-        float fdist = sqrt( dx*dx + dz*dz );
+        float fdist = PathDistance::distance( x(), z(), f->x(), f->z() );
         if( fdist < min_dist )
             min_dist = fdist;
+#if 0
+        {
+            float x1 = x() - (globals::worldsize / 2.0);
+            float z1 = -(z() + (globals::worldsize / 2.0));
+            float x2 = f->x() - (globals::worldsize / 2.0);
+            float z2 = -(f->z() + (globals::worldsize / 2.0));
+            cout << "(" << x1 << "," << z1 << "), (" << x2 << "," << z2 << ") --> " << fdist << endl;
+            exit(0);
+        }
+#endif
     }
-
     objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
 
     float dist_fitness = 0.7f * float(1.0 - (min_dist / globals::worldsize));

@@ -55,12 +55,14 @@
 #include "Logs.h"
 #include "Metabolism.h"
 #include "MonitorManager.h"
+#include "PathDistance.h"
 #include "proplib.h"
 #include "Queue.h"
 #include "RandomNumberGenerator.h"
 #include "Resources.h"
 #include "SceneRenderer.h"
 #include "SheetsBrain.h"
+#include "SoundPatch.h"
 #include "PwMovieUtils.h"
 #include "complexity.h"
 
@@ -551,6 +553,8 @@ TSimulation::~TSimulation()
 	// rather than cycling through them in xsortedagents here
 	objectxsortedlist::gXSortedObjects.clear();
 
+    if(fNumSoundPatches)
+        delete [] fSoundPatches;
 
 	// TODO who owns items on stage?
 	fStage.Clear();
@@ -605,7 +609,7 @@ void TSimulation::Step()
 
 	if( fMaxSteps && ((fStep+1) > fMaxSteps) )
 	{
-		End( "MaxSteps" );
+        End( "MaxSteps" );
 		return;
 	}
 	else if( fEndOnPopulationCrash &&
@@ -686,6 +690,12 @@ void TSimulation::Step()
 	while( barrier::gXSortedBarriers.next( b ) )
 		b->update();
 	barrier::gXSortedBarriers.xsort();
+
+    // Update sound patches
+    for(int i = 0; i < fNumSoundPatches; i++)
+    {
+        fSoundPatches[i].update(fStep);
+    }
 
 	MaintainEnergyCosts();
 
@@ -4379,6 +4389,57 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		barrier::gXSortedBarriers.reset();
 	}
 
+	// ---
+	// --- DistancePaths
+	// ---
+	{
+        const bool debug = false;
+
+		proplib::Property &propDistancePaths = doc.get( "DistancePaths" );
+
+		for( int idistancePath = 0; idistancePath < (int)propDistancePaths.elements().size(); idistancePath++ )
+		{
+            struct segment_t {
+                float xa, za, xb, zb;
+            };
+
+			proplib::Property &propDistancePath = propDistancePaths.get( idistancePath );
+			// Note that distancePaths were already allocated in InitCppProperties()
+			segment_t *s = new segment_t();
+			s->xa = propDistancePath.get( "X1" );
+			s->za = propDistancePath.get( "Z1" );
+			s->xb = propDistancePath.get( "X2" );
+			s->zb = propDistancePath.get( "Z2" );
+
+            PathDistance::addSegment(s->xa * globals::worldsize,
+                                     s->za * globals::worldsize,
+                                     s->xb * globals::worldsize,
+                                     s->zb * globals::worldsize);
+
+            if(debug) {
+                barrier *b = new barrier();
+                barrier::gBarriers.push_back( b );
+
+                b->getPosition().xa = s->xa;
+                b->getPosition().za = s->za;
+                b->getPosition().xb = s->xb;
+                b->getPosition().zb = s->zb;
+
+                b->init();
+                b->setcolor(Color(1.0, 0.0, 0.0, 1.0));
+
+                barrier::gXSortedBarriers.add( b );
+            }
+		}
+
+        PathDistance::complete();
+
+        if(debug) {
+            barrier::gXSortedBarriers.reset();
+        }
+    }
+
+
 	globals::numEnergyTypes = doc.get( "NumEnergyTypes" );
 
 	// Process FoodTypes
@@ -4483,6 +4544,38 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 			Metabolism::selectionMode = Metabolism::Random;
 		else
 			assert( false );
+	}
+
+	// Process SoundPatches
+	{
+		proplib::Property &propSoundPatches = doc.get( "SoundPatches" );
+		int numPatches = propSoundPatches.size();
+        fNumSoundPatches = numPatches;
+        if(fNumSoundPatches)
+        {
+            fSoundPatches = new SoundPatch[fNumSoundPatches];
+            if( !(bool)doc.get("EnableHearing") )
+                propSoundPatches.err("Must enable hearing!");
+        }
+
+		for( int iPatch = 0; iPatch < numPatches; iPatch++ )
+		{
+			proplib::Property &propPatch = propSoundPatches.get( iPatch );
+
+            float centerX = globals::worldsize * (float)propPatch.get("CenterX");
+            float centerZ = -globals::worldsize * (float)propPatch.get("CenterZ");
+            float sizeX = globals::worldsize * (float)propPatch.get("SizeX");
+            float sizeZ = globals::worldsize * (float)propPatch.get("SizeZ");
+
+            vector<int> sequence;
+            proplib::Property &propSequence = propPatch.get("Sequence");
+            for(size_t i = 0; i < propSequence.size(); i++)
+            {
+                sequence.push_back( propSequence.get(i) );
+            }
+
+            fSoundPatches[iPatch].init(centerX, centerZ, sizeX, sizeZ, sequence);
+        }
 	}
 
 	// Process Domains

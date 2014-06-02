@@ -419,6 +419,99 @@ Barriers {
 }
 
 #------------------------------
+# DistancePaths
+#------------------------------
+DistancePaths {
+  type    Array
+
+  default [
+ ]
+
+  element {
+    type    Object
+
+    properties {
+      X1 {
+        type    Float
+        min     0.0
+        max     1.0
+      }
+      Z1 {
+        type    Float
+        max     0.0
+        min     -1.0
+      }
+
+      X2 {
+        type    Float
+        min     0.0
+        max     1.0
+      }
+      Z2 {
+        type    Float
+        max     0.0
+        min     -1.0
+      }
+    }
+  }
+}
+
+#------------------------------
+# SoundPatches
+#------------------------------
+SoundPatches {
+  type    Array
+
+  default [ ]
+
+  element {
+    type    Object
+
+    properties {
+
+      CenterX {
+        type    Float
+        default 0.5
+        exmin   0.0
+        exmax   1.0
+      }
+
+      CenterZ {
+        type    Float
+        default 0.5
+        exmin   0.0
+        exmax   1.0
+      }
+
+      SizeX {
+        type    Float
+        default 1.0
+        exmin   0.0
+        max     1.0
+      }
+
+      SizeZ {
+        type    Float
+        default 1.0
+        exmin   0.0
+        max     1.0
+      }
+
+      Sequence {
+        type    Array
+        min     1
+        element {
+          type    Int
+          min     0
+          exmax   NumSoundFrequencies
+        }
+      }
+
+    } # SoundPatch properties
+  } # SoundPatches[] element
+}
+
+#------------------------------
 #--- Domains
 #------------------------------
 Domains {

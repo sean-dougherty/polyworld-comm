@@ -6,6 +6,9 @@ import sys
 
 random_single_food = False
 seed_from_run = False
+agent_start = None
+food_loc = None
+food_difficulty = -1
 
 args = sys.argv[1:]
 while True:
@@ -16,6 +19,18 @@ while True:
 	elif len(args) and args[0] == '--seed-from-run':
 		seed_from_run = True
 		args = args[1:]
+	elif len(args) and args[0] == '--agent-start':
+		agent_start = map(float, args[1:3])
+		args = args[3:]
+	elif len(args) and args[0] == '--food-loc':
+		food_loc = map(float, args[1:3])
+		args = args[3:]
+	elif len(args) and args[0] == '--food-difficulty':
+		food_difficulty = int(args[1])
+		args = args[2:]
+	elif len(args) and args[0][:2] == '--':
+		print 'invalid option:', args[0]
+		exit(1)
 	else:
 		break
 
@@ -78,28 +93,26 @@ def to_polyworld_coords(coords):
 
 def make_branch(rotation):
 	coords = [
-		[-1.48, 0.13, -1.48, 31.14],
-		[-1.48, 31.14, -12.23, 41.89],
-		[-12.23, 41.89, -20.63, 41.89],
-		[-20.63, 41.89, -20.63, 44.20],
-		[-20.63, 44.20, -14.54, 44.20],
-		[-14.54, 44.20, -21.56, 51.22],
-		[-21.56, 51.22, -19.20, 53.57],
-		[-19.20, 53.57, -11.95, 46.32],
-		[-11.95, 46.32, -11.95, 52.79],
-		[-11.95, 52.79, -9.64, 52.79],
-		[-9.64, 52.79, -9.64, 44.01],
-		[-9.64, 44.01, -1.48, 35.85],
-		[-1.48, 35.85, -1.48, 62.91],
-		[-1.48, 62.91, -7.77, 69.20],
-		[-7.77, 69.20, -6.14, 70.84],
-		[-6.14, 70.84, -1.48, 66.18],
-		[-1.48, 66.18, -1.48, 78.61],
-		[-1.48, 78.61, 0.00, 78.61]
+		[-1.5, 2.6, -1.5, 33.61],
+		[-1.5, 33.61, -12.25, 44.36],
+		[-12.25, 44.36, -20.65, 44.36],
+		[-20.65, 44.36, -20.65, 46.67],
+		[-20.65, 46.67, -14.56, 46.67],
+		[-14.56, 46.67, -21.58, 53.69],
+		[-21.58, 53.69, -19.22, 56.04],
+		[-19.22, 56.04, -11.97, 48.79],
+		[-11.97, 48.79, -11.97, 55.26],
+		[-11.97, 55.26, -9.66, 55.26],
+		[-9.66, 55.26, -9.66, 46.48],
+		[-9.66, 46.48, -1.5, 38.32],
+		[-1.5, 38.32, -1.5, 65.38],
+		[-1.5, 65.38, -7.79, 71.67],
+		[-7.79, 71.67, -6.16, 73.31],
+		[-6.16, 73.31, -1.5, 68.65],
+		[-1.5, 68.65, -1.5, 81.08],
+		[-1.5, 81.08, 0.0, 81.08],
 	]
 
-	coords = xtranslate(coords, -0.02)
-	coords = ytranslate(coords, 2.47)
 	coords += yreflect(coords)
 	
 	for c in coords:
@@ -108,74 +121,155 @@ def make_branch(rotation):
 
 	return coords
 
-def make_food_patches(rotation):
-	axis_coords = [
-		[0, 31.14],
-		[0, 60.81],
-		[0, 77.45]
-	]
-	axis_coords = xtranslate(axis_coords, -0.02)
-	axis_coords = ytranslate(axis_coords, 2.47)
+def make_food_patches(rotation, difficulty):
+	first_sound = {
+		0.0: 2,
+		1.05: 1,
+		-1.05: 3,
+		2.10: -1,
+		-2.10: -1
+		}
 
-	coords = [
-		[-10.29, 42.0],
-		[-20.0, 43.0],
-		[-20.0, 51.7],
-		[-11.0, 52.0],
-		[-6.42, 69.42],
-	]
+	first_sound = first_sound[rotation]
+
+
+	def filter_difficulty(dc):
+		if difficulty != -1:
+			dc = filter(lambda x: x[0] <= difficulty, dc)
+		return map(lambda x: x[1], dc)
+
+	coords = filter_difficulty([
+			(1, [-9.68, 44.14]),  # 2 1
+			(2, [-19.31, 45.47]), # 2 1 1
+			(2, [-19.49, 53.93]), # 2 1 2
+			(2, [-10.82, 54.03]), # 2 1 3
+			(2, [-6.09, 71.58])   # 2 2 1
+			])
 	coords += yreflect(coords)
-	coords = xtranslate(coords, -0.02)
-	coords = ytranslate(coords, 2.47)
 
-	coords = axis_coords + coords
+	sounds = filter_difficulty([
+		(1, [2, 1]),
+		(2, [2, 1, 1]),
+		(2, [2, 1, 2]),
+		(2, [2, 1, 3]),
+		(2, [2, 2, 1])
+		])
+	sounds += filter_difficulty([
+		(1, [2, 3]),
+		(2, [2, 3, 3]),
+		(2, [2, 3, 2]),
+		(2, [2, 3, 1]),
+		(2, [2, 2, 3])
+		])
+
+	coords += filter_difficulty([
+		(0, [0.0, 31.05]), # 2
+		(1, [0.0, 63.59]), # 2 2
+		(2, [0.0, 79.89])  # 2 2 2
+	])
+
+	sounds += filter_difficulty([
+		(0, [2]),
+		(1, [2, 2]),
+		(2, [2, 2, 2])
+		])
+
+	for i in range(len(sounds)):
+		sounds[i][0] = first_sound
+
 	for c in coords:
 		c[0], c[1] = rotate(c[0], c[1], rotation)
 
-	return coords
+	assert len(coords) == len(sounds)
+
+	return coords, sounds
 
 def make_trunk():
 	coords = [
-		[-2.05, -137.93, -1.5, -2.56]
+		[-1.5, -134.46, -1.5, -2.56],
 	]
-	coords = ytranslate(coords, 2.47)
-	coords = coords + yreflect(coords)
+	coords += yreflect(coords)
 	return coords
 
 def make_nest():
 	coords = [
-		[-1.75, -136.75, -24.85, -151.35],
-		[-24.85, -151.35, -24.28, -175.21],
-		[-24.28, -175.21, 0, -175.21]
+		[-1.5, -134.46, -24.30, -148.88],
+		[-24.30, -148.88, -24.30, -172.74],
+		[-24.30, -172.74, 0.0, -172.74]
 	]
-	coords = ytranslate(coords, 2.47)
 	return coords + yreflect(coords)
+
+def make_branch_dist(rotation):
+	coords = [
+		[0.0, 34.81, -10.81, 45.54],
+		[-10.81, 45.54, -21.32, 45.52],
+		[-10.81, 45.54, -21.04, 55.48],
+		[-10.81, 45.54, -10.82, 56.02],
+		[0.0, 65.45, -7.98, 73.61]
+	]
+	coords += yreflect(coords)
+
+	coords += [
+		[0.0, 0.0, 0.0, 34.81],
+		[0.0, 34.81, 0.0, 65.45],
+		[0.0, 65.45, 0.0, 81.70]
+	]
+
+	for c in coords:
+		c[0], c[1] = rotate(c[0], c[1], rotation)
+		c[2], c[3] = rotate(c[2], c[3], rotation)
+
+	return coords
+
+def make_nest_dist():
+	coords = [
+		[0.0, 0.0, 0.0, -174.46]
+	]
+	return coords
 
 coords = []
 food_coords = []
+sounds = []
+dist_coords = []
 
 for rotation in [0, 1.05, -1.05, 2.10, -2.10]:
 	coords += make_branch(rotation)
-	food_coords += make_food_patches(rotation)
+	dist_coords += make_branch_dist(rotation)
 
 coords += make_trunk() + make_nest()
+dist_coords += make_nest_dist()
+
+if food_loc:
+	food_coords = [food_loc]
+else:
+	for rotation in [0, 1.05, -1.05]:
+		_food_coords, _sounds = make_food_patches(rotation, food_difficulty)
+		food_coords += _food_coords
+		sounds += _sounds
 
 if random_single_food:
 	random.seed(seed_random_single_food)
 	food_index = random.randint(0, len(food_coords)-1)
 	food_coords = [food_coords[food_index]]
+	sounds = [sounds[food_index]]
 
 
 nest_walls = make_nest()
-nest_centerX = 0.5
-nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
-#nest_sizeX = 0.75 * ((abs(nest_walls[1][0]) * 2) / worldsize)
-#nest_sizeY = 0.75 * (abs(nest_walls[1][1] - nest_walls[1][3]) / worldsize)
+
+if agent_start:
+	agent_start = to_polyworld_coords([agent_start])[0]
+	nest_centerX = agent_start[0]
+	nest_centerY = 1.0 + agent_start[1]
+else:
+	nest_centerX = 0.5
+	nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
+
 nest_sizeX = 1.0 / worldsize
 nest_sizeY = 1.0 / worldsize
 
 coords = to_polyworld_coords(coords)
 food_coords = to_polyworld_coords(food_coords)
+dist_coords = to_polyworld_coords(dist_coords)
 
 
 print """\
@@ -184,16 +278,22 @@ print """\
 WorldSize %f
 MinAgents 1
 MaxAgents 300
-InitAgents 200
-SeedAgents 200
+InitAgents 60
+SeedAgents 60
+SeedMutationProbability 0.5
+MateWait 0
 
 MaxSteps 1000
 
-SeedGenomeFromRun %s
+SeedGenomeFromRun %s""" % (worldsize, seed_from_run)
 
-Barriers [""" % (worldsize, seed_from_run)
+print """
+MinFood %d
+MaxFood %d
+InitFood %d
+""" % (len(food_coords),len(food_coords),len(food_coords))
 
-
+print "Barriers ["
 for i in range(len(coords)):
 	c = coords[i]
 	print '  {'
@@ -206,11 +306,51 @@ for i in range(len(coords)):
 	print '  }'
 	if i != (len(coords) - 1):
 		print '  ,'
+print "]"
 
+print "EnableHearing True"
+print "NumSoundFrequencies 3"
+
+if len(sounds) == 1:
+	center = [0.0, (nest_walls[1][1] + nest_walls[1][3]) / 2.0]
+	center[0] += worldsize/2
+	center[1] += worldsize/2
+	center[0] /= worldsize
+	center[1] /= worldsize
+	size = [abs(nest_walls[2][0]) * 2, 2*abs(nest_walls[0][1] - nest_walls[2][1])]
+	size[0] /= worldsize
+	size[1] /= worldsize
+	sounds = map(lambda x: x - 1, sounds[0])
+	sequence = ','.join(map(str, sounds))
+
+	print """\
+SoundPatches [
+  {
+    SizeX %f
+    SizeZ %f
+    CenterX %f
+    CenterZ %f
+    Sequence [%s]
+  }
+]
+""" % (size[0], size[1], center[0], center[1], sequence)
+
+print "DistancePaths ["
+for i in range(len(dist_coords)):
+	c = dist_coords[i]
+	print '  {'
+	
+	print '    X1', c[0]
+	print '    Z1', c[1]
+	print '    X2', c[2]
+	print '    Z2', c[3]
+
+	print '  }'
+	if i != (len(dist_coords) - 1):
+		print '  ,'
+print "]"
 
 print """\
-]
-
 Domains [
     {
       CenterX                   0.5
@@ -221,8 +361,12 @@ Domains [
       InitAgentsCenterZ			%f
       InitAgentsSizeX		    %f
       InitAgentsSizeZ			%f
-      FoodPatches [
 """ % (nest_centerX, nest_centerY, nest_sizeX, nest_sizeY)
+
+
+print """
+      FoodPatches [
+"""
 
 foodFraction = 1.0 / len(food_coords)
 

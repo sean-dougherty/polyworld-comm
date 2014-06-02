@@ -382,6 +382,9 @@ private:
 	int fNumBrickPatches;
 	class BrickPatch* fBrickPatches;
 
+    int fNumSoundPatches;
+    class SoundPatch* fSoundPatches;
+
 
 	long fMinFoodCount;
 	long fMaxFoodCount;

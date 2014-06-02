@@ -80,6 +80,14 @@ void HearingSensor::Receptor::update(std::vector<Sound> &sounds) {
         total_intensity[sound.frequency] += scaled_intensity;
     }
 
+/*
+    for(int i = 0; i < globals::numSoundFrequencies; i++) {
+        if( total_intensity[i] > 0.1 ) {
+            cout << "  SOUND: agent=" << self->Number() << ", freq=" << i << endl;
+        }
+    }
+*/
+
     int neuron_index = this->index * globals::numSoundFrequencies;
 
     for(int i = 0; i < globals::numSoundFrequencies; i++) {
