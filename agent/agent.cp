@@ -856,9 +856,10 @@ float agent::GetCustomFitness()
         if(fCustomFitness.segmentVisited[i])
             segment_bonus += 0.05f;
     }
-    assert(segment_bonus > 0.0f);
-    segment_bonus -= 0.05f; // don't reward for initial segment.
-    if(segment_bonus > 0.3f) segment_bonus = 0.3f;
+    if(segment_bonus > 0.0f)
+        segment_bonus -= 0.05f; // don't reward for initial segment.
+    if(segment_bonus > 0.3f)
+        segment_bonus = 0.3f;
 
     gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
 
