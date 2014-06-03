@@ -851,6 +851,7 @@ float agent::GetCustomFitness()
         return 1.0;
 
     float segment_bonus = 0.0f;
+/*
     for(unsigned i = 0; i < PathDistance::getSegmentCount(); i++)
     {
         if(fCustomFitness.segmentVisited[i])
@@ -860,7 +861,7 @@ float agent::GetCustomFitness()
         segment_bonus -= 0.05f; // don't reward for initial segment.
     if(segment_bonus > 0.3f)
         segment_bonus = 0.3f;
-
+*/
     gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
 
     float min_dist = globals::worldsize;
