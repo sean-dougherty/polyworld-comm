@@ -1,0 +1,17 @@
+#!/bin/bash
+
+trialsdir=$1
+if [ -z "$trialsdir" ]; then
+    echo "usage: $0 trialsdir"
+    exit 1
+fi
+
+for x in $(ls -vd $trialsdir/run*); do
+    runid=$(echo ${x:17} | sed -e "s/.*\(\d+\)/\\1/")
+    fitness=$(head -n 1 $x/genome/Fittest/fitness.txt | awk '{print $2}')
+    printf '%d\t%f\n' $runid $fitness
+done > /tmp/fit
+
+gnuplot -e 'set terminal png; set style data linespoints; plot "/tmp/fit" using 1:2' > /tmp/plot.png
+
+xdg-open /tmp/plot.png
