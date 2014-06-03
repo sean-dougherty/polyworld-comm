@@ -227,17 +227,52 @@ def make_nest_dist():
 	]
 	return coords
 
+def make_trunk_bricks():
+	coords = [
+		[0.0, 0.0]
+	]
+	colors = [
+		[0.6, 0.0, 0.0]
+	]
+
+	return coords, colors
+
+def make_branch_bricks(rotation):
+	coords = [
+		[0.0, 34.81],
+		[0.0, 65.45]
+	]
+	colors = [
+		[0.8, 0.0, 0.0],
+		[1.0, 0.0, 0.0]
+	]
+
+	for c in coords:
+		c[0], c[1] = rotate(c[0], c[1], rotation)
+
+	return coords, colors
+	
+
 coords = []
 food_coords = []
 sounds = []
 dist_coords = []
+brick_coords = []
+brick_colors = []
 
 for rotation in [0, 1.05, -1.05, 2.10, -2.10]:
 	coords += make_branch(rotation)
 	dist_coords += make_branch_dist(rotation)
+	brick_coords_, brick_colors_ = make_branch_bricks(rotation)
+	brick_coords += brick_coords_
+	brick_colors += brick_colors_
 
 coords += make_trunk() + make_nest()
 dist_coords += make_nest_dist()
+brick_coords_, brick_colors_ = make_trunk_bricks()
+brick_coords += brick_coords_
+brick_colors += brick_colors_
+
 
 if food_loc:
 	food_coords = [food_loc]
@@ -270,6 +305,7 @@ nest_sizeY = 1.0 / worldsize
 coords = to_polyworld_coords(coords)
 food_coords = to_polyworld_coords(food_coords)
 dist_coords = to_polyworld_coords(dist_coords)
+brick_coords = to_polyworld_coords(brick_coords)
 
 
 print """\
@@ -282,16 +318,11 @@ InitAgents 60
 SeedAgents 60
 SeedMutationProbability 0.5
 MateWait 0
+AgentsAreFood False
 
 MaxSteps 1000
 
 SeedGenomeFromRun %s""" % (worldsize, seed_from_run)
-
-print """
-MinFood %d
-MaxFood %d
-InitFood %d
-""" % (len(food_coords),len(food_coords),len(food_coords))
 
 print "Barriers ["
 for i in range(len(coords)):
@@ -350,6 +381,15 @@ for i in range(len(dist_coords)):
 		print '  ,'
 print "]"
 
+print """
+MinFood %d
+MaxFood %d
+InitFood %d
+""" % (len(food_coords),len(food_coords),len(food_coords))
+
+print "SolidBricks False"
+print "BrickHeight 0.2"
+
 print """\
 Domains [
     {
@@ -363,13 +403,33 @@ Domains [
       InitAgentsSizeZ			%f
 """ % (nest_centerX, nest_centerY, nest_sizeX, nest_sizeY)
 
-
 print """
-      FoodPatches [
+      BrickPatches [
+"""
+for i in range(len(brick_coords)):
+	print """\
+        {
+          CenterX                   %f
+          CenterZ                   %f
+          SizeX                     0.001
+          SizeZ                     0.001
+          BrickCount                1
+          BrickColor { R %f; G %f; B %f }
+        }
+""" % (brick_coords[i][0], 1+brick_coords[i][1], brick_colors[i][0], brick_colors[i][1], brick_colors[i][2])
+
+	if i != (len(brick_coords) - 1):
+		print '        ,'
+
+print """\
+      ]
 """
 
 foodFraction = 1.0 / len(food_coords)
 
+print """
+      FoodPatches [
+"""
 for i in range(len(food_coords)):
 	print """\
         {
@@ -390,7 +450,9 @@ print """\
       ]
     }
   ]
+"""
 
+print """\
 BarrierHeight  1.0
 
 MaxAgentSize 0.75
@@ -400,11 +462,12 @@ RecordBrainBehaviorNeurons True
 EndOnEat True
 FitnessMode MazeFood
 YawInit 0
-YawOpposeThreshold 0.1
+YawOpposeThreshold 0.025
 FightMultiplier 0.0
+BodyRedChannel 0.0
 MinAgentMaxEnergy 1000.0
 MaxAgentMaxEnergy 1000.1
-EnergyUseMultiplier 0.05
+EnergyUseMultiplier 0.001
 StickyBarriers True
 EnableSpeedFeedback True
 EyeHeight 1.2
@@ -413,4 +476,6 @@ MinVisionPitch -90
 MaxVisionPitch -3.4
 MinLifeSpan 1000
 MaxLifeSpan 1001
+EnableTopologicalDistortionRngSeed True
+EnableInitWeightRngSeed True
 """

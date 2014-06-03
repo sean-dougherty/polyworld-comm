@@ -308,7 +308,9 @@ protected:
 	
     float fHeuristicFitness;	// rough estimate along evolutionary biology lines
 	float fComplexity;
-    float fCustomFitness;
+    struct {
+        bool *segmentVisited;
+    } fCustomFitness;
 	
 	genome::Genome* fGenome;
 	struct GeneCache

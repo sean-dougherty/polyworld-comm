@@ -285,6 +285,14 @@ float PathDistance::distance(float x1, float y1, float x2, float y2) {
     return path_dist( {x1, y1}, {x2, y2} );
 }
 
+unsigned PathDistance::getSegmentCount() {
+    return segments.size();
+}
+
+int PathDistance::getSegmentId(float x, float y) {
+    return get_segment({x,y})->id;
+}
+
 void PathDistance::test() {
     PathDistance::addSegment(0.0, -136.93, 0.0, 0.0);
     PathDistance::addSegment(0.0, 0.0, 0.0, 33.06);

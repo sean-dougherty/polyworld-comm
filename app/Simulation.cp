@@ -2922,20 +2922,25 @@ void TSimulation::Eat( agent *c, bool *cDied )
         }
 
 		fEatStatistics.AgentEatAttempt( eatStatus );
+
+        objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
+        if( !fLockStepWithBirthsDeathsLog )
+        {
+            // If we're not running in LockStep mode, allow natural deaths
+            if( c->GetEnergy().isDepleted() )
+            {
+                // note: this leaves list pointing to item before c, and markedAgent set to previous agent
+                Kill( c, LifeSpan::DR_EAT );
+                fNumberDiedEat++;
+                *cDied = true;
+            }
+        }
+    }
+    else
+    {
+        objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
     }
 
-	objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
-	if( !fLockStepWithBirthsDeathsLog )
-	{
-		// If we're not running in LockStep mode, allow natural deaths
-		if( c->GetEnergy().isDepleted() )
-		{
-			// note: this leaves list pointing to item before c, and markedAgent set to previous agent
-			Kill( c, LifeSpan::DR_EAT );
-			fNumberDiedEat++;
-			*cDied = true;
-		}
-	}
 	debugcheck( "after all agents had a chance to eat" );
 }
 

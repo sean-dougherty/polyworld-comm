@@ -186,7 +186,6 @@ agent::agent(TSimulation* sim, gstage* stage)
 		fMass(0.0), 		// mass - not used
 		fHeuristicFitness(0.0),  	// crude guess for keeping minimum population early on
 		fComplexity(-1.0),	// < 0.0 indicates not yet computed
-        fCustomFitness(0.0),
 		fGenome(NULL),
 		fCns(NULL),
 		fRetina(NULL),
@@ -225,6 +224,15 @@ agent::agent(TSimulation* sim, gstage* stage)
 	fLastEatPosition[1] = 0.0;
 	fLastEatPosition[2] = 0.0;
 
+    if(PathDistance::getSegmentCount())
+    {
+        unsigned n = PathDistance::getSegmentCount();
+        fCustomFitness.segmentVisited = new bool[n];
+        memset(fCustomFitness.segmentVisited, 0, sizeof(bool) * n);
+    }
+    else
+        fCustomFitness.segmentVisited = NULL;
+
 	fGenome = GenomeUtil::createGenome();
 	Q_CHECK_PTR(fGenome);
 
@@ -255,6 +263,7 @@ agent::~agent()
 	delete fBeingCarriedSensor;
 	delete fRetina;
     delete fHearingSensor;
+    delete fCustomFitness.segmentVisited;
 
 	AgentAttachedData::dispose( this );
 }
@@ -832,6 +841,25 @@ float agent::ProjectedHeuristicFitness()
 
 void agent::UpdateCustomFitness()
 {
+    if(fCustomFitness.segmentVisited)
+        fCustomFitness.segmentVisited[PathDistance::getSegmentId(x(),z())] = true;
+}
+
+float agent::GetCustomFitness()
+{
+    if( fLastEat != 0 )
+        return 1.0;
+
+    float segment_bonus = 0.0f;
+    for(unsigned i = 0; i < PathDistance::getSegmentCount(); i++)
+    {
+        if(fCustomFitness.segmentVisited[i])
+            segment_bonus += 0.05f;
+    }
+    assert(segment_bonus > 0.0f);
+    segment_bonus -= 0.05f; // don't reward for initial segment.
+    if(segment_bonus > 0.3f) segment_bonus = 0.3f;
+
     gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
 
     float min_dist = globals::worldsize;
@@ -857,22 +885,14 @@ void agent::UpdateCustomFitness()
     objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
 
     float dist_fitness = 0.7f * float(1.0 - (min_dist / globals::worldsize));
+    float fitness = dist_fitness + segment_bonus;
+    {
+        float x1 = x() - (globals::worldsize / 2.0);
+        float z1 = -(z() + (globals::worldsize / 2.0));
+        cout << "GetCustomFitness, pos=(" << x1 << "," << z1 << "), bonus=" << segment_bonus << ", dist_fitness = " << dist_fitness << ", fitness = " << fitness << endl;
+    }
 
-    const float t = fSimulation->getStep();
-    const float T = fSimulation->GetMaxSteps();
-    float time_fitness = 0.3f * (T - t) / T;
-
-    float fitness = dist_fitness + time_fitness;
-
-    fCustomFitness = max( fitness, fCustomFitness );
-}
-
-float agent::GetCustomFitness()
-{
-    if( fLastEat != 0 )
-        return 1.0;
-    else
-        return fCustomFitness;
+    return fitness;
 }
 
 //---------------------------------------------------------------------------
