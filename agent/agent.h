@@ -100,7 +100,9 @@ public:
 		float	maxMaxEnergy;
 		float	yaw2DYaw;
 		YawEncoding yawEncoding;
-        float   yawOpposeThreshold;
+        bool    enableYawOpposeThreshold;
+        float   minYawOpposeThreshold;
+        float   maxYawOpposeThreshold;
 		float	minFocus;
 		float	maxFocus;
 		float	agentFOV;
@@ -319,6 +321,7 @@ protected:
 		float strength;
 		float size;
 		long lifespan;
+        float yawOpposeThreshold;
 	} geneCache;
 
 	NervousSystem *fCns;

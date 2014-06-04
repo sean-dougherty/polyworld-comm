@@ -1152,6 +1152,25 @@ EyeHeight {
   max     1.2
 }
 
+EnableYawOpposeThreshold {
+  type    Bool
+  default False
+}
+
+MinYawOpposeThreshold {
+  type    Float
+  default 0.0
+  min     0.0
+  max     MaxYawOpposeThreshold
+}
+
+MaxYawOpposeThreshold {
+  type    Float
+  default 0.05
+  min     MinYawOpposeThreshold
+  exmax   1.0 # A value of 1.0 means they can't turn!
+}
+
 EnableVoice {
   type    Bool
   default False
@@ -1337,11 +1356,6 @@ YawEncoding {
     Squash
   }
   defaults { default Oppose; legacy Squash }
-}
-
-YawOpposeThreshold {
-  type    Float
-  default 0.0
 }
 
 YawInit {

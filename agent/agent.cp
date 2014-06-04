@@ -97,7 +97,9 @@ void agent::processWorldfile( proplib::Document &doc )
 		else
 			assert( false );
 	}
-    agent::config.yawOpposeThreshold = doc.get( "YawOpposeThreshold" );
+    agent::config.enableYawOpposeThreshold = doc.get( "EnableYawOpposeThreshold" );
+    agent::config.minYawOpposeThreshold = doc.get( "MinYawOpposeThreshold" );
+    agent::config.maxYawOpposeThreshold = doc.get( "MaxYawOpposeThreshold" );
     agent::config.minFocus = doc.get( "MinHorizontalFieldOfView" );
     agent::config.maxFocus = doc.get( "MaxHorizontalFieldOfView" );
     agent::config.agentFOV = doc.get( "VerticalFieldOfView" );
@@ -992,6 +994,8 @@ void agent::InitGeneCache()
 	geneCache.strength = fGenome->get("Strength");
 	geneCache.size = fGenome->get("Size");
 	geneCache.lifespan = fGenome->get("LifeSpan");
+    if( agent::config.enableYawOpposeThreshold )
+        geneCache.yawOpposeThreshold = fGenome->get("YawOpposeThreshold");
 }
 
 //---------------------------------------------------------------------------
@@ -1107,14 +1111,18 @@ float agent::UpdateBody( float moveFitnessParam,
 	{
 	case YE_OPPOSE:
 		dyaw = outputNerves.yaw->get() - outputNerves.yawOppose->get();
-        if( fabs(dyaw) < agent::config.yawOpposeThreshold )
+        if(agent::config.enableYawOpposeThreshold)
         {
-            dyaw = 0.0;
-        }
-        else if( agent::config.yawOpposeThreshold > 0.0 )
-        {
-            dyaw = copysign( (fabs(dyaw) - agent::config.yawOpposeThreshold) / (1.0 - agent::config.yawOpposeThreshold), dyaw );
-                
+            float dyaw0 = dyaw;
+            if( fabs(dyaw0) < geneCache.yawOpposeThreshold )
+            {
+                dyaw = 0.0;
+            }
+            else if( geneCache.yawOpposeThreshold > 0.0 )
+            {
+                dyaw = copysign( (fabs(dyaw0) - geneCache.yawOpposeThreshold) / (1.0 - geneCache.yawOpposeThreshold),
+                                 dyaw0 );
+            }
         }
 		break;
 	case YE_SQUASH:

@@ -133,6 +133,13 @@ void GenomeSchema::define()
 	SCALAR( MateEnergyFraction,
 		   agent::config.minmateenergy,
 		   agent::config.maxmateenergy );
+
+    if( agent::config.enableYawOpposeThreshold )
+    {
+        SCALAR( YawOpposeThreshold,
+                agent::config.minYawOpposeThreshold,
+                agent::config.maxYawOpposeThreshold );
+    }
 			
 	if( Metabolism::selectionMode == Metabolism::Gene
 		&& (Metabolism::getNumberOfDefinitions() > 1) )

@@ -455,7 +455,10 @@ RecordBrainBehaviorNeurons True
 EndOnEat True
 FitnessMode MazeFood
 YawInit 0
-YawOpposeThreshold 0.025
+YawEncoding Oppose
+EnableYawOpposeThreshold True
+MinYawOpposeThreshold 0.0
+MaxYawOpposeThreshold 0.1
 FightMultiplier 0.0
 BodyRedChannel 0.0
 MinAgentMaxEnergy 1000.0
