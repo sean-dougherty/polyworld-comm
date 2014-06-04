@@ -186,9 +186,8 @@ def make_food_patches(rotation, difficulty):
 
 def make_trunk():
 	coords = [
-		[-1.5, -134.46, -1.5, -2.56],
+		[-1.5, -2.6, 1.5, -2.6],
 	]
-	coords += yreflect(coords)
 	return coords
 
 def make_nest():
@@ -267,7 +266,7 @@ for rotation in [0, 1.05, -1.05, 2.10, -2.10]:
 	brick_coords += brick_coords_
 	brick_colors += brick_colors_
 
-coords += make_trunk() + make_nest()
+coords += make_trunk()
 dist_coords += make_nest_dist()
 brick_coords_, brick_colors_ = make_trunk_bricks()
 brick_coords += brick_coords_
@@ -289,15 +288,13 @@ if random_single_food:
 	sounds = [sounds[food_index]]
 
 
-nest_walls = make_nest()
-
 if agent_start:
 	agent_start = to_polyworld_coords([agent_start])[0]
 	nest_centerX = agent_start[0]
 	nest_centerY = 1.0 + agent_start[1]
 else:
 	nest_centerX = 0.5
-	nest_centerY = 0.5 - ((nest_walls[1][1] + nest_walls[1][3]) / 2.0 / worldsize)
+	nest_centerY = 0.5
 
 nest_sizeX = 1.0 / worldsize
 nest_sizeY = 1.0 / worldsize
@@ -343,14 +340,6 @@ print "EnableHearing True"
 print "NumSoundFrequencies 3"
 
 if len(sounds) == 1:
-	center = [0.0, (nest_walls[1][1] + nest_walls[1][3]) / 2.0]
-	center[0] += worldsize/2
-	center[1] += worldsize/2
-	center[0] /= worldsize
-	center[1] /= worldsize
-	size = [abs(nest_walls[2][0]) * 2, 2*abs(nest_walls[0][1] - nest_walls[2][1])]
-	size[0] /= worldsize
-	size[1] /= worldsize
 	sounds = map(lambda x: x - 1, sounds[0])
 	sequence = ','.join(map(str, sounds))
 
@@ -364,7 +353,7 @@ SoundPatches [
     Sequence [%s]
   }
 ]
-""" % (size[0], size[1], center[0], center[1], sequence)
+""" % (1.0, 1.0, 0.5, 0.5, sequence)
 
 print "DistancePaths ["
 for i in range(len(dist_coords)):
@@ -388,7 +377,7 @@ InitFood %d
 """ % (len(food_coords),len(food_coords),len(food_coords))
 
 print "SolidBricks False"
-print "BrickHeight 0.2"
+print "BrickHeight 0.23"
 
 print """\
 Domains [
