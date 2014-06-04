@@ -1,11 +1,12 @@
 #!/bin/bash
 
 trialsdir=$(dirname $0)
+batch_size=50
+batch_success=$(python -c "print int(${batch_size} * 0.9)")
 
 scripts/comm/mkbranch.py --food-difficulty 0 --random-single-food 0 > $trialsdir/trial0.wf
 ./Polyworld $trialsdir/trial0.wf
 mv run $trialsdir/run0
-
 
 food_difficulty=0
 
@@ -44,13 +45,13 @@ EOF
   time total: $time_total
 EOF
 
-    if [ $attempt_count == 10 ]; then
-        time_avg=$(( time_total / 10 ))
+    if [ $attempt_count == ${batch_size} ]; then
+        time_avg=$(( time_total / ${batch_size} ))
         cat <<EOF
   time_avg: $time_avg
   prev_time_avg: $prev_time_avg
 EOF
-        if [ $success_count -gt 8 ]; then
+        if [ $success_count -ge $batch_success ]; then
             if python -c "exit(0 if (abs( float($time_avg - $prev_time_avg) / $time_avg) < 0.05) else 1)"; then
                 if [ $food_difficulty == 2 ]; then
                     echo "WE WON!!!"
