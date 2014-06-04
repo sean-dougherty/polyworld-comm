@@ -1,0 +1,17 @@
+#!/bin/bash
+
+trialsdir=$1
+if [ -z "$trialsdir" ]; then
+    echo "usage: $0 trialsdir"
+    exit 1
+fi
+
+for x in $(ls -vd $trialsdir/run*); do
+    runid=$(echo ${x:17} | sed -e "s/.*\(\d+\)/\\1/")
+    t=$(cat $x/endStep.txt)
+    printf '%d\t%f\n' $runid $t
+done > /tmp/time
+
+gnuplot -e 'set terminal png; set style data linespoints; plot "/tmp/time" using 1:2' > /tmp/plot.png
+
+xdg-open /tmp/plot.png
