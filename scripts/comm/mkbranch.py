@@ -9,6 +9,7 @@ seed_from_run = False
 agent_start = None
 food_loc = None
 food_difficulty = -1
+max_steps = 1000
 
 args = sys.argv[1:]
 while True:
@@ -27,6 +28,9 @@ while True:
 		args = args[3:]
 	elif len(args) and args[0] == '--food-difficulty':
 		food_difficulty = int(args[1])
+		args = args[2:]
+	elif len(args) and args[0] == '--max-steps':
+		max_steps = int(args[1])
 		args = args[2:]
 	elif len(args) and args[0][:2] == '--':
 		print 'invalid option:', args[0]
@@ -317,9 +321,9 @@ SeedMutationProbability 0.5
 MateWait 0
 AgentsAreFood False
 
-MaxSteps 1000
+MaxSteps %d
 
-SeedGenomeFromRun %s""" % (worldsize, seed_from_run)
+SeedGenomeFromRun %s""" % (worldsize, max_steps, seed_from_run)
 
 print "Barriers ["
 for i in range(len(coords)):

@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/bin/bash -x
 
 trialsdir=$(dirname $0)
 batch_size=50
 batch_success=$(python -c "print int(${batch_size} * 0.9)")
+max_steps=1000
 
-scripts/comm/mkbranch.py --food-difficulty 0 --random-single-food 0 > $trialsdir/trial0.wf
+scripts/comm/mkbranch.py --max-steps $max_steps --food-difficulty 0 --random-single-food 0 > $trialsdir/trial0.wf
 ./Polyworld $trialsdir/trial0.wf
 mv run $trialsdir/run0
 
@@ -31,7 +32,7 @@ food difficulty: $food_difficulty
 EOF
 
     scripts/genomeSeed --fittest $trialsdir/run$((i - 1))
-    scripts/comm/mkbranch.py --food-difficulty $food_difficulty --random-single-food $i --seed-from-run > $trialsdir/trial$i.wf
+    scripts/comm/mkbranch.py --max-steps $max_steps --food-difficulty $food_difficulty --random-single-food $i --seed-from-run > $trialsdir/trial$i.wf
     ./Polyworld $trialsdir/trial$i.wf
 
     if grep Eat run/endReason.txt > /dev/null; then
