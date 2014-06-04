@@ -1,0 +1,37 @@
+@defaults gui
+
+  CameraControllerSettings [
+      {  
+      Name            "Main"
+      Mode            Rotate
+      Rotate {
+        Radius        0.1
+        Height        0.2
+        Rate          0.0
+        AngleStart    0.0
+        Fixation {
+          X           0.5
+          Y           0.0
+          Z           0.5
+        }
+      }
+    }
+    ,
+    {
+      Name            "Overhead"
+      Mode            AgentTracking
+      AgentTracking {
+        AgentTracker  "Fittest"
+        Perspective   Overhead
+      }
+    }
+    ,
+    {
+      Name            "POV"
+      Mode            AgentTracking
+      AgentTracking {
+        AgentTracker  "Fittest"
+        Perspective   POV
+      }
+    }
+  ]
