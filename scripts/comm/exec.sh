@@ -4,6 +4,7 @@ trialsdir=$(dirname $0)
 batch_size=50
 batch_success=$(python -c "print int(${batch_size} * 0.9)")
 max_steps=1000
+repeat="5,4,3,2"
 
 scripts/comm/mkbranch.py --max-steps $max_steps --food-difficulty 0 --random-single-food 0 > $trialsdir/trial0.wf
 ./Polyworld $trialsdir/trial0.wf
@@ -31,7 +32,7 @@ food difficulty: $food_difficulty
 ========================================
 EOF
 
-    scripts/genomeSeed --fittest $trialsdir/run$((i - 1))
+    scripts/genomeSeed --repeat "$repeat" --fittest $trialsdir/run$((i - 1))
     scripts/comm/mkbranch.py --max-steps $max_steps --food-difficulty $food_difficulty --random-single-food $i --seed-from-run > $trialsdir/trial$i.wf
     ./Polyworld $trialsdir/trial$i.wf
 

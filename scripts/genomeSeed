@@ -20,6 +20,7 @@ def main():
 	mode = 'simend'
 	generatePositions = False
 	editWorldfile = False
+	repeats = []
 
 	# polyworld home dir
 	homedir = os.path.realpath( os.path.join(os.path.dirname( sys.argv[0] ), '..') )
@@ -28,7 +29,7 @@ def main():
 	# Process Args
 	#
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'a:et:fpw', ['agent=', 'simend', 'time=', 'fittest', 'pos', 'worldfile'] )
+		opts, args = getopt.getopt(sys.argv[1:], 'a:et:fr:pw', ['agent=', 'simend', 'time=', 'fittest', 'repeat=', 'pos', 'worldfile'] )
 	except getopt.GetoptError, x:
 		show_usage( x )
 
@@ -49,6 +50,11 @@ def main():
 				show_usage( 'Invalid timestep (%s)' % arg )
 		elif opt == '--fittest' or opt == '-f':
 			mode = 'fittest'
+		elif opt == '--repeat' or opt == '-r':
+			try:
+				repeats = map(int, arg.split(','))
+			except:
+				show_usage("Failed parsing repeats (%s)" % arg)
 		elif opt == '--pos' or opt == '-p':
 			generatePositions = True
 		elif opt == '--worldfile' or opt == '-w':
@@ -63,44 +69,57 @@ def main():
 	if rundir == os.path.realpath( os.path.join(homedir, 'run') ):
 		err( 'Cannot use seeds in run/ -- conflicts with simulator. Please rename run/.' )
 
-	if mode == 'fittest':
-		fittest_dir = os.path.join(rundir, 'genome/Fittest')
-		paths = glob.glob( fittest_dir + '/genome*.txt*')
-		paths = map(lambda p: p[:-3] if p.endswith('.gz') else p, paths)
-		paths = map(lambda p: os.path.join(fittest_dir, p), paths)
-		
+	#
+	# Determine agent numbers
+	#
+	if mode == 'agent':
+		agentNumbers = [agentNumber]
+	elif mode == 'simend':
+		lifespans = common_logs.LifeSpans( rundir )
+		agentNumbers = list( lifespans.getAllWithDeathReason('SIMEND') )
+	elif mode == 'time':
+		lifespans = common_logs.LifeSpans( rundir )
+		agentNumbers = list( lifespans.getAllAliveAtTime(time) )
+	elif mode == 'fittest':
+		fitness_path = os.path.join(rundir, 'genome/Fittest/fitness.txt')
+		agentNumbers = map(lambda x: int(x.split()[0]), open(fitness_path).readlines())
 	else:
-		#
-		# Determine agent numbers
-		#
-		if mode == 'agent':
-			agentNumbers = [agentNumber]
-		elif mode == 'simend':
-			lifespans = common_logs.LifeSpans( rundir )
-			agentNumbers = list( lifespans.getAllWithDeathReason('SIMEND') )
-		elif mode == 'time':
-			lifespans = common_logs.LifeSpans( rundir )
-			agentNumbers = list( lifespans.getAllAliveAtTime(time) )
+		assert( False )
+
+	#
+	# Process repeats
+	#
+	agentNumbers_repeated = []
+	for i in range(len(agentNumbers)):
+		if i >= len(repeats):
+			n = 1
 		else:
-			assert( False )
-	
-		#
-		# Determine genome file paths
-		#
+			n = repeats[i]
+		for j in range(n):
+			agentNumbers_repeated.append(agentNumbers[i])
+	agentNumbers = agentNumbers_repeated
+
+	#
+	# Determine genome file paths
+	#
+	if mode == 'fittest':
+		genome_relpath = 'genome/Fittest'
+	else:
 		genome_relpath='genome/agents/'
-		if not os.path.exists( os.path.join(rundir, genome_relpath) ):
-			genome_relpath='genome/'
-	
-		paths = [os.path.join( rundir, genome_relpath + '/genome_' + str(agentNumber) + '.txt' )
-				 for agentNumber in agentNumbers]
-	
-		for path in paths:
-			if not abstractfile.exists( path ):
-				err( 'Cannot find %s' % path )
-	
-		# make paths relative to polyworld home dir, regardless of working directory
-		paths = map( lambda x: os.path.relpath(x, homedir), paths )
-	
+
+	if not os.path.exists( os.path.join(rundir, genome_relpath) ):
+		genome_relpath='genome/'
+
+	paths = [os.path.join( rundir, genome_relpath + '/genome_' + str(agentNumber) + '.txt' )
+			 for agentNumber in agentNumbers]
+
+	for path in paths:
+		if not abstractfile.exists( path ):
+			err( 'Cannot find %s' % path )
+
+	# make paths relative to polyworld home dir, regardless of working directory
+	paths = map( lambda x: os.path.relpath(x, homedir), paths )
+
 	#
 	# Generate the file
 	#
@@ -185,6 +204,10 @@ usage: genomeSeed [option] rundir
   --fittest, -f
 
 			 Generate seeds for fittest agents.
+
+  --repeat, -r n0,n1...,nN
+
+			 Comma-separated list of genome repetition numbers.
 
   --pos, p
 

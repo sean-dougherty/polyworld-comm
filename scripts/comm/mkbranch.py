@@ -315,8 +315,8 @@ print """\
 WorldSize %f
 MinAgents 1
 MaxAgents 300
-InitAgents 60
-SeedAgents 60
+InitAgents 80
+SeedAgents 80
 SeedMutationProbability 0.5
 MateWait 0
 AgentsAreFood False
