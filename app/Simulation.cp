@@ -2365,7 +2365,11 @@ void TSimulation::Mate( agent *c,
 				float x = c->x();
 				float y = c->y();
 				float z = c->z();
-				float yaw = c->yaw();
+				float yaw;
+                if(fYawInit < 0)
+                    yaw = c->yaw();
+                else
+                    yaw = fYawInit;
 
 				if( fRandomBirthLocation )
 				{
