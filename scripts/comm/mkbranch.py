@@ -280,7 +280,7 @@ brick_colors += brick_colors_
 if food_loc:
 	food_coords = [food_loc]
 else:
-	for rotation in [0, 1.05, -1.05]:
+	for rotation in [1.05, -1.05]:
 		_food_coords, _sounds = make_food_patches(rotation, food_difficulty)
 		food_coords += _food_coords
 		sounds += _sounds
@@ -474,4 +474,6 @@ MinLifeSpan 1000
 MaxLifeSpan 1001
 EnableTopologicalDistortionRngSeed True
 EnableInitWeightRngSeed True
+MinMutationRate 0.001
+MaxMutationRate 0.005
 """

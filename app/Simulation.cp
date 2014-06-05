@@ -499,6 +499,24 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 #endif
 
 	logs->postEvent( SimInitedEvent() );
+
+    // ---
+    // --- Log distance to food
+    // ---
+    if(PathDistance::getSegmentCount() > 0)
+    {
+        cerr << "FOOD DISTANCE HACK" << endl;
+        gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();	// save the state of the x-sorted list    
+        food *f;
+        objectxsortedlist::gXSortedObjects.reset();
+        objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f );
+        float dist = PathDistance::distance(globals::worldsize / 2.0f, globals::worldsize / -2.0f, f->x(), f->z());
+        
+        ofstream fout("run/fooddist.txt");
+        fout << dist << endl;
+
+        objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
+    }
 }
 
 
