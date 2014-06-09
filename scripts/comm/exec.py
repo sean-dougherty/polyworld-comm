@@ -10,8 +10,8 @@ trialsdir = args[0]
 batch_size = 50
 min_success_rate = 0.9
 min_success_velocity = 0.5
-max_success_std = 0.18
-max_steps = 1000
+max_success_std = 0.05
+max_steps = 500
 repeat = "5,4,3,2"
 
 def sh(cmd):
@@ -65,6 +65,9 @@ class Batch:
 		return numpy.mean(velocities[Batch.start_id:])
 
 velocity_log = open(trialsdir + '/velocity.log', 'w')
+mean_log = open(trialsdir + '/mean.log', 'w')
+stddev_log = open(trialsdir + '/stddev.log', 'w')
+difficulty_log = open(trialsdir + '/difficulty.log', 'w')
 
 while True:
 	i += 1
@@ -117,6 +120,13 @@ mean: %f
 stddev: %f
 ========================================
 """ % (success_rate, mean, std)
+
+		mean_log.write('%d\t%f\n' % (Batch.start_id, mean))
+		mean_log.flush()
+		stddev_log.write('%d\t%f\n' % (Batch.start_id, std))
+		stddev_log.flush()
+		difficulty_log.write('%d\t%d\n' % (Batch.start_id, food_difficulty))
+		difficulty_log.flush()
 
 		if success_rate < min_success_rate:
 			print "REJECTED DUE TO SUCCESS RATE"

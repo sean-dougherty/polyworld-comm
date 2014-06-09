@@ -1,0 +1,11 @@
+#!/bin/bash
+
+trialsdir=$1
+if [ -z "$trialsdir" ]; then
+    echo "usage: $0 trialsdir"
+    exit 1
+fi
+
+gnuplot -e "set terminal png; set style data linespoints; plot \"$trialsdir/stddev.log\" using 1:2" > /tmp/plot.png
+
+xdg-open /tmp/plot.png

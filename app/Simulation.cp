@@ -601,7 +601,7 @@ TSimulation::~TSimulation()
 
 	{
 		ofstream fout( "run/endStep.txt" );
-		fout << fStep << endl;
+		fout << (fStep - agent::unfreezeStep) << endl;
 		fout.close();
 	}
 }
@@ -1190,7 +1190,10 @@ void TSimulation::SeedGenomeFromFile( long agentNumber,
 		exit( 1 );
 	}
 
-	cout << "seeding agent #" << agentNumber << " genome from " << path << endl;
+    if( agentNumber == 1 )
+    {
+        cout << "seeding agent #" << agentNumber << " genome from " << path << " (others won't be reported)." << endl;
+    }
 
 	genes->load( in );
 

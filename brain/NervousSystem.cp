@@ -134,6 +134,7 @@ void NervousSystem::prebirth()
 
 void NervousSystem::prebirthSignal()
 {
+/*
 	for( SensorList::iterator
 			 it = sensors.begin(),
 			 end = sensors.end();
@@ -142,6 +143,7 @@ void NervousSystem::prebirthSignal()
 	{
 		(*it)->sensor_prebirth_signal( rng );
 	}	
+*/
 }
 
 void NervousSystem::startFunctional( AbstractFile *f )

@@ -1,5 +1,6 @@
 #include "SoundPatch.h"
 #include "objectxsortedlist.h"
+#include "agent.h"
 
 #include <iostream>
 using namespace std;
@@ -20,6 +21,8 @@ void SoundPatch::init(float centerX, float centerZ, float sizeX, float sizeZ, st
         for(int j = 0; j < 5; j++)
             sequence.push_back(i);
     }
+
+    agent::unfreezeStep = 1 + long(sequence.size());
 }
 
 void SoundPatch::update(long step)

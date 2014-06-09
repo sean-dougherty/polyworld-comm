@@ -55,6 +55,8 @@ class agent : public gpolyobj
 	friend void operator>>(const char **, agent&);
 
 public:	
+    static long unfreezeStep;
+
 	enum BodyRedChannel { BRC_FIGHT, BRC_CONST, BRC_GIVE };
 	enum BodyGreenChannel { BGC_ID, BGC_LIGHT, BGC_CONST };
 	enum BodyBlueChannel { BBC_MATE, BBC_CONST, BBC_ENERGY };

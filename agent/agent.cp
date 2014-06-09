@@ -51,6 +51,8 @@ using namespace genome;
 
 #define DirectYaw 0
 
+long agent::unfreezeStep = 0;
+
 // Agent globals
 bool		agent::gClassInited;
 unsigned long	agent::agentsEver;
@@ -890,11 +892,13 @@ float agent::GetCustomFitness()
 
     float dist_fitness = 0.7f * float(1.0 - (min_dist / globals::worldsize));
     float fitness = dist_fitness + segment_bonus;
+    /*
     {
         float x1 = x() - (globals::worldsize / 2.0);
         float z1 = -(z() + (globals::worldsize / 2.0));
         cout << "GetCustomFitness, pos=(" << x1 << "," << z1 << "), bonus=" << segment_bonus << ", dist_fitness = " << dist_fitness << ", fitness = " << fitness << endl;
     }
+    */
 
     return fitness;
 }
@@ -1079,62 +1083,71 @@ float agent::UpdateBody( float moveFitnessParam,
 	
 	// just do x & z dimensions in this version
     SaveLastPosition();
-	
-	if( BeingCarried() )  // the agent carrying this agent initiated the update
-	{
-		setx( carrier->x() );
-		setz( carrier->z() );
-		dx = x() - LastX();
-		dz = z() - LastZ();
-	}
-	else  // this is a normal update (the agent is not being carried)
-	{
-	#if TestWorld
-		dx = dz = 0.0;
-	#else
-		float dpos = outputNerves.speed->get() * geneCache.maxSpeed * agent::config.speed2DPosition;
-		if( dpos > agent::config.maxVelocity )
-			dpos = agent::config.maxVelocity;
-		dx = -dpos * sin( yaw() * DEGTORAD );
-		dz = -dpos * cos( yaw() * DEGTORAD );
-		addx( dx );
-		addz( dz );
-	#endif
-	}
-
-#if ! TestWorld
-  #if DirectYaw
-	setyaw( outputNerves.yaw->get() * 360.0 );
-  #else
-	float dyaw;
-	switch(agent::config.yawEncoding)
-	{
-	case YE_OPPOSE:
-		dyaw = outputNerves.yaw->get() - outputNerves.yawOppose->get();
-        if(agent::config.enableYawOpposeThreshold)
+    
+    if(fSimulation->getStep() < agent::unfreezeStep)
+    {
+        dx = 0.0;
+        dz = 0.0;
+    }
+    else
+    {
+        if( BeingCarried() )  // the agent carrying this agent initiated the update
         {
-            float dyaw0 = dyaw;
-            if( fabs(dyaw0) < geneCache.yawOpposeThreshold )
-            {
-                dyaw = 0.0;
-            }
-            else if( geneCache.yawOpposeThreshold > 0.0 )
-            {
-                dyaw = copysign( (fabs(dyaw0) - geneCache.yawOpposeThreshold) / (1.0 - geneCache.yawOpposeThreshold),
-                                 dyaw0 );
-            }
+            setx( carrier->x() );
+            setz( carrier->z() );
+            dx = x() - LastX();
+            dz = z() - LastZ();
         }
-		break;
-	case YE_SQUASH:
-		dyaw = 2.0 * outputNerves.yaw->get() - 1.0;
-		break;
-	default:
-		assert(false);
-		break;
-	}
-	addyaw( dyaw * geneCache.maxSpeed * agent::config.yaw2DYaw );
-  #endif
+        else  // this is a normal update (the agent is not being carried)
+        {
+#if TestWorld
+            dx = dz = 0.0;
+#else
+            float dpos = outputNerves.speed->get() * geneCache.maxSpeed * agent::config.speed2DPosition;
+            if( dpos > agent::config.maxVelocity )
+                dpos = agent::config.maxVelocity;
+            dx = -dpos * sin( yaw() * DEGTORAD );
+            dz = -dpos * cos( yaw() * DEGTORAD );
+            addx( dx );
+            addz( dz );
 #endif
+        }
+    }
+
+	float dyaw;
+    if(fSimulation->getStep() < agent::unfreezeStep)
+    {
+        dyaw = 0.0;
+    }
+    else
+    {
+        switch(agent::config.yawEncoding)
+        {
+        case YE_OPPOSE:
+            dyaw = outputNerves.yaw->get() - outputNerves.yawOppose->get();
+            if(agent::config.enableYawOpposeThreshold)
+            {
+                float dyaw0 = dyaw;
+                if( fabs(dyaw0) < geneCache.yawOpposeThreshold )
+                {
+                    dyaw = 0.0;
+                }
+                else if( geneCache.yawOpposeThreshold > 0.0 )
+                {
+                    dyaw = copysign( (fabs(dyaw0) - geneCache.yawOpposeThreshold) / (1.0 - geneCache.yawOpposeThreshold),
+                                     dyaw0 );
+                }
+            }
+            break;
+        case YE_SQUASH:
+            dyaw = 2.0 * outputNerves.yaw->get() - 1.0;
+            break;
+        default:
+            assert(false);
+            break;
+        }
+        addyaw( dyaw * geneCache.maxSpeed * agent::config.yaw2DYaw );
+    }
 
 	// Whether being carried or not, behaviors cost energy
     float energyused = outputNerves.eat->get()   * agent::config.eat2Energy

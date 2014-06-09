@@ -280,18 +280,28 @@ brick_colors += brick_colors_
 if food_loc:
 	food_coords = [food_loc]
 else:
+	all_food_coords = []
+	all_sounds = []
 	for rotation in [1.05, -1.05]:
 		_food_coords, _sounds = make_food_patches(rotation, food_difficulty)
-		food_coords += _food_coords
-		sounds += _sounds
+		all_food_coords.append(_food_coords)
+		all_sounds.append(_sounds)
+
+	food_coords = []
+	sounds = []
+	nbranches = len(all_food_coords)
+	nperbranch = len(all_food_coords[0])
+	for i in range(0, nperbranch):
+		for j in range(0, nbranches):
+			food_coords.append(all_food_coords[j][i])
+			sounds.append(all_sounds[j][i])
+			
 
 if random_single_food:
-	random.seed(seed_random_single_food)
-	food_index = random.randint(0, len(food_coords)-1)
-	food_coords = [food_coords[food_index]]
-	sounds = [sounds[food_index]]
-
-
+	index = seed_random_single_food % len(food_coords)
+	food_coords = [food_coords[index]]
+	sounds = [sounds[index]]
+	
 if agent_start:
 	agent_start = to_polyworld_coords([agent_start])[0]
 	nest_centerX = agent_start[0]
@@ -341,7 +351,7 @@ for i in range(len(coords)):
 print "]"
 
 print "EnableHearing True"
-print "NumSoundFrequencies 3"
+print "NumSoundFrequencies 5"
 
 if len(sounds) == 1:
 	sounds = map(lambda x: x - 1, sounds[0])
