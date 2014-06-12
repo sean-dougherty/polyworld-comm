@@ -6,7 +6,7 @@ import sys
 
 Low_Mutation_Rate = 0.0005
 Med_Mutation_Rate = 0.001
-High_Mutation_Rate = 0.001
+High_Mutation_Rate = 0.0001
 #High_Mutation_Rate = 0.05
 
 random_single_food = False
