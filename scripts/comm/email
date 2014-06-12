@@ -1,0 +1,35 @@
+#!/usr/bin/python
+
+import requests
+import sys
+
+def sh(cmd):
+	import os
+	rc = os.system(cmd)
+	if rc != 0:
+		raise Exception("Failed executing cmd. rc=%d, cmd=%s" % (rc, cmd))
+
+def send_simple_message(subject):
+    return requests.post(
+        "https://api.mailgun.net/v2/sandbox5b09774786984fb3829d89e8d70564b3.mailgun.org/messages",
+        auth=("api", "key-1xmg7edemn4qlbn0m8jcswfpmcjphrh8"),
+		files=[("attachment", open("/tmp/scores.png")), ("attachment", open("/tmp/velocity.png"))],
+        data={"from": "Mailgun Sandbox <postmaster@sandbox5b09774786984fb3829d89e8d70564b3.mailgun.org>",
+              "to": "Sean Dougherty <sean.dougherty.cs@gmail.com>",
+			  "cc": "ChiaHua Lin <clin.chiahua@gmail.com>",
+              "subject": subject,
+              "text": "Plot included as attachment"})
+
+args = sys.argv[1:]
+trialsdir = args[0]
+
+while True:
+	import time
+	sh('scripts/comm/plot_scores --no-show %s' % trialsdir)
+	sh('mv /tmp/plot.png /tmp/scores.png')
+	sh('scripts/comm/plot_velocity --no-show %s' % trialsdir)
+	sh('mv /tmp/plot.png /tmp/velocity.png')
+	send_simple_message("Polyworld Trials Update (%s)" % trialsdir)
+	time.sleep(60*60*1)
+
+

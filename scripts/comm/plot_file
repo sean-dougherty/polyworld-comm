@@ -1,0 +1,14 @@
+#!/bin/bash
+
+show=true
+if [ "$1" == "--no-show" ]; then
+    show=false
+    shift
+fi
+
+
+gnuplot -e "set terminal png; set style data linespoints; plot \"$1\" using 1:2" > /tmp/plot.png
+
+if $show; then
+    xdg-open /tmp/plot.png
+fi

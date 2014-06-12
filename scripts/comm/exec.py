@@ -6,6 +6,16 @@ import sys
 
 args = sys.argv[1:]
 
+extend_rundir = None
+i = None
+
+if args[0] == '--extend':
+	extend_rundir = args[1]
+	args = args[2:]
+elif args[0] == '--resume':
+	i = int(args[1])
+	args = args[2:]
+
 trialsdir = args[0]
 batch_size = 50
 min_success_rate = 0.9
@@ -19,128 +29,98 @@ def sh(cmd):
 	if rc != 0:
 		raise Exception("Failed executing cmd. rc=%d, cmd=%s" % (rc, cmd))
 
-times = []
-velocities = []
-
 def run(id):
-	global times
+	sh('echo %d > trial_seed.txt' % id)
 	sh('./Polyworld '+trialsdir+'/trial'+str(id)+'.wf')
-	t = get_run_time()
-	d = get_food_distance()
-	times.append(t)
-	velocities.append(d / t)
+	success = get_success()
+	score = get_score()
+	velocity = get_velocity()
 	sh('mv run '+trialsdir+'/run'+str(id))
 
-def get_run_time():
-	return int(open('run/endStep.txt').readline())
+	return success, score, velocity
 
-def get_food_distance():
-	return float(open('run/fooddist.txt').readline())
+def get_success():
+	return open('run/trials_result.txt').readline().strip() == 'success'
 
-#
-# Initial Run
-#
-i = 0
-sh('scripts/comm/mkbranch.py --max-steps '+str(max_steps)+' --food-difficulty 0 --random-single-food 0 > '+trialsdir+'/trial0.wf')
-run(i)
+def get_score():
+	return float(open('run/genome/Fittest/fitness.txt').readline().strip().split()[1])
+
+def get_velocity():
+	fields = map(float, open('run/velocity.txt').readline().split())
+	return {'mean': fields[0], 'stddev': fields[1]}
+
+if i == None:
+	#
+	# Initial Run
+	#
+	sh('echo 0 > training_trials_per_patch.txt')
+	i = 0
+	
+	food_difficulty=0
+	mutation_rate=' --high-mutation '
+	
+	if extend_rundir != None:
+		sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+extend_rundir)
+		sh('scripts/comm/mkbranch.py --seed-from-run --max-steps '+str(max_steps)+' --food-difficulty '+str(food_difficulty)+' > '+trialsdir+'/trial0.wf')
+	else:
+		sh('scripts/comm/mkbranch.py --max-steps '+str(max_steps)+' --food-difficulty 0 > '+trialsdir+'/trial0.wf')
+		
+	run(i)
+else:
+	mutation_rate=' --high-mutation '
+	food_difficulty = 0
+	print "!!!!!!!!!!!!!!!"
+	print "!!! WARNING !!! FORCING -1 FOOD DIFFICULTY FOR RESUME"
+	print "!!!!!!!!!!!!!!!"
+	print "!!!!!!!!!!!!!!!"
+	print "!!! WARNING !!! FORCING HIGH MUTATE FOR RESUME"
+	print "!!!!!!!!!!!!!!!"
 
 #
 # Trials
 #
-food_difficulty=0
-
-class Batch:
-	start_id=1
-	success_count=0
-	attempt_count=0
-
-	@staticmethod
-	def std():
-		t = velocities[Batch.start_id:]
-		assert len(t) <= batch_size
-		return numpy.std(t)
-
-	@staticmethod
-	def mean():
-		return numpy.mean(velocities[Batch.start_id:])
-
-velocity_log = open(trialsdir + '/velocity.log', 'w')
-mean_log = open(trialsdir + '/mean.log', 'w')
-stddev_log = open(trialsdir + '/stddev.log', 'w')
-difficulty_log = open(trialsdir + '/difficulty.log', 'w')
+difficulty_log = open(trialsdir + '/difficulty.log', 'a')
+score_log = open(trialsdir + '/score.log', 'a')
 
 while True:
 	i += 1
-	Batch.attempt_count += 1
 
 	print """\
 ========================================
 i: %d
 food difficulty: %d
-batch start: %d
-batch attempts: %d
-batch successes: %d
-batch mean: %f
-batch stddev: %f
 ========================================
-""" % (i, food_difficulty, Batch.start_id, Batch.attempt_count - 1, Batch.success_count, Batch.mean(), Batch.std())
+""" % (i, food_difficulty)
 	
 	sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+trialsdir+'/run'+str(i-1))
-	sh('scripts/comm/mkbranch.py --max-steps '+str(max_steps)+' --food-difficulty '+str(food_difficulty)+' --random-single-food '+str(i)+' --seed-from-run > '+trialsdir+'/trial'+str(i)+'.wf')
-	run(i)
+	sh('scripts/comm/mkbranch.py --max-steps '+str(max_steps)+mutation_rate+' --food-difficulty '+str(food_difficulty)+' --seed-from-run > '+trialsdir+'/trial'+str(i)+'.wf')
 
-	t = times[-1]
-	v = velocities[-1]
+	success, score, velocity = run(i)
 
-	velocity_log.write('%d\t%f\n' % (i, v))
-	velocity_log.flush()
+	if velocity['mean'] > 0.5:
+		sh('echo 20 > training_trials_per_patch.txt')
+
+	if velocity['mean'] < 0.9:
+		mutation_rate = ' --high-mutation '
+	elif velocity['stddev'] > 0.1:
+		mutation_rate = ' --med-mutation '
+	else:
+		mutation_rate = ' --low-mutation '
+
+	print 'velocity %f %f --> %s' % (velocity['mean'], velocity['stddev'], mutation_rate)
+
+	difficulty_log.write("%d\t%d\n" % (i, food_difficulty))
+	difficulty_log.flush()
+	
+	score_log.write('%d\t%f\n' % (i, score))
+	score_log.flush()
 
 	print """\
   ----------------------------------------
-  t: %d
-  food dist: %f
-  velocity: %f
+  success: %s
+  score: %f
   ----------------------------------------
-""" % (t, t*v, v)
+""" % (success, score)
 
-	is_success = v > min_success_velocity
-	if is_success:
-		Batch.success_count += 1
-	
-	if Batch.attempt_count == batch_size:
-		success_rate = float(Batch.success_count) / batch_size
-		mean = Batch.mean()
-		std = Batch.std()
-
-		print """\
-========================================
-END OF BATCH
-success_rate: %f
-mean: %f
-stddev: %f
-========================================
-""" % (success_rate, mean, std)
-
-		mean_log.write('%d\t%f\n' % (Batch.start_id, mean))
-		mean_log.flush()
-		stddev_log.write('%d\t%f\n' % (Batch.start_id, std))
-		stddev_log.flush()
-		difficulty_log.write('%d\t%d\n' % (Batch.start_id, food_difficulty))
-		difficulty_log.flush()
-
-		if success_rate < min_success_rate:
-			print "REJECTED DUE TO SUCCESS RATE"
-			batch_successful = False
-		elif std > max_success_std:
-			print "REJECTED DUE TO STDDEV"
-			batch_successful = False
-		else:
-			print "ACCEPTED!"
-			batch_successful = True
-			if food_difficulty < 2:
-				food_difficulty += 1
-
-
-		Batch.attempt_count = 0
-		Batch.success_count = 0
-		Batch.start_id += batch_size
+	#if success:
+	#	food_difficulty += 1

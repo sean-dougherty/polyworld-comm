@@ -63,6 +63,7 @@
 #include "SceneRenderer.h"
 #include "SheetsBrain.h"
 #include "SoundPatch.h"
+#include "trials.h"
 #include "PwMovieUtils.h"
 #include "complexity.h"
 
@@ -517,6 +518,10 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 
         objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
     }
+
+#if TRIALS
+    trials = new TrialsState(this);
+#endif
 }
 
 
@@ -604,6 +609,11 @@ TSimulation::~TSimulation()
 		fout << (fStep - agent::unfreezeStep) << endl;
 		fout.close();
 	}
+
+#if TRIALS
+    delete trials;
+#endif
+
 }
 
 
@@ -637,6 +647,9 @@ void TSimulation::Step()
 		End( "PopulationCrash" );
 		return;
 	}
+#if TRIALS
+    trials->step();
+#endif
 
 	fStep++;
 
@@ -756,7 +769,9 @@ void TSimulation::Step()
 							   execInteract,
 							   !fParallelInteract );
 
+#if !TRIALS
 	assert( fNumberAlive == objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE) );
+#endif
 
 	debugcheck( "after Interact() in step %ld", fStep );
 
@@ -770,6 +785,7 @@ void TSimulation::Step()
 	printf( "\n" );
 #endif
 
+#if !TRIALS
 	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	// ^^^ MASTER TASK CreateAgentsTask
 	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -788,6 +804,7 @@ void TSimulation::Step()
 	fScheduler.execMasterTask( this,
 							   execCreateAgents,
 							   !fParallelCreateAgents );
+#endif
 
 	// -------------------------
 	// ---- Maintain Bricks ----
@@ -799,7 +816,9 @@ void TSimulation::Step()
 	// ---- Maintain Food ----
 	// -----------------------
 	// finally, maintain the world's food supply...
+#if !TRIALS
 	MaintainFood();
+#endif
 
 	fTotalFoodEnergyIn += fFoodEnergyIn;
 	fTotalFoodEnergyOut += fFoodEnergyOut;
@@ -1106,6 +1125,7 @@ void TSimulation::InitFood()
 		{
 			if( fDomains[domainNumber].fFoodPatches[foodPatchNumber].isOn() )
 			{
+#if !TRIALS
 				for( int j = 0; j < fDomains[domainNumber].fFoodPatches[foodPatchNumber].initFoodCount; j++ )
 				{
 					if( fDomains[domainNumber].foodCount < fDomains[domainNumber].maxFoodCount )
@@ -1113,6 +1133,7 @@ void TSimulation::InitFood()
 						AddFood( domainNumber, foodPatchNumber );
 					}
 				}
+#endif
 				fDomains[domainNumber].fFoodPatches[foodPatchNumber].initFoodGrown( true );
 				fDomains[domainNumber].numFoodPatchesGrown++;
 			}
@@ -2439,8 +2460,10 @@ void TSimulation::Mate( agent *c,
 					{
 						e->grow( sim->fMateWait );
 
+#if !TRIALS
 						e->SetEnergy(eenergy);
 						e->SetFoodEnergy(eenergy);
+#endif
 					}
 				};
 
@@ -2918,7 +2941,11 @@ void TSimulation::Eat( agent *c, bool *cDied )
             {
                 End( "Eat" );
             }
-
+#if TRIALS            
+            trials->agent_success(c);
+            *cDied = true;
+            return;
+#else
             // also overlap in z, so they really interact
             ttPrint( "step %ld: agent # %ld is eating\n", fStep, c->Number() );
             Energy foodEnergyLost;
@@ -2944,6 +2971,8 @@ void TSimulation::Eat( agent *c, bool *cDied )
             {
                 RemoveFood( f );
             }
+#endif
+
         }
 
 		fEatStatistics.AgentEatAttempt( eatStatus );
@@ -4070,7 +4099,7 @@ void TSimulation::updateFittest( agent *c )
 //-------------------------------------------------------------------------------------------
 // TSimulation::AddFood
 //-------------------------------------------------------------------------------------------
-void TSimulation::AddFood( long domainNumber, long patchNumber )
+food *TSimulation::AddFood( long domainNumber, long patchNumber )
 {
 	food *f = fDomains[domainNumber].fFoodPatches[patchNumber].addFood( fStep );
 	if( f != NULL )
@@ -4078,6 +4107,7 @@ void TSimulation::AddFood( long domainNumber, long patchNumber )
 		fDomains[domainNumber].foodCount++;
 		FoodEnergyIn( f->getEnergy() );
 	}
+    return f;
 }
 
 //-------------------------------------------------------------------------------------------

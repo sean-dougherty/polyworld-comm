@@ -7,6 +7,7 @@ class SoundPatch
 public:
     void init(float centerX, float centerZ, float sizeX, float sizeZ, std::vector<int> sequence);
 
+    void activate(long step);
     void update(long step);
 
 private:

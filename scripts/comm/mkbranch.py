@@ -4,12 +4,18 @@ import math
 import random
 import sys
 
+Low_Mutation_Rate = 0.0005
+Med_Mutation_Rate = 0.001
+High_Mutation_Rate = 0.01
+#High_Mutation_Rate = 0.05
+
 random_single_food = False
 seed_from_run = False
 agent_start = None
 food_loc = None
-food_difficulty = -1
+food_difficulty = None
 max_steps = 1000
+mutation_rate = Low_Mutation_Rate
 
 args = sys.argv[1:]
 while True:
@@ -32,6 +38,15 @@ while True:
 	elif len(args) and args[0] == '--max-steps':
 		max_steps = int(args[1])
 		args = args[2:]
+	elif len(args) and args[0] == '--high-mutation':
+		mutation_rate = High_Mutation_Rate
+		args = args[1:]
+	elif len(args) and args[0] == '--med-mutation':
+		mutation_rate = Med_Mutation_Rate
+		args = args[1:]
+	elif len(args) and args[0] == '--low-mutation':
+		mutation_rate = Low_Mutation_Rate
+		args = args[1:]
 	elif len(args) and args[0][:2] == '--':
 		print 'invalid option:', args[0]
 		exit(1)
@@ -138,7 +153,7 @@ def make_food_patches(rotation, difficulty):
 
 
 	def filter_difficulty(dc):
-		if difficulty != -1:
+		if difficulty != None:
 			dc = filter(lambda x: x[0] <= difficulty, dc)
 		return map(lambda x: x[1], dc)
 
@@ -167,12 +182,14 @@ def make_food_patches(rotation, difficulty):
 		])
 
 	coords += filter_difficulty([
+		#(-1, [0.0, 14.58]), # 2
 		(0, [0.0, 31.05]), # 2
 		(1, [0.0, 63.59]), # 2 2
 		(2, [0.0, 79.89])  # 2 2 2
 	])
 
 	sounds += filter_difficulty([
+		#(-1, [2]),
 		(0, [2]),
 		(1, [2, 2]),
 		(2, [2, 2, 2])
@@ -318,22 +335,36 @@ food_coords = to_polyworld_coords(food_coords)
 dist_coords = to_polyworld_coords(dist_coords)
 brick_coords = to_polyworld_coords(brick_coords)
 
+world_scale = 0.5
+min_mutation = mutation_rate
+max_mutation = float(str(mutation_rate) + "1")
 
 print """\
 @version 2
 
 WorldSize %f
+MinAgentSize %f
+MaxAgentSize %f
+
 MinAgents 1
-MaxAgents 300
-InitAgents 80
-SeedAgents 80
+MaxAgents 150
+InitAgents 40
+SeedAgents 40
+MinLifeSpan 100000
+MaxLifeSpan 100001
+MinAgentMaxSpeed 0.9999
+MaxAgentMaxSpeed 1.0001
 SeedMutationProbability 0.5
+MinMutationRate %f
+MaxMutationRate %f
+MinCrossoverPoints 1
+MaxCrossoverPoints 4
 MateWait 0
 AgentsAreFood False
 
 MaxSteps %d
 
-SeedGenomeFromRun %s""" % (worldsize, max_steps, seed_from_run)
+SeedGenomeFromRun %s""" % (worldsize*world_scale, 0.5 * world_scale, 0.75*world_scale, min_mutation, max_mutation, max_steps, seed_from_run)
 
 print "Barriers ["
 for i in range(len(coords)):
@@ -353,12 +384,14 @@ print "]"
 print "EnableHearing True"
 print "NumSoundFrequencies 5"
 
-if len(sounds) == 1:
-	sounds = map(lambda x: x - 1, sounds[0])
-	sequence = ','.join(map(str, sounds))
+print """\
+SoundPatches [
+"""
+for i in range(len(sounds)):
+	s = map(lambda x: x - 1, sounds[i])
+	sequence = ','.join(map(str, s))
 
 	print """\
-SoundPatches [
   {
     SizeX %f
     SizeZ %f
@@ -366,8 +399,10 @@ SoundPatches [
     CenterZ %f
     Sequence [%s]
   }
-]
 """ % (1.0, 1.0, 0.5, 0.5, sequence)
+	if i != (len(sounds) - 1):
+		print '  ,'
+print "]"
 
 print "DistancePaths ["
 for i in range(len(dist_coords)):
@@ -388,6 +423,8 @@ print """
 MinFood %d
 MaxFood %d
 InitFood %d
+MinFoodEnergy 1000.0
+MaxFoodEnergy 1000.0
 """ % (len(food_coords),len(food_coords),len(food_coords))
 
 print "SolidBricks False"
@@ -458,11 +495,9 @@ print """\
 print """\
 BarrierHeight  1.0
 
-MaxAgentSize 0.75
-RecordGenomes Fittest
 RecordPosition Approximate
 RecordBrainBehaviorNeurons True
-EndOnEat True
+EndOnEat False
 FitnessMode MazeFood
 YawInit 0
 YawEncoding Oppose
@@ -480,10 +515,6 @@ EyeHeight 1.2
 EnableVisionPitch True
 MinVisionPitch -90
 MaxVisionPitch -3.4
-MinLifeSpan 1000
-MaxLifeSpan 1001
 EnableTopologicalDistortionRngSeed True
 EnableInitWeightRngSeed True
-MinMutationRate 0.001
-MaxMutationRate 0.005
 """

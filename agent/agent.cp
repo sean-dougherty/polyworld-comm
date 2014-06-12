@@ -41,6 +41,7 @@
 #include "Retina.h"
 #include "Simulation.h"
 #include "SpeedSensor.h"
+#include "trials.h"
 
 using namespace genome;
 
@@ -794,9 +795,11 @@ Energy agent::mating( float mateFitnessParam, long mateWait, bool lockstep )
 	{
 		fLastMate = fAge;
 		fHeuristicFitness += mateFitnessParam * mateWait / MaxAge();
+#if !TRIALS
 		fEnergy -= mymateenergy;
 		fFoodEnergy -= mymateenergy;
 		fFoodEnergy.constrain( 0, fMaxEnergy );
+#endif
 	}
 		
 	return mymateenergy;
@@ -1091,6 +1094,7 @@ float agent::UpdateBody( float moveFitnessParam,
     }
     else
     {
+
         if( BeingCarried() )  // the agent carrying this agent initiated the update
         {
             setx( carrier->x() );

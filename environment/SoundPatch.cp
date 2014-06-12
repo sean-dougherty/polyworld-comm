@@ -11,7 +11,6 @@ void SoundPatch::init(float centerX, float centerZ, float sizeX, float sizeZ, st
     endX = centerX + (sizeX / 2);
     startZ = centerZ - (sizeZ / 2);
     endZ = centerZ + (sizeZ / 2);
-    index = 0;
 
     for(int i: sequence_)
     {
@@ -22,7 +21,13 @@ void SoundPatch::init(float centerX, float centerZ, float sizeX, float sizeZ, st
             sequence.push_back(i);
     }
 
-    agent::unfreezeStep = 1 + long(sequence.size());
+    index = sequence.size();
+}
+
+void SoundPatch::activate(long step)
+{
+    index = 0;
+    agent::unfreezeStep = step + long(sequence.size());
 }
 
 void SoundPatch::update(long step)

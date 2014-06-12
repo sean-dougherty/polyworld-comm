@@ -43,6 +43,8 @@ class TSimulation : public QObject
 	PROPLIB_CPP_PROPERTIES
 
 public:
+    friend class TrialsState;
+
 	TSimulation( std::string worldfilePath, std::string monitorPath );
 	virtual ~TSimulation();
 
@@ -229,7 +231,7 @@ private:
 	void analyzeBrain( agent *c );
 	void updateFittest( agent *c );
 	
-	void AddFood( long domainNumber, long patchNumber );
+	food *AddFood( long domainNumber, long patchNumber );
 	void RemoveFood( food *f );
 
 	void FoodEnergyIn( const Energy &e );
