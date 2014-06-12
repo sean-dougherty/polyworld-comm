@@ -1,3 +1,4 @@
+#include "datalib.h"
 #include "PathDistance.h"
 #include "trials.h"
 #include "Simulation.h"
@@ -5,6 +6,7 @@
 
 #include <algorithm>
 
+using namespace datalib;
 using namespace std;
 
 #if TRIALS
@@ -142,14 +144,16 @@ void TrialsState::agent_success(agent *a) {
 }
 
 void TrialsState::end_trial() {
+    db("--- END TRIAL ---");
+
     vector<agent *> agents = get_agents();
 
     float origin_x = globals::worldsize/2.0f;
     float origin_z = -globals::worldsize/2.0f;
 
     float initial_dist = PathDistance::distance(origin_x, origin_z, f->x(), f->z());
+    int food_segment = PathDistance::getSegmentId(f->x(), f->z());
 
-    db("--- END TRIAL ---");
     for(agent *a: agents) {
         Fitness &fit = curr_trial->fitness[a->Number()];
 
@@ -163,6 +167,14 @@ void TrialsState::end_trial() {
                 fit.final_dist_from_origin = crow_dist(a->x(), a->z(), origin_x, origin_z);
                 fit.dist_score = (MAX_DIST - fit.final_dist_from_food) / MAX_DIST;
             }
+        }
+
+        // Determine if on same distance path segment as food
+        {
+            fit.on_food_segment =
+                fit.success ||
+                (food_segment == PathDistance::getSegmentId(a->x(), a->z())
+                 && fit.final_dist_from_origin > ORIGIN_TO_BRANCH_DIST);
         }
 
         // Compute score for trial
@@ -179,7 +191,7 @@ void TrialsState::end_trial() {
                 fit.score = (0.5f * fit.dist_score) + (0.5f * fit.velocity) + 0.1f;
             } else if(fit.final_dist_from_food > initial_dist) {
                 fit.score = 0.1f * fit.dist_score;
-            } else if(fit.final_dist_from_origin < 1.5f) {
+            } else if(fit.final_dist_from_origin < ORIGIN_TO_BRANCH_DIST) {
                 fit.score = 0.1f * fit.dist_score;
             } else {
                 fit.score = 0.5f * fit.dist_score;
@@ -189,55 +201,110 @@ void TrialsState::end_trial() {
 }
 
 void TrialsState::end_trials() {
-    vector<TotalFitness> scores;
+    vector<TotalFitness> total_fits;
 
     db("END TRIALS");
 
     for(agent *a: get_agents()) {
-        db("-- " << a->Number() << " --");
-
         TotalFitness total_fit;
         total_fit.a = a;
 
         vector<float> agent_scores;
+        vector<float> velocity;
         for(int i = 0; i < ntrials_evaluation; i++) {
             Fitness &fit = trials_evaluation[i].fitness[a->Number()];
 
             if(fit.success) {
                 total_fit.nsuccesses++;
             }
+            if(fit.on_food_segment) {
+                total_fit.non_food_segment++;
+            }
+            velocity.push_back(fit.velocity);
             agent_scores.push_back(fit.score);
-
-            db("  trial " << i << ": success = " << fit.success << ", food dist = " << fit.final_dist_from_food << ", origin dist = " << fit.final_dist_from_origin << ", velocity = " << fit.velocity << ", dist_score = " << fit.dist_score << ", score = " << fit.score);
         }
 
-        float mean_ = mean(agent_scores);
-        float stddev_ = stddev(agent_scores);
-        
-        float stddev_score = 1.0f - stddev_;
-        float score = (0.65f * mean_) + (0.35f * stddev_score);
+        total_fit.velocity_mean = mean(velocity);
+        total_fit.velocity_stddev = stddev(velocity);
+        total_fit.trial_score_mean = mean(agent_scores);
+        total_fit.trial_score_stddev = stddev(agent_scores);
 
-        db("  mean=" << mean_ << ", stddev=" << stddev_ << ", stddev_score=" << stddev_score << ", score=" << score);
+        float mean_score = total_fit.trial_score_mean;
+        float stddev_score = 1.0f - total_fit.trial_score_stddev;
+        total_fit.score = (0.95f * mean_score) + (0.05f * stddev_score);
 
-        total_fit.trial_score_mean = mean_;
-        total_fit.trial_score_stddev = stddev_;
-        total_fit.score = score;
-
-        scores.push_back(total_fit);
+        total_fits.push_back(total_fit);
     }
 
-    db("--------------------");
 
-    sort( scores.begin(), scores.end(),
+    sort( total_fits.begin(), total_fits.end(),
           [](const TotalFitness &x, const TotalFitness &y) {
               return y.score < x.score;
           } );
 
-#if DEBUG
-    for(auto s: scores) {
-        db(s.a->Number() << ": " << s.score);
+    // Create trials log file
+    {
+        DataLibWriter *writer = new DataLibWriter( "run/trials.log", true, true );
+
+        for(auto total_fit: total_fits) {
+            agent *a = total_fit.a;
+
+            char tableName[32];
+            sprintf(tableName, "Agent%ld", a->Number());
+
+            static const char *colnames[] = {
+                "Trial", "Success", "OnFoodSegment", "FoodDist", "OriginDist", "Velocity", "DistScore", "Score", NULL
+            };
+            static const datalib::Type coltypes[] = {
+                INT,     BOOL,      BOOL,            FLOAT,      FLOAT,        FLOAT,      FLOAT,       FLOAT
+            };
+
+            writer->beginTable( tableName,
+                                colnames,
+                                coltypes );
+
+            for(int i = 0; i < ntrials_evaluation; i++) {
+                Fitness &fit = trials_evaluation[i].fitness[a->Number()];
+
+                writer->addRow( i, fit.success, fit.on_food_segment, fit.final_dist_from_food, fit.final_dist_from_origin, fit.velocity, fit.dist_score, fit.score );
+
+            }
+
+            writer->endTable();
+        }
+
+        delete writer;
     }
-#endif
+
+    // Create fitness log
+    {
+        DataLibWriter *writer = new DataLibWriter( "run/fitness.log", true, true );
+
+        for(auto total_fit: total_fits) {
+            agent *a = total_fit.a;
+
+            char tableName[32];
+            sprintf(tableName, "Agent%ld", a->Number());
+
+            static const char *colnames[] = {
+                "SuccessCount", "OnFoodSegmentCount", "VelocityMean", "VelocityStdDev", "TrialScoreMean", "TrialScoreStdDev", "Score", NULL
+            };
+            static const datalib::Type coltypes[] = {
+                INT,            INT,                  FLOAT,          FLOAT,            FLOAT,            FLOAT,              FLOAT
+            };
+
+            writer->beginTable( tableName,
+                                colnames,
+                                coltypes );
+
+            writer->addRow( total_fit.nsuccesses, total_fit.non_food_segment, total_fit.velocity_mean, total_fit.velocity_stddev, total_fit.trial_score_mean, total_fit.trial_score_stddev, total_fit.score );
+
+
+            writer->endTable();
+        }
+
+        delete writer;
+    }
 
     system("mkdir -p run/genome/Fittest");
     {
@@ -245,7 +312,7 @@ void TrialsState::end_trials() {
 
         for(int i = 0; i < 10; i++)
         {
-            TotalFitness &fit = scores[i];
+            TotalFitness &fit = total_fits[i];
             fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
 
             {
@@ -264,7 +331,7 @@ void TrialsState::end_trials() {
 
     // Deal with most successful agent
     {
-        TotalFitness &total_fit = scores.front();
+        TotalFitness &total_fit = total_fits.front();
         bool success = true;
 
         // Success/fail
@@ -285,17 +352,17 @@ void TrialsState::end_trials() {
             fclose(f);
         }
 
-        // Mean velocity
+        // Velocity
         {
-            vector<float> velocity;
-            for(int i = 0; i < ntrials_evaluation; i++) {
-                velocity.push_back(trials_evaluation[i].fitness[total_fit.a->Number()].velocity);
-            }
-            float mean_velocity = mean(velocity);
-            float stddev_velocity = stddev(velocity);
-            
             FILE *f = fopen("run/velocity.txt", "w");
-            fprintf(f, "%f %f\n", mean_velocity, stddev_velocity);
+            fprintf(f, "%f %f\n", total_fit.velocity_mean, total_fit.velocity_stddev);
+            fclose(f);
+        }
+
+        // FoodSegment
+        {
+            FILE *f = fopen("run/onfoodsegment.txt", "w");
+            fprintf(f, "%f\n", float(total_fit.non_food_segment) / ntrials_evaluation);
             fclose(f);
         }
     }

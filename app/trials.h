@@ -9,6 +9,7 @@
 #define TRIAL_DURATION 180
 
 #define MAX_DIST (190.0f/2.0f)
+#define ORIGIN_TO_BRANCH_DIST (3.0f/2.0f)
 
 class agent;
 class TSimulation;
@@ -16,6 +17,7 @@ class TSimulation;
 struct Fitness
 {
     bool success = false;
+    bool on_food_segment = false;
     long step_end = -1;
     float final_dist_from_food = -1.0f;
     float final_dist_from_origin = 0.0f;
@@ -28,7 +30,10 @@ struct TotalFitness
 {
     agent *a;
     int nsuccesses = 0;
+    int non_food_segment = 0;
     float score = 0.0f;
+    float velocity_mean = 0.0f;
+    float velocity_stddev = 0.0f;
     float trial_score_mean = 0.0f;
     float trial_score_stddev = 0.0f;
 };
