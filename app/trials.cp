@@ -310,7 +310,7 @@ void TrialsState::end_trials() {
     {
         FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
 
-        for(int i = 0; i < 30; i++)
+        for(int i = 0; i < 10; i++)
         {
             TotalFitness &fit = total_fits[i];
             fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
