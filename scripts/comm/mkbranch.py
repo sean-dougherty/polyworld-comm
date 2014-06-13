@@ -348,8 +348,8 @@ MaxAgentSize %f
 
 MinAgents 1
 MaxAgents 150
-InitAgents 150
-SeedAgents 150
+InitAgents 40
+SeedAgents 40
 MinLifeSpan 100000
 MaxLifeSpan 100001
 MinAgentMaxSpeed 0.9999
