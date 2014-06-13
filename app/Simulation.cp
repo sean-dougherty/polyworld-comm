@@ -748,6 +748,7 @@ void TSimulation::Step()
 	}
 
 
+/*
 	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 	// ^^^ MASTER TASK ExecInteract
 	// ^^^
@@ -765,10 +766,11 @@ void TSimulation::Step()
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// !!! EXEC MASTER
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	fScheduler.execMasterTask( this,
 							   execInteract,
 							   !fParallelInteract );
-
+*/
 #if !TRIALS
 	assert( fNumberAlive == objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE) );
 #endif

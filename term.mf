@@ -1,0 +1,7 @@
+@defaults term
+
+MainScene {
+    Enabled                   False
+}
+
+AgentTrackers []

@@ -287,7 +287,7 @@ private:
 
 	agent* fCurrentFittestAgent[MAXFITNESSITEMS];	// based on heuristic fitness
 	float fCurrentMaxFitness[MAXFITNESSITEMS];	// based on heuristic fitness
-	int fCurrentFittestCount;
+	int fCurrentFittestCount = 0;
 	FittestList *fFittest;	// based on the complete fitness, however it is being calculated in AgentFitness(c)
 	FittestList *fRecentFittest;	// based on the complete fitness, however it is being calculated in AgentFitness(c)
 	long fFitness1Frequency;
