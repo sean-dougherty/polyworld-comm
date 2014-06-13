@@ -342,7 +342,7 @@ max_mutation = float(str(mutation_rate) + "1")
 print """\
 @version 2
 
-InitSeed 0
+InitSeed 1
 
 WorldSize %f
 MinAgentSize %f
