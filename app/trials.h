@@ -1,6 +1,6 @@
 #pragma once
 
-#define TRIALS true
+#define TRIALS false
 
 #if TRIALS
 #include <map>
