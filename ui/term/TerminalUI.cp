@@ -108,12 +108,14 @@ void TerminalUI::status()
 	if( prompt->isActive() )
 		return;
 
+/*
 	printf( "------------------------------------------------------------\n" );
 
 	itfor( StatusText, statusTextMonitor->getStatusText(), it )
 	{
 		printf( "%s\n", *it );
 	}
+*/
 }
 
 //---------------------------------------------------------------------------

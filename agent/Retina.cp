@@ -35,6 +35,12 @@ Retina::~Retina()
 	free( buf );
 }
 
+void Retina::force_color(float r, float g, float b) {
+    channels[0].forced_value = r;
+    channels[1].forced_value = g;
+    channels[2].forced_value = b;
+}
+
 void Retina::sensor_grow( NervousSystem *cns )
 {
 	channels[0].init( this, cns, 0, "Red" );
@@ -179,75 +185,9 @@ void Retina::Channel::init( Retina *retina,
 
 void Retina::Channel::update( bool bprint )
 {
-	if( numneurons == 0 )
-		return;
-
-    short pixel;
-    float avgcolor;
-    float endpixloc;
-    
-    if( xintwidth )
-    {
-        pixel = 0;
-        for(int i = 0; i < numneurons; i++)
-        {
-            avgcolor = 0.0;
-            for (short ipix = 0; ipix < xintwidth; ipix++)
-                avgcolor += buf[((pixel++) * 4) + index];
-
-			nerve->set( i, avgcolor / (xwidth * 255.0) );
-        }
+    for(int i = 0; i < numneurons; i++) {
+        nerve->set(i, forced_value);
     }
-    else
-    {
-        pixel = 0;
-        avgcolor = 0.0;
-
-		BPRINT("x%swidth = %f\n", name, xwidth);
-
-        for (int i = 0; i < numneurons; i++)
-        {
-            endpixloc = xwidth * float(i+1);
-
-			BPRINT("  neuron %d, endpixloc = %g\n", i, endpixloc);
-
-            while (float(pixel) < (endpixloc - 1.0))
-            {
-                avgcolor += buf[((pixel++) * 4) + index];
-				BPRINT("    in loop with pixel %d, avgcolor = %g\n", pixel,avgcolor);
-                IF_BPRINT
-				(
-					if ((float(pixel) < (endpixloc - 1.0)) && (float(pixel) >= (endpixloc - 1.0 - 1.0e-5)))
-						BPRINT("Got in-loop borderline case\n");
-                )
-            }
-            
-            avgcolor += (endpixloc - float(pixel)) * buf[(pixel * 4) + index];
-			nerve->set( i, avgcolor / (xwidth * 255.0) );
-
-			BPRINT("    after loop with pixel %d, avgcolor = %g, color = %g\n", pixel, avgcolor, nerve->get(i));
-            IF_BPRINT
-			(
-                if ((float(pixel) >= (endpixloc - 1.0)) && (float(pixel) < (endpixloc - 1.0 + 1.0e-5)))
-                    printf("Got outside-loop borderline case\n");
-			)
-			avgcolor = (1.0 - (endpixloc - float(pixel))) * buf[(pixel * 4) + index];
-			BPRINT("  before incrementing pixel = %d, avgcolor = %g\n", pixel, avgcolor);
-
-            pixel++;
-        }
-    }
-
-#if SlowVision
-	for(int i = 0; i < numneurons; i++ )
-	{
-		float prev = nerve->get( i, Nerve::SWAP );
-		float curr = nerve->get( i, Nerve::CURRENT );
-
-		nerve->set( i,
-				  TauVision * curr  +  (1.0 - TauVision) * prev );
-	}
-#endif
 }
 
 void Retina::Channel::start_functional( AbstractFile *f )

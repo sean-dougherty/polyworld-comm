@@ -1,7 +1,7 @@
 @defaults term
 
 MainScene {
-    Enabled                   False
+    Enabled False
 }
 
 AgentTrackers []

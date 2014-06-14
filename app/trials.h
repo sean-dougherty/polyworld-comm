@@ -1,49 +1,30 @@
 #pragma once
 
-#define TRIALS false
+#define TRIALS true
 
 #if TRIALS
 #include <map>
 #include <vector>
 
-#define TRIAL_DURATION 180
-
-#define MAX_DIST (190.0f/2.0f)
-#define ORIGIN_TO_BRANCH_DIST (3.0f/2.0f)
+#define TEST_INTERLUDE 10
+#define NTRIALS 6
 
 class agent;
 class TSimulation;
 
-struct Fitness
+struct Test
 {
-    bool success = false;
-    bool on_food_segment = false;
-    long step_end = -1;
-    float final_dist_from_food = -1.0f;
-    float final_dist_from_origin = 0.0f;
-    float velocity = 0.0f;
-    float dist_score = 0.0f;
-    float score = 0.0f;
-};
+    virtual ~Test() {}
 
-struct TotalFitness
-{
-    agent *a;
-    int nsuccesses = 0;
-    int non_food_segment = 0;
-    float score = 0.0f;
-    float velocity_mean = 0.0f;
-    float velocity_stddev = 0.0f;
-    float trial_score_mean = 0.0f;
-    float trial_score_stddev = 0.0f;
-};
+    virtual long get_step_count() = 0;
+    virtual void evaluate_step(int trial_number, long test_step, agent *a, int freq) = 0;
+    virtual float get_trial_score(int trial_number, agent *a) = 0;
+    virtual float get_test_score(std::vector<float> &trial_scores) = 0;
 
-struct TrialState
-{
-    long step = 0;
-    long sim_start_step = 0;
+    virtual void end_generation(std::vector<long> ranking) = 0;
 
-    std::map<long, Fitness> fitness;
+    std::map<long, std::vector<float>> trial_scores;
+    std::map<long, float> test_scores;
 };
 
 struct TrialsState
@@ -52,30 +33,27 @@ struct TrialsState
     ~TrialsState();
 
     void step();
-    void agent_success(class agent *a);
 
     TSimulation *sim;
+    std::vector<int> freq_sequence;
+
+    std::vector<Test *> tests;
+
+    long test_number;
     long trial_number;
-    TrialState *trials;
-    TrialState *trials_evaluation;
-    std::vector<int> food_sequence;
-    
-    TrialState *curr_trial;
-    
-    int ntrials_training;
-    int ntrials_evaluation;
-    int ntrials_total;
+    long trial_step;
+    long trial_end_sim_step;
     
 private:
     std::vector<agent *> get_agents();
-    int get_foodpatches_count();
 
-    std::vector<agent *> successful_agents;
-
+    void init_test();
+    void end_test();
+    
     void init_trial();
     void end_trial();
-    void end_trials();
-    class food *f;
+
+    void end_generation();
 };
 
 extern TrialsState *trials;

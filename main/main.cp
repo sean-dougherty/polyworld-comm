@@ -66,7 +66,7 @@ int main( int argc, char** argv )
 #endif
 
 	const char *worldfilePath = NULL;
-	string ui = "gui";
+	string ui = "term";
 	
 	for( int argi = 1; argi < argc; argi++ )
 	{

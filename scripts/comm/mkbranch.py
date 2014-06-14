@@ -342,6 +342,8 @@ max_mutation = float(str(mutation_rate) + "1")
 print """\
 @version 2
 
+Vision False
+
 InitSeed 1
 
 WorldSize %f

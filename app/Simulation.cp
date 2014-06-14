@@ -748,29 +748,30 @@ void TSimulation::Step()
 	}
 
 
-/*
-	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-	// ^^^ MASTER TASK ExecInteract
-	// ^^^
-	// ^^^ Handles collisions, matings, fights, deaths, births, etc
-	// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-	class ExecInteract : public ITask
-	{
-	public:
+    if(fStep < 5) {
+      // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      // ^^^ MASTER TASK ExecInteract
+      // ^^^
+      // ^^^ Handles collisions, matings, fights, deaths, births, etc
+      // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      class ExecInteract : public ITask
+      {
+      public:
 		virtual void task_exec( TSimulation *sim )
 		{
-			sim->Interact();
+          sim->Interact();
 		}
-	} execInteract;
+      } execInteract;
 
-	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	// !!! EXEC MASTER
-	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      // !!! EXEC MASTER
+      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-	fScheduler.execMasterTask( this,
-							   execInteract,
-							   !fParallelInteract );
-*/
+      fScheduler.execMasterTask( this,
+                                 execInteract,
+                                 !fParallelInteract );
+    }
+
 #if !TRIALS
 	assert( fNumberAlive == objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE) );
 #endif
@@ -1546,7 +1547,7 @@ void TSimulation::UpdateAgents_StaticTimestepGeometry()
 			//////////////////////////////////////////////////
 #pragma omp master
 			{
-				fStage.Compile();
+              //				fStage.Compile();
 				objectxsortedlist::gXSortedObjects.reset();
 
 				agent *avision = NULL;
@@ -1605,9 +1606,10 @@ void TSimulation::UpdateAgents_StaticTimestepGeometry()
 	// --- Body (Serial)
 	// ---
 	{
-		agent *a;
+      //agent *a;
 
 		objectxsortedlist::gXSortedObjects.reset();
+        /*
 		while( objectxsortedlist::gXSortedObjects.nextObj( AGENTTYPE, (gobject**)&a) )
 		{
 			if( !a->BeingCarried() )
@@ -1616,6 +1618,7 @@ void TSimulation::UpdateAgents_StaticTimestepGeometry()
 												 fSolidObjects,
 												 NULL );
 		}
+        */
 	}
 }
 
@@ -1841,11 +1844,13 @@ void TSimulation::Interact()
 		if( agent::config.enableCarry )
 			Carry( c );
 
+        /*
         // -----------------------
         // -------- Voice --------
         // -----------------------
         if( agent::config.enableVoice )
             Voice( c );
+        */
 
 		// -----------------------
 		// ------- Fitness -------
@@ -2944,7 +2949,6 @@ void TSimulation::Eat( agent *c, bool *cDied )
                 End( "Eat" );
             }
 #if TRIALS            
-            trials->agent_success(c);
             *cDied = true;
             return;
 #else
@@ -4849,12 +4853,14 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 					}
 				}
 
+#if !TRIALS
 				// Make sure fractions add up to 1.0 (allowing a little slop for floating point precision)
 				if( (patchFractionSpecified < 0.99997) || (patchFractionSpecified > 1.00003) )
 				{
 					printf( "Patch Fractions sum to %f, when they must sum to 1.0!\n", patchFractionSpecified );
 					exit( 1 );
 				}
+#endif
 			}
 
 			{

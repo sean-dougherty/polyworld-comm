@@ -13,6 +13,8 @@ class Retina : public Sensor
 	Retina( int width );
 	virtual ~Retina();
 
+    void force_color(float r, float g, float b);
+
 	virtual void sensor_grow( NervousSystem *cns );
 	virtual void sensor_prebirth_signal( RandomNumberGenerator *rng );
 	virtual void sensor_update( bool print );
@@ -33,6 +35,7 @@ class Retina : public Sensor
 	class Channel
 	{
 	public:
+        float forced_value = 0.0;
 
 		const char *name;
 		unsigned char *buf;

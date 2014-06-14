@@ -638,7 +638,11 @@ void agent::grow( long mateWait )
 	}
     fNoseColor[0] = fNoseColor[1] = fNoseColor[2] = noseColor;
     
+#if TRIALS
+    fAge = 1;
+#else
     fAge = 0;
+#endif
     fLastMate = agent::config.initMateWait;
     
 	float size_rel = geneCache.size - agent::config.minAgentSize;

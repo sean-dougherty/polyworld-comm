@@ -1,5 +1,6 @@
 #include "datalib.h"
 #include "PathDistance.h"
+#include "Retina.h"
 #include "trials.h"
 #include "Simulation.h"
 #include "SoundPatch.h"
@@ -55,151 +56,310 @@ void shuffle(vector<int> &x) {
     } while(max_repeat(x) > 4);
 }
 
-int get_training_trials_per_patch() {
-    ifstream in("training_trials_per_patch.txt");
-    int n;
-    in >> n;
-    db("Training trials per patch: " << n);
-    return n;
+void show_color(agent *a, float r, float g, float b) {
+    a->GetRetina()->force_color(r, g, b);
 }
 
-float crow_dist(float x1, float z1, float x2, float z2) {
-    float dx = x1-x2;
-    float dz = z1-z2;
-
-    return sqrt(dx*dx + dz*dz);
+void show_green(agent *a) {
+    show_color(a, 0.0, 1.0, 0.0);
 }
 
-#if true
-#define NTRIAL_EVALUATION 10
-#else
-#define NTRIAL_EVALUATION 2
-#endif
+void show_black(agent *a) {
+    show_color(a, 0.0, 0.0, 0.0);
+}
+
+void make_sound(agent *a, int freq) {
+    a->sound(1.0, freq, a->x(), a->z());
+}
+
+bool is_voice_activated(agent *a) {
+    return a->Voice() > 0.01f;
+}
+
+template<typename Tfit>
+struct TestImpl : public Test
+{
+    std::map<long, Tfit> fitness[NTRIALS];
+
+    virtual ~TestImpl() {}
+    Tfit &get(int trial_number, agent *a) { return get(trial_number, a->Number()); }
+    Tfit &get(int trial_number, long agent_number) { return fitness[trial_number][agent_number]; }
+};
+
+struct Step0Fitness {
+    long nactivated = 0;
+};
+
+struct Step0 : public TestImpl<Step0Fitness>
+{
+    virtual ~Step0() {}
+
+    virtual long get_step_count() {
+        return 50;
+    }
+
+    virtual void evaluate_step(int trial_number, long test_step, agent *a, int freq) {
+        auto &fitness = get(trial_number, a);
+
+        make_sound(a, freq);
+        if(is_voice_activated(a)) {
+            fitness.nactivated++;
+        }
+    }
+
+    virtual float get_trial_score(int trial_number, agent *a) {
+        auto fitness = get(trial_number, a);
+        return float(fitness.nactivated) / get_step_count();
+    }
+
+    virtual float get_test_score(vector<float> &trial_scores) {
+        return mean(trial_scores);
+    }
+
+    virtual void end_generation(vector<long> ranking) {
+        // Trials
+        {
+            static const char *colnames[] = {
+                "Trial", "ActivatedCount", "Score", NULL
+            };
+            static const datalib::Type coltypes[] = {
+                INT,     INT,              FLOAT
+            };
+
+            DataLibWriter *writer = new DataLibWriter( "run/step0-trials.log", true, true );
+
+            for(long agent_number: ranking) {
+                char tableName[32];
+                sprintf(tableName, "Agent%ld", agent_number);
+
+                writer->beginTable( tableName,
+                                    colnames,
+                                    coltypes );
+
+                auto &trial_scores = this->trial_scores[agent_number];
+
+                for(int i = 0; i < NTRIALS; i++) {
+                    auto fit = get(i, agent_number);
+
+                    writer->addRow( i, fit.nactivated, trial_scores[i] );
+
+                }
+
+                writer->endTable();
+            }
+
+            delete writer;
+        }
+
+        // Test
+        {
+            static const char *colnames[] = {
+                "Agent", "Score", NULL
+            };
+            static const datalib::Type coltypes[] = {
+                INT,     FLOAT
+            };
+
+            DataLibWriter *writer = new DataLibWriter( "run/step0-test.log", true, true );
+
+            writer->beginTable( "Scores",
+                                colnames,
+                                coltypes );
+
+            for(long agent_number: ranking) {
+                writer->addRow( agent_number, test_scores[agent_number] );
+            }
+
+            writer->endTable();
+
+            delete writer;
+        }
+    }
+};
+
 
 TrialsState::TrialsState(TSimulation *sim_) {
     sim = sim_;
+    test_number = -1;
     trial_number = -1;
-    curr_trial = nullptr;
-    f = nullptr;
+
+    tests.push_back(new Step0());
     
-    int nfoodpatches = get_foodpatches_count();
-    int ntrials_per_patch = get_training_trials_per_patch();
+    long nsteps = 0;
+    for(auto test: tests) {
+        nsteps += NTRIALS * (test->get_step_count() + TEST_INTERLUDE);
+    }
 
-    ntrials_training = nfoodpatches * ntrials_per_patch;
-    ntrials_evaluation = NTRIAL_EVALUATION;
-    ntrials_total = ntrials_training + ntrials_evaluation;
+    sim->fMaxSteps = nsteps + 1;
 
-    trials = new TrialState[ntrials_total];
-    trials_evaluation = trials + ntrials_training;
-
-    {
-        for(int i = 0; i < nfoodpatches; i++) {
-            for(int j = 0; j < ntrials_per_patch; j++) {
-                food_sequence.push_back(i);
-            }
+    for(int freq = 0; freq < 2; freq++) {
+        for(int i = 0; i < NTRIALS/2; i++) {
+            freq_sequence.push_back(i);
         }
     }
-    {
-        assert(nfoodpatches == 2);
-        int n = 0;
-        for(int i = 0; (i < 2) && (n < ntrials_evaluation); i++)
-            for(int j = 0; (j < 5) && (n < ntrials_evaluation); j++)
-                food_sequence.push_back(i);
-    }
 
-    shuffle(food_sequence);
-
-    sim->fMaxSteps = (ntrials_total * TRIAL_DURATION) + 1;
+    shuffle(freq_sequence);
 }
 
 TrialsState::~TrialsState() {
-    delete [] trials;
-}
-
-int TrialsState::get_foodpatches_count() {
-    assert(sim->fNumDomains == 1);
-    const int dom_index = 0;
-    Domain &dom = sim->fDomains[dom_index];
-    return dom.numFoodPatches;
 }
 
 void TrialsState::step() {
-    if((curr_trial == nullptr) || (curr_trial->step == TRIAL_DURATION)) {
+    if(test_number == -1) {
+        test_number = 0;
+        trial_number = 0;
+        init_test();
         init_trial();
+    } else if(sim->getStep() == trial_end_sim_step) {
+        end_trial();
+        trial_number++;
+        if(trial_number == NTRIALS) {
+            end_test();
+            test_number++;
+            if(test_number == (int)tests.size()) {
+                end_generation();
+                return;
+            } else {
+                trial_number = 0;
+                init_test();
+                init_trial();
+            }
+        } else {
+            init_trial();
+        }
     }
-    curr_trial->step++;
+
+    trial_step++;
+
+    if(trial_step > TEST_INTERLUDE) {
+        long test_step = trial_step - TEST_INTERLUDE;
+        //db("  --- test step " << test_step << " @ " << sim->getStep());
+        int freq = freq_sequence[trial_number];
+        auto test = tests[test_number];
+        for(agent *a: get_agents()) {
+            test->evaluate_step(trial_number, test_step, a, freq);
+        }
+    }
 }
 
-void TrialsState::agent_success(agent *a) {
-    db("  success @ " << curr_trial->step << ": " << a->Number());
+void TrialsState::init_test() {
+    db("=== Beginning test " << test_number);
+}
 
-    Fitness &fit = curr_trial->fitness[a->Number()];
-    fit.success = true;
-    fit.step_end = curr_trial->step;
-    
-    objectxsortedlist::gXSortedObjects.toMark( AGENTTYPE ); // point list back to c
-	objectxsortedlist::gXSortedObjects.removeObjectWithLink( (gobject*) a );
-    sim->fStage.RemoveObject(a);
-    successful_agents.push_back(a);
+void TrialsState::end_test() {
+    db("=== Ending test " << test_number);
+
+    auto test = tests[test_number];
+    for(agent *a: get_agents()) {
+        float test_score = test->get_test_score(test->trial_scores[a->Number()]);
+        test->test_scores[a->Number()] = test_score;
+    }
+}
+
+void TrialsState::init_trial() {
+    db("*** Beginning trial " << trial_number << " of test " << test_number);
+
+    auto test = tests[test_number];
+    trial_step = 0;
+    trial_end_sim_step = sim->getStep() + TEST_INTERLUDE + test->get_step_count();
+
+    for(agent *a: get_agents()) {
+        a->SetEnergy(a->GetMaxEnergy());
+        a->setx(0.0);
+        a->setz(0.0);
+        show_black(a);
+    }
 }
 
 void TrialsState::end_trial() {
-    db("--- END TRIAL ---");
+    db("*** Ending trial " << trial_number << " of test " << test_number);
 
-    vector<agent *> agents = get_agents();
-
-    float origin_x = globals::worldsize/2.0f;
-    float origin_z = -globals::worldsize/2.0f;
-
-    float initial_dist = PathDistance::distance(origin_x, origin_z, f->x(), f->z());
-    int food_segment = PathDistance::getSegmentId(f->x(), f->z());
-
-    for(agent *a: agents) {
-        Fitness &fit = curr_trial->fitness[a->Number()];
-
-        // Compute final distance from food.
-        {
-            if(fit.success) {
-                fit.final_dist_from_food = 0.0f;
-                fit.dist_score = 1.0f;
-            } else {
-                fit.final_dist_from_food = PathDistance::distance(a->x(), a->z(), f->x(), f->z());
-                fit.final_dist_from_origin = crow_dist(a->x(), a->z(), origin_x, origin_z);
-                fit.dist_score = (MAX_DIST - fit.final_dist_from_food) / MAX_DIST;
-            }
-        }
-
-        // Determine if on same distance path segment as food
-        {
-            fit.on_food_segment =
-                fit.success ||
-                (food_segment == PathDistance::getSegmentId(a->x(), a->z())
-                 && fit.final_dist_from_origin > ORIGIN_TO_BRANCH_DIST);
-        }
-
-        // Compute score for trial
-        {
-
-            if(fit.success) {
-                long time;
-                if(agent::unfreezeStep > curr_trial->sim_start_step) {
-                    time = (curr_trial->sim_start_step + fit.step_end) - agent::unfreezeStep;
-                } else {
-                    time = fit.step_end;
-                }
-                fit.velocity = initial_dist / time;
-                fit.score = (0.5f * fit.dist_score) + (0.5f * fit.velocity) + 0.1f;
-            } else if(fit.final_dist_from_food > initial_dist) {
-                fit.score = 0.1f * fit.dist_score;
-            } else if(fit.final_dist_from_origin < ORIGIN_TO_BRANCH_DIST) {
-                fit.score = 0.1f * fit.dist_score;
-            } else {
-                fit.score = 0.5f * fit.dist_score;
-            }
-        }
+    auto test = tests[test_number];
+    for(agent *a: get_agents()) {
+        float score = test->get_trial_score(trial_number, a);
+        test->trial_scores[a->Number()].push_back(score);
     }
 }
 
+struct TotalFitness {
+    long agent_number = 0;
+    vector<float> test_scores;
+    float score = 0;
+};
+
+void TrialsState::end_generation() {
+    db("END OF GENERATION");
+    sim->End("endTests");
+
+    map<long, TotalFitness> total_fitnesses_lookup;
+
+    for(auto test: tests) {
+        for(auto test_score: test->test_scores) {
+            long agent_number = test_score.first;
+            float score = test_score.second;
+
+            TotalFitness &fitness = total_fitnesses_lookup[agent_number];
+            fitness.agent_number = agent_number;
+            fitness.test_scores.push_back(score);
+            fitness.score += score;
+        }
+    }
+
+    vector<TotalFitness> total_fitnesses;
+    for(auto fitness: total_fitnesses_lookup) {
+        total_fitnesses.push_back(fitness.second);
+    }
+
+    for(auto fitness: total_fitnesses) {
+        fitness.score = mean(fitness.test_scores);
+    }
+
+    sort(total_fitnesses.begin(), total_fitnesses.end(),
+         [](const TotalFitness &x, const TotalFitness &y) {
+             return y.score < x.score;
+         });
+
+    vector<long> ranking;
+
+    for(auto fitness: total_fitnesses) {
+        ranking.push_back(fitness.agent_number);
+    }
+
+    for(auto test: tests) {
+        test->end_generation(ranking);
+    }
+
+    map<long, agent *> agents;
+    for(agent *a: get_agents()) {
+        agents[a->Number()] = a;
+    }
+
+    system("mkdir -p run/genome/Fittest");
+    {
+        FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
+
+        for(int i = 0; i < 10; i++)
+        {
+            TotalFitness &fit = total_fitnesses[i];
+            fprintf( ffitness, "%ld %f\n", fit.agent_number, fit.score );
+
+            {
+                genome::Genome *g = agents[fit.agent_number]->Genes();
+                char path[256];
+                sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.agent_number );
+                AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
+                g->dump(out);
+                delete out;
+            }
+
+        }
+
+        fclose( ffitness );
+    }
+
+}
+
+#if false
 void TrialsState::end_trials() {
     vector<TotalFitness> total_fits;
 
@@ -369,71 +529,11 @@ void TrialsState::end_trials() {
 
     sim->End("trialsComplete");
 }
-
-void TrialsState::init_trial() {
-    trial_number++;
-
-    if(trial_number > 0) {
-        end_trial();
-    }
-
-    db("=== Starting trial " << trial_number << " (" << (trial_number>=ntrials_training?"TEST":"TRAIN") << ") ===");
-
-    if(trial_number == ntrials_total) {
-        end_trials();
-    } else {
-        curr_trial = &trials[trial_number];
-        curr_trial->sim_start_step = sim->getStep();
-
-        // Maintain agents
-        if(trial_number > 0) {
-            for(agent *a: successful_agents) {
-                objectxsortedlist::gXSortedObjects.add(a);
-                sim->fStage.AddObject(a);
-            }
-            successful_agents.clear();
-
-            objectxsortedlist::gXSortedObjects.reset();
-            agent *a;
-            while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-                a->setx(globals::worldsize/2.0f);
-                a->setz(-globals::worldsize/2.0f);
-                a->SaveLastPosition();
-                a->setyaw(0.0);
-                a->SetEnergy(a->GetMaxEnergy());
-            }
-            objectxsortedlist::gXSortedObjects.sort();
-            objectxsortedlist::gXSortedObjects.reset();
-        }
-
-        // Maintain food
-        {
-            if(f) {
-                food *_f;
-                objectxsortedlist::gXSortedObjects.reset();
-                objectxsortedlist::gXSortedObjects.nextObj(FOODTYPE, (gobject**)&_f);
-                assert(f == _f);
-                sim->RemoveFood(f);
-            }
-
-            assert(sim->fNumDomains == 1);
-            const int dom_index = 0;
-            int food_index = food_sequence[trial_number];
-            f = sim->AddFood(dom_index, food_index);
-
-            if(sim->fNumSoundPatches > 0) {
-                sim->fSoundPatches[food_index].activate(sim->getStep() + 1);
-            }
-        }
-    }
-}
+#endif
 
 vector<agent *> TrialsState::get_agents() {
     vector<agent *> agents;
 
-    for(agent *a: successful_agents) {
-        agents.push_back(a);
-    }
     {
         agent *a;
         objectxsortedlist::gXSortedObjects.reset();
