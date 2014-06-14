@@ -23,7 +23,7 @@ struct Test
     virtual float get_trial_score(int trial_number, agent *a) = 0;
     virtual float get_test_score(std::vector<float> &trial_scores) = 0;
 
-    virtual void end_generation(std::vector<long> ranking) = 0;
+    virtual void end_generation(std::vector<long> &ranking) = 0;
 
     std::map<long, std::vector<float>> trial_scores;
     std::map<long, float> test_scores;
@@ -34,7 +34,8 @@ struct TrialsState
     TrialsState(TSimulation *sim_);
     ~TrialsState();
 
-    void step();
+    void timestep_begin();
+    void timestep_end();
 
     TSimulation *sim;
     std::vector<int> freq_sequence;
@@ -43,7 +44,7 @@ struct TrialsState
 
     long test_number;
     long trial_number;
-    long trial_step;
+    long trial_timestep;
     long trial_end_sim_step;
     
 private:

@@ -647,11 +647,12 @@ void TSimulation::Step()
 		End( "PopulationCrash" );
 		return;
 	}
-#if TRIALS
-    trials->step();
-#endif
 
 	fStep++;
+
+#if TRIALS
+    trials->timestep_begin();
+#endif
 
 	debugcheck( "beginning of step %ld", fStep );
 
@@ -848,6 +849,10 @@ void TSimulation::Step()
 
 		fRecentFittest->clear();
 	}
+
+#if TRIALS
+    trials->timestep_end();
+#endif
 
 	logs->postEvent( StepEndEvent() );
 }
@@ -3122,6 +3127,20 @@ void TSimulation::Drop( agent* c )
 	c->DropMostRecent();
 
 	debugcheck( "after dropping most recent" );
+}
+
+//---------------------------------------------------------------------------
+// TSimulation::getVoiceFrequency
+//---------------------------------------------------------------------------
+int TSimulation::getVoiceFrequency( agent* c )
+{
+    float voice = c->Voice();
+    if( voice < fVoiceThreshold )
+        return -1;
+
+    int frequency = int( (voice - fVoiceThreshold) / fVoiceFrequencyRange );
+
+    return frequency;
 }
 
 //---------------------------------------------------------------------------

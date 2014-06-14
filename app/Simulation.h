@@ -82,6 +82,8 @@ public:
 
 	long getStep() const;
 	long GetMaxSteps() const;
+
+    int getVoiceFrequency(agent *a);
 	
 	void MaintainEnergyCosts();
 	double EnergyScaleFactor( long minAgents, long maxAgents, long numAgents );

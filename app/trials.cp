@@ -24,37 +24,8 @@ TrialsState *trials = nullptr;
 
 float mean(vector<float> scores);
 float stddev(vector<float> scores);
-
-int max_repeat(vector<int> &x) {
-    int maxrepeat = 0;
-    int nrepeat = 0;
-    int val = -1;
-
-    for(int y: x) {
-        if(y != val) {
-            maxrepeat = max(maxrepeat, nrepeat);
-            val = y;
-            nrepeat = 1;
-        } else {
-            nrepeat++;
-        }
-    }
-
-    return maxrepeat;
- }
-
-void shuffle(vector<int> &x) {
-    ifstream in("trial_seed.txt");
-    int seed;
-    in >> seed;
-    db("Food sequence RNG seed: " << seed);
-
-    auto rng = std::default_random_engine(seed);
-
-    do {
-        shuffle(x.begin(), x.end(), rng);
-    } while(max_repeat(x) > 4);
-}
+float covariance(vector<float> &x, vector<float> &y);
+void shuffle(vector<int> &x);
 
 void show_color(agent *a, float r, float g, float b) {
     a->GetRetina()->force_color(r, g, b);
@@ -79,8 +50,11 @@ float get_voice_activation(agent *a) {
 }
 
 int get_voice_frequency(agent *a) {
-    assert(false);
-    return 0;
+    return trials->sim->getVoiceFrequency(a);
+}
+
+bool is_voicing(agent *a) {
+    return get_voice_frequency(a) >= 0;
 }
 
 #define count_score(COUNT_NAME) (float(trial_state.COUNT_NAME##_count) / get_trial_timestep_count())
@@ -93,6 +67,31 @@ struct TestImpl : public Test
     virtual ~TestImpl() {}
     Tfit &get(int trial_number, agent *a) { return get(trial_number, a->Number()); }
     Tfit &get(int trial_number, long agent_number) { return fitness[trial_number][agent_number]; }
+    void record_test_scores(int test_number, vector<long> &ranking) {
+        static const char *colnames[] = {
+            "Agent", "Score", NULL
+        };
+        static const datalib::Type coltypes[] = {
+            INT,     FLOAT
+        };
+
+        char path[512];
+        sprintf(path, "run/test%d-score.log", test_number);
+        DataLibWriter *writer = new DataLibWriter( path, true, true );
+
+        writer->beginTable( "Scores",
+                            colnames,
+                            coltypes );
+
+        for(long agent_number: ranking) {
+            writer->addRow( agent_number,
+                            test_scores[agent_number] );
+        }
+
+        writer->endTable();
+
+        delete writer;
+    }
 };
 
 struct Test0TrialState {
@@ -104,11 +103,11 @@ struct Test0TrialState {
 
 struct Test0 : public TestImpl<Test0TrialState>
 {
-    const long Timesteps_on = 10;
-    const long Timesteps_off = 5;
+    const long Timesteps_sound_on = 10;
+    const long Timesteps_sound_off = 5;
 
-    const long Phase0_end = Timesteps_on;
-    const long Phase1_end = Phase0_end + Timesteps_off;
+    const long Phase0_end = Timesteps_sound_on;
+    const long Phase1_end = Phase0_end + Timesteps_sound_off;
 
     virtual ~Test0() {}
 
@@ -148,8 +147,7 @@ struct Test0 : public TestImpl<Test0TrialState>
         auto trial_state = get(trial_number, a);
 
         trial_state.covariance = covariance(trial_state.x, trial_state.y);
-        trial_state.score = -1.0f;
-        assert(false); // make score!
+        trial_state.score = trial_state.covariance;
         return trial_state.score;
     }
 
@@ -157,7 +155,7 @@ struct Test0 : public TestImpl<Test0TrialState>
         return mean(trial_scores);
     }
 
-    virtual void end_generation(vector<long> ranking) {
+    virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
@@ -192,30 +190,7 @@ struct Test0 : public TestImpl<Test0TrialState>
             delete writer;
         }
 
-        // Test
-        {
-            static const char *colnames[] = {
-                "Agent", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test0-test.log", true, true );
-
-            writer->beginTable( "Scores",
-                                colnames,
-                                coltypes );
-
-            for(long agent_number: ranking) {
-                writer->addRow( agent_number,
-                                test_scores[agent_number] );
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
+        record_test_scores(0);
     }
 };
 
@@ -245,7 +220,6 @@ struct Test1 : public TestImpl<Test1TrialState>
                                 long time,
                                 agent *a,
                                 int freq) {
-        auto &trial_state = get(trial_number, a);
 
         if(time <= Phase0_end) {
             show_green(a);
@@ -292,7 +266,7 @@ struct Test1 : public TestImpl<Test1TrialState>
         return mean(trial_scores);
     }
 
-    virtual void end_generation(vector<long> ranking) {
+    virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
@@ -328,30 +302,7 @@ struct Test1 : public TestImpl<Test1TrialState>
             delete writer;
         }
 
-        // Test
-        {
-            static const char *colnames[] = {
-                "Agent", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test1-test.log", true, true );
-
-            writer->beginTable( "Scores",
-                                colnames,
-                                coltypes );
-
-            for(long agent_number: ranking) {
-                writer->addRow( agent_number,
-                                test_scores[agent_number] );
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
+        record_test_scores(1);
     }
 };
 
@@ -380,7 +331,6 @@ struct Test2 : public TestImpl<Test2TrialState>
                                 long time,
                                 agent *a,
                                 int freq) {
-        auto &trial_state = get(trial_number, a);
 
         if(time <= Phase0_end) {
             show_black(a);
@@ -427,7 +377,7 @@ struct Test2 : public TestImpl<Test2TrialState>
         return mean(trial_scores);
     }
 
-    virtual void end_generation(vector<long> ranking) {
+    virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
@@ -463,29 +413,7 @@ struct Test2 : public TestImpl<Test2TrialState>
             delete writer;
         }
 
-        // Test
-        {
-            static const char *colnames[] = {
-                "Agent", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test2-test.log", true, true );
-
-            writer->beginTable( "Scores",
-                                colnames,
-                                coltypes );
-
-            for(long agent_number: ranking) {
-                writer->addRow( agent_number, test_scores[agent_number] );
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
+        record_test_scores(2);
     }
 };
 
@@ -517,8 +445,6 @@ struct Test4 : public TestImpl<Test4TrialState>
                                 long time,
                                 agent *a,
                                 int freq) {
-
-        auto &trial_state = get(trial_number, a);
 
         if(time <= Phase0_end) {
             show_black(a);
@@ -572,18 +498,17 @@ struct Test4 : public TestImpl<Test4TrialState>
         return mean(trial_scores);
     }
 
-    virtual void end_generation(vector<long> ranking) {
-/*
+    virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Score", NULL
+                "Trial", "Correspondence", "Respond", "Delay", "Break", "Score", NULL
             };
             static const datalib::Type coltypes[] = {
-                INT,     INT,               INT,      FLOAT
+                INT,     FLOAT,            FLOAT,      FLOAT,  FLOAT,   FLOAT
             };
 
-            DataLibWriter *writer = new DataLibWriter( "run/test1-trials.log", true, true );
+            DataLibWriter *writer = new DataLibWriter( "run/test4-trials.log", true, true );
 
             for(long agent_number: ranking) {
                 char tableName[32];
@@ -596,7 +521,12 @@ struct Test4 : public TestImpl<Test4TrialState>
                 for(int i = 0; i < NTRIALS; i++) {
                     auto trial_state = get(i, agent_number);
 
-                    writer->addRow( i, trial_state.correspondence_count, trial_state.respond_count, trial_state.score );
+                    writer->addRow( i,
+                                    count_score(correspondence),
+                                    count_score(respond),
+                                    count_score(delay),
+                                    count_score(break),
+                                    trial_state.score );
 
                 }
 
@@ -605,31 +535,8 @@ struct Test4 : public TestImpl<Test4TrialState>
 
             delete writer;
         }
-
-        // Test
-        {
-            static const char *colnames[] = {
-                "Agent", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/step1-test.log", true, true );
-
-            writer->beginTable( "Scores",
-                                colnames,
-                                coltypes );
-
-            for(long agent_number: ranking) {
-                writer->addRow( agent_number, test_scores[agent_number] );
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
-*/
+        
+        record_test_scores(4);
     }
 };
 
@@ -656,18 +563,13 @@ struct Test5 : public TestImpl<Test5TrialState>
     virtual ~Test5() {}
 
     virtual long get_trial_timestep_count() {
-        return Timesteps_sound_on
-            + Timesteps_sound_off
-            + Timesteps_green_on
-            + Timesteps_green_off;
+        return Phase3_end;
     }
 
     virtual void timestep_input(int trial_number,
                                 long time,
                                 agent *a,
                                 int freq) {
-
-        auto &trial_state = get(trial_number, a);
 
         if(time <= Phase0_end) {
             show_black(a);
@@ -713,10 +615,10 @@ struct Test5 : public TestImpl<Test5TrialState>
         auto trial_state = get(trial_number, a);
 
         trial_state.score =
-            (0.25f * count_score(correspondence)
+            (0.25f * count_score(correspondence))
              + (0.25f * count_score(respond))
-             + (0.25f * count_score(delay_score))
-             + (0.25f * count_score(break_score));
+             + (0.25f * count_score(delay))
+             + (0.25f * count_score(break));
 
         return trial_state.score;
     }
@@ -725,18 +627,17 @@ struct Test5 : public TestImpl<Test5TrialState>
         return mean(trial_scores);
     }
 
-    virtual void end_generation(vector<long> ranking) {
-/*
+    virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Score", NULL
+                "Trial", "Correspondence", "Respond", "Delay", "Break", "Score", NULL
             };
             static const datalib::Type coltypes[] = {
-                INT,     INT,               INT,      FLOAT
+                INT,     FLOAT,            FLOAT,      FLOAT,  FLOAT,   FLOAT
             };
 
-            DataLibWriter *writer = new DataLibWriter( "run/test1-trials.log", true, true );
+            DataLibWriter *writer = new DataLibWriter( "run/test5-trials.log", true, true );
 
             for(long agent_number: ranking) {
                 char tableName[32];
@@ -749,8 +650,12 @@ struct Test5 : public TestImpl<Test5TrialState>
                 for(int i = 0; i < NTRIALS; i++) {
                     auto trial_state = get(i, agent_number);
 
-                    writer->addRow( i, trial_state.correspondence_count, trial_state.respond_count, trial_state.score );
-
+                    writer->addRow( i,
+                                    count_score(correspondence),
+                                    count_score(respond),
+                                    count_score(delay),
+                                    count_score(break),
+                                    trial_state.score );
                 }
 
                 writer->endTable();
@@ -759,30 +664,7 @@ struct Test5 : public TestImpl<Test5TrialState>
             delete writer;
         }
 
-        // Test
-        {
-            static const char *colnames[] = {
-                "Agent", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/step1-test.log", true, true );
-
-            writer->beginTable( "Scores",
-                                colnames,
-                                coltypes );
-
-            for(long agent_number: ranking) {
-                writer->addRow( agent_number, test_scores[agent_number] );
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
-*/
+        record_test_scores(5);
     }
 };
 
@@ -791,11 +673,15 @@ TrialsState::TrialsState(TSimulation *sim_) {
     test_number = -1;
     trial_number = -1;
 
-    tests.push_back(new Step0());
+    tests.push_back(new Test0());
+    tests.push_back(new Test1());
+    tests.push_back(new Test2());
+    tests.push_back(new Test4());
+    tests.push_back(new Test5());
     
     long nsteps = 0;
     for(auto test: tests) {
-        nsteps += NTRIALS * (test->get_step_count() + TEST_INTERLUDE);
+        nsteps += NTRIALS * (test->get_trial_timestep_count() + TEST_INTERLUDE);
     }
 
     sim->fMaxSteps = nsteps + 1;
@@ -812,7 +698,7 @@ TrialsState::TrialsState(TSimulation *sim_) {
 TrialsState::~TrialsState() {
 }
 
-void TrialsState::step() {
+void TrialsState::timestep_begin() {
     if(test_number == -1) {
         test_number = 0;
         trial_number = 0;
@@ -837,15 +723,25 @@ void TrialsState::step() {
         }
     }
 
-    trial_step++;
+    trial_timestep++;
 
-    if(trial_step > TEST_INTERLUDE) {
-        long test_timestep = trial_step - TEST_INTERLUDE;
-        //db("  --- test step " << test_timestep << " @ " << sim->getStep());
+    if(trial_timestep > TEST_INTERLUDE) {
+        long test_timestep = trial_timestep - TEST_INTERLUDE;
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
         for(agent *a: get_agents()) {
-            test->evaluate_step(trial_number, test_timestep, a, freq);
+            test->timestep_input(trial_number, test_timestep, a, freq);
+        }
+    }
+}
+
+void TrialsState::timestep_end() {
+    if(trial_timestep > TEST_INTERLUDE) {
+        long test_timestep = trial_timestep - TEST_INTERLUDE;
+        int freq = freq_sequence[trial_number];
+        auto test = tests[test_number];
+        for(agent *a: get_agents()) {
+            test->timestep_output(trial_number, test_timestep, a, freq);
         }
     }
 }
@@ -868,8 +764,8 @@ void TrialsState::init_trial() {
     db("*** Beginning trial " << trial_number << " of test " << test_number);
 
     auto test = tests[test_number];
-    trial_step = 0;
-    trial_end_sim_step = sim->getStep() + TEST_INTERLUDE + test->get_step_count();
+    trial_timestep = 0;
+    trial_end_sim_step = sim->getStep() + TEST_INTERLUDE + test->get_trial_timestep_count();
 
     for(agent *a: get_agents()) {
         a->SetEnergy(a->GetMaxEnergy());
@@ -967,178 +863,6 @@ void TrialsState::end_generation() {
 
 }
 
-#if false
-void TrialsState::end_trials() {
-    vector<TotalFitness> total_fits;
-
-    db("END TRIALS");
-
-    for(agent *a: get_agents()) {
-        TotalFitness total_fit;
-        total_fit.a = a;
-
-        vector<float> agent_scores;
-        vector<float> velocity;
-        for(int i = 0; i < ntrials_evaluation; i++) {
-            Fitness &fit = trials_evaluation[i].fitness[a->Number()];
-
-            if(fit.success) {
-                total_fit.nsuccesses++;
-            }
-            if(fit.on_food_segment) {
-                total_fit.non_food_segment++;
-            }
-            velocity.push_back(fit.velocity);
-            agent_scores.push_back(fit.score);
-        }
-
-        total_fit.velocity_mean = mean(velocity);
-        total_fit.velocity_stddev = stddev(velocity);
-        total_fit.trial_score_mean = mean(agent_scores);
-        total_fit.trial_score_stddev = stddev(agent_scores);
-
-        float mean_score = total_fit.trial_score_mean;
-        float stddev_score = 1.0f - total_fit.trial_score_stddev;
-        total_fit.score = (0.95f * mean_score) + (0.05f * stddev_score);
-
-        total_fits.push_back(total_fit);
-    }
-
-
-    sort( total_fits.begin(), total_fits.end(),
-          [](const TotalFitness &x, const TotalFitness &y) {
-              return y.score < x.score;
-          } );
-
-    // Create trials log file
-    {
-        DataLibWriter *writer = new DataLibWriter( "run/trials.log", true, true );
-
-        for(auto total_fit: total_fits) {
-            agent *a = total_fit.a;
-
-            char tableName[32];
-            sprintf(tableName, "Agent%ld", a->Number());
-
-            static const char *colnames[] = {
-                "Trial", "Success", "OnFoodSegment", "FoodDist", "OriginDist", "Velocity", "DistScore", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     BOOL,      BOOL,            FLOAT,      FLOAT,        FLOAT,      FLOAT,       FLOAT
-            };
-
-            writer->beginTable( tableName,
-                                colnames,
-                                coltypes );
-
-            for(int i = 0; i < ntrials_evaluation; i++) {
-                Fitness &fit = trials_evaluation[i].fitness[a->Number()];
-
-                writer->addRow( i, fit.success, fit.on_food_segment, fit.final_dist_from_food, fit.final_dist_from_origin, fit.velocity, fit.dist_score, fit.score );
-
-            }
-
-            writer->endTable();
-        }
-
-        delete writer;
-    }
-
-    // Create fitness log
-    {
-        DataLibWriter *writer = new DataLibWriter( "run/fitness.log", true, true );
-
-        for(auto total_fit: total_fits) {
-            agent *a = total_fit.a;
-
-            char tableName[32];
-            sprintf(tableName, "Agent%ld", a->Number());
-
-            static const char *colnames[] = {
-                "SuccessCount", "OnFoodSegmentCount", "VelocityMean", "VelocityStdDev", "TrialScoreMean", "TrialScoreStdDev", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,            INT,                  FLOAT,          FLOAT,            FLOAT,            FLOAT,              FLOAT
-            };
-
-            writer->beginTable( tableName,
-                                colnames,
-                                coltypes );
-
-            writer->addRow( total_fit.nsuccesses, total_fit.non_food_segment, total_fit.velocity_mean, total_fit.velocity_stddev, total_fit.trial_score_mean, total_fit.trial_score_stddev, total_fit.score );
-
-
-            writer->endTable();
-        }
-
-        delete writer;
-    }
-
-    system("mkdir -p run/genome/Fittest");
-    {
-        FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
-
-        for(int i = 0; i < 10; i++)
-        {
-            TotalFitness &fit = total_fits[i];
-            fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
-
-            {
-                genome::Genome *g = fit.a->Genes();
-                char path[256];
-                sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.a->Number() );
-                AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
-                g->dump(out);
-                delete out;
-            }
-
-        }
-
-        fclose( ffitness );
-    }
-
-    // Deal with most successful agent
-    {
-        TotalFitness &total_fit = total_fits.front();
-        bool success = true;
-
-        // Success/fail
-        {
-            if( (float(total_fit.nsuccesses) / ntrials_evaluation) < 0.9f ) {
-                db("not enough successful trials");
-                success = false;
-            } else if( total_fit.trial_score_mean < 0.75 ) {
-                db("trials score mean too low");
-                success = false;
-            } else if( total_fit.trial_score_stddev > 0.1 ) {
-                db("trials score stddev too high");
-                success = false;
-            }
-
-            FILE *f = fopen("run/trials_result.txt", "w");
-            fprintf(f, "%s\n", success ? "success" : "fail");
-            fclose(f);
-        }
-
-        // Velocity
-        {
-            FILE *f = fopen("run/velocity.txt", "w");
-            fprintf(f, "%f %f\n", total_fit.velocity_mean, total_fit.velocity_stddev);
-            fclose(f);
-        }
-
-        // FoodSegment
-        {
-            FILE *f = fopen("run/onfoodsegment.txt", "w");
-            fprintf(f, "%f\n", float(total_fit.non_food_segment) / ntrials_evaluation);
-            fclose(f);
-        }
-    }
-
-    sim->End("trialsComplete");
-}
-#endif
-
 vector<agent *> TrialsState::get_agents() {
     vector<agent *> agents;
 
@@ -1172,4 +896,49 @@ float stddev(vector<float> scores) {
     return result;
 }
 
+float covariance(vector<float> &x, vector<float> &y) {
+    size_t n = x.size();
+    assert(y.size() == n);
+    float xmean = mean(x);
+    float ymean = mean(y);
+
+    float result = 0.0f;
+    for(size_t i = 0; i < n; i++) {
+        result += (x[i] - xmean) * (y[i] - ymean);
+    }
+    result /= n;
+
+    return result;
+}
+
+int get_max_repeat(vector<int> &x) {
+    int maxrepeat = 0;
+    int nrepeat = 0;
+    int val = -1;
+
+    for(int y: x) {
+        if(y != val) {
+            maxrepeat = max(maxrepeat, nrepeat);
+            val = y;
+            nrepeat = 1;
+        } else {
+            nrepeat++;
+        }
+    }
+
+    return maxrepeat;
+}
+
+void shuffle(vector<int> &x) {
+    ifstream in("trial_seed.txt");
+    int seed;
+    in >> seed;
+    db("Food sequence RNG seed: " << seed);
+
+    auto rng = std::default_random_engine(seed);
+
+    do {
+        shuffle(x.begin(), x.end(), rng);
+    } while(get_max_repeat(x) > 4);
+}
 #endif
