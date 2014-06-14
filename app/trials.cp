@@ -88,28 +88,28 @@ struct TestImpl : public Test
     Tfit &get(int trial_number, long agent_number) { return fitness[trial_number][agent_number]; }
 };
 
-struct Step0TrialState {
+struct Test0TrialState {
     vector<float> x;
     vector<float> y;
     float covariance;
     float score;
 };
 
-const long Step0_timesteps_on = 10;
-const long Step0_timesteps_off = 5;
+const long Test0_timesteps_on = 10;
+const long Test0_timesteps_off = 5;
 
-struct Step0 : public TestImpl<Step0TrialState>
+struct Test0 : public TestImpl<Test0TrialState>
 {
-    virtual ~Step0() {}
+    virtual ~Test0() {}
 
     virtual long get_trial_timestep_count() {
-        return Step0_timesteps_on + Step0_timesteps_off;
+        return Test0_timesteps_on + Test0_timesteps_off;
     }
 
     virtual void timestep_input(int trial_number, long test_timestep, agent *a, int freq) {
         auto &trial_state = get(trial_number, a);
 
-        if(test_timestep <= Step0_timesteps_on) {
+        if(test_timestep <= Test0_timesteps_on) {
             show_black(a);
             make_sound(a, freq);
             trial_state.x.push_back(1.0f);
