@@ -42,7 +42,6 @@ if i == None:
 	i = 0
 	
 	food_difficulty=0
-	mutation_rate=' --high-mutation '
 	
 	if extend_rundir != None:
 		sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+extend_rundir)
@@ -51,11 +50,6 @@ if i == None:
 		sh('scripts/comm/mkvat.py > '+trialsdir+'/trial0.wf')
 		
 	run(i)
-else:
-	mutation_rate=' --high-mutation '
-	print "!!!!!!!!!!!!!!!"
-	print "!!! WARNING !!! FORCING HIGH MUTATE FOR RESUME"
-	print "!!!!!!!!!!!!!!!"
 
 #
 # Trials
@@ -72,20 +66,10 @@ i: %d
 """ % (i)
 	
 	sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+trialsdir+'/run'+str(i-1))
-	sh('scripts/comm/mkvat.py '+mutation_rate+' --seed-from-run > '+trialsdir+'/trial'+str(i)+'.wf')
+	sh('scripts/comm/mkvat.py --seed-from-run > '+trialsdir+'/trial'+str(i)+'.wf')
 
 	score = run(i)
 
-	"""
-	if velocity['mean'] < 0.9:
-		mutation_rate = ' --high-mutation '
-	elif velocity['stddev'] > 0.1:
-		mutation_rate = ' --med-mutation '
-	else:
-		mutation_rate = ' --low-mutation '
-
-	print 'velocity %f %f --> %s' % (velocity['mean'], velocity['stddev'], mutation_rate)
-"""
 	score_log.write('%d\t%f\n' % (i, score))
 	score_log.flush()
 
