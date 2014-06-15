@@ -2,7 +2,7 @@
 
 import sys
 
-Seed_Agents_run0 = 40
+Seed_Agents_run0 = 20
 Seed_Agents = 40
 mutation_rate = 0.001
 
