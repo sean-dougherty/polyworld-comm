@@ -57,6 +57,7 @@ MinAgents 1
 MaxAgents 150
 InitAgents 40
 SeedAgents 40
+NumberFittest 10
 MinLifeSpan 100000
 MaxLifeSpan 100001
 SeedMutationProbability 0.5

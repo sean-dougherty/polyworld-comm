@@ -287,6 +287,7 @@ private:
 	
 	Color fGroundColor;
 
+    int fNumberFittest;
 	agent* fCurrentFittestAgent[MAXFITNESSITEMS];	// based on heuristic fitness
 	float fCurrentMaxFitness[MAXFITNESSITEMS];	// based on heuristic fitness
 	int fCurrentFittestCount = 0;

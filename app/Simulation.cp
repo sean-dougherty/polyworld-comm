@@ -4338,9 +4338,9 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fEpochFrequency = doc.get( "EpochFrequency" );
 	fEpoch = fEpochFrequency;
 	{
-		int numberFittest = doc.get( "NumberFittest" );
-		if( numberFittest > 0 )
-			fFittest = new FittestList( numberFittest, true );
+		fNumberFittest = doc.get( "NumberFittest" );
+		if( fNumberFittest > 0 )
+			fFittest = new FittestList( fNumberFittest, true );
 		else
 			fFittest = NULL;
 	}

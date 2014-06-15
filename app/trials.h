@@ -32,8 +32,6 @@ struct Test
 
 struct TrialsState
 {
-    static const int ElitesCount;
-
     TrialsState(TSimulation *sim_);
     ~TrialsState();
 

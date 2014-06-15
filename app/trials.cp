@@ -59,8 +59,9 @@ bool is_voicing(agent *a) {
 }
 
 enum TaskCategory {
-    Wait,
-    Speak
+    Delay,
+    Speak,
+    Break
 };
 
 enum Sound {
@@ -68,11 +69,12 @@ enum Sound {
     Silent
 };
 
-enum Metric {
-    Delay,
-    Corr,
-    Resp,
-    Break
+enum class Metric : int {
+    Delay = 0,
+    Correspondence = 1,
+    Respond = 2,
+    Break = 3,
+    __N = 4
 };
 
 struct Task {
@@ -101,7 +103,8 @@ struct Task {
         // Vision
         //
         switch(category) {
-        case Wait:
+        case Delay:
+        case Break:
             show_black(a);
             break;
         case Speak:
@@ -118,7 +121,8 @@ struct Task {
         AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
 
         switch(category) {
-        case Wait:
+        case Delay:
+        case Break:
             if(!is_voicing(a)) {
                 state.silence_count++;
             }
@@ -137,45 +141,105 @@ struct Task {
         }
     }
 
-    float metric(int trial_number, agent *a, Metric m) {
-        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+    float metric(int trial_number, long agent_number, Metric m) {
+        AgentTrialState &state = agent_trial_state[trial_number][agent_number];
 
         switch(m) {
-        case Resp:
+        case Metric::Delay:
+            assert(category == Delay);
+            return float(state.silence_count) / timesteps;
+        case Metric::Respond:
             assert(category == Speak);
             return float(state.respond_count) / timesteps;
-        case Corr:
+        case Metric::Correspondence:
             assert(category == Speak);
             return float(state.correspondence_count) / timesteps;
+        case Metric::Break:
+            assert(category == Break);
+            return float(state.silence_count) / timesteps;
         default:
             assert(false);
         }
     }
 
-    float metric(int trial_number, agent *a) {
-        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+    void create_log_schema(string prefix,
+                           vector<string> &colnames,
+                           vector<datalib::Type> &coltypes) {
+        
 
-        assert(category == Wait);
+        switch(category) {
+        case Delay:
+            colnames.push_back(prefix+"Delay");
+            coltypes.push_back(datalib::FLOAT);
+            break;
+        case Speak:
+            colnames.push_back(prefix+"Respond");
+            coltypes.push_back(datalib::FLOAT);
+            colnames.push_back(prefix+"Correspondence");
+            coltypes.push_back(datalib::FLOAT);
+            break;
+        case Break:
+            colnames.push_back(prefix+"Break");
+            coltypes.push_back(datalib::FLOAT);
+            break;
+        default:
+            assert(false);
+        }
+    }
 
-        return float(state.silence_count) / timesteps;
+    void log_trial(int trial_number, long agent_number, vector<Variant> &colvalues) {
+        switch(category) {
+        case Delay:
+            colvalues.push_back(metric(trial_number, agent_number, Metric::Delay));
+            break;
+        case Speak:
+            colvalues.push_back(metric(trial_number, agent_number, Metric::Respond));
+            colvalues.push_back(metric(trial_number, agent_number, Metric::Correspondence));
+            break;
+        case Break:
+            colvalues.push_back(metric(trial_number, agent_number, Metric::Break));
+            break;
+        default:
+            assert(false);
+        }
     }
 };
 
 struct ScoredTest : public Test {
+    const char *name;
     float weight;
     vector<Task> tasks;
     vector<long> task_ends;
+    vector<int> tasks_by_metric[int(Metric::__N)];
 
-    ScoredTest(float weight_,
-               const vector<Task> &tasks_)
-        : weight(weight_)
+ScoredTest(const char *name_,
+           float weight_,
+           vector<Task> tasks)
+        : name(name_)
+        , weight(weight_)
         , tasks(tasks)
     {
         long end = 0;
 
-        for(auto t: tasks) {
+        for(auto &t: tasks) {
             end += t.timesteps;
             task_ends.push_back(end);
+        }
+
+        for(int i = 0; i < (int)tasks.size(); i++) {
+            Task &t = tasks[i];
+            switch(t.category) {
+            case Delay:
+                tasks_by_metric[int(Metric::Delay)].push_back(i);
+                break;
+            case Speak:
+                tasks_by_metric[int(Metric::Correspondence)].push_back(i);
+                tasks_by_metric[int(Metric::Respond)].push_back(i);
+                break;
+            case Break:
+                tasks_by_metric[int(Metric::Break)].push_back(i);
+                break;
+            }
         }
     }
 
@@ -194,6 +258,7 @@ struct ScoredTest : public Test {
         for(size_t i = 0; i < tasks.size(); i++) {
             if(test_timestep <= task_ends[i]) {
                 tasks[i].timestep_input(a, freq);
+                break;
             }
         }
     }
@@ -206,117 +271,143 @@ struct ScoredTest : public Test {
         for(size_t i = 0; i < tasks.size(); i++) {
             if(test_timestep <= task_ends[i]) {
                 tasks[i].timestep_output(trial_number, a, freq);
+                break;
             }
         }
     }
 
     virtual void end_generation(std::vector<long> &ranking) {
-        assert(false);
+        vector<string> colnames;
+        vector<datalib::Type> coltypes;
+
+        colnames.push_back("Trial");
+        coltypes.push_back(datalib::INT);
+
+        colnames.push_back("Freq");
+        coltypes.push_back(datalib::INT);
+
+        int prefix = 0;
+        for(Task &t: tasks) {
+            char prefix_str[32];
+            sprintf(prefix_str, "%d.", prefix);
+            t.create_log_schema(prefix_str, colnames, coltypes);
+            prefix++;
+        }
+
+        {
+            char path[512];
+            sprintf(path, "run/%s-trial-metrics.log", name);        
+            DataLibWriter *writer = new DataLibWriter( path, true, true );
+            vector<Variant> colvalues;
+
+            for(long agent_number: ranking) {
+                char tableName[32];
+                sprintf(tableName, "Agent%ld", agent_number);
+                writer->beginTable(tableName, colnames, coltypes);
+
+                for(int trial = 0; trial < NTRIALS; trial++) {
+                    colvalues.clear();
+                    colvalues.push_back(trial);
+                    colvalues.push_back(trials->freq_sequence[trial]);
+
+                    for(Task &t: tasks) {
+                        t.log_trial(trial, agent_number, colvalues);
+                    }
+
+                    writer->addRow(&colvalues.front());
+                }
+
+                writer->endTable();
+            }
+
+            delete writer;
+        }
+        
     }
 
-    float metric(agent *a, int task_index, Metric m) {
-        float sum = 0.0f;
-        for(int i = 0; i < NTRIALS; i++) {
-            sum += tasks[task_index].metric(i, a, m);
-        }
-        return weight * (sum / NTRIALS);
-    }
+    float metric(agent *a, Metric m) {
+        vector<int> &metric_tasks = tasks_by_metric[int(m)];
 
-    float metric(agent *a, int task_index) {
         float sum = 0.0f;
-        for(int i = 0; i < NTRIALS; i++) {
-            sum += tasks[task_index].metric(i, a);
+
+        for(int i: metric_tasks) {
+            Task &t = tasks[i];
+            float tsum = 0.0f;
+            for(int i = 0; i < NTRIALS; i++) {
+                tsum += t.metric(i, a->Number(), m);
+            }
+            sum += tsum / metric_tasks.size();
         }
-        return weight * (sum / NTRIALS);
+
+        float mean = (sum / NTRIALS);
+        float result = weight * mean;
+
+        return result;
     }
 };
 
-const int TrialsState::ElitesCount = 10;
+#define st(x...) new ScoredTest(x)
 
-ScoredTest test1(
-    0.1f,
-    {
-        {Speak,  Freq,   10}
+vector<ScoredTest *> scored_tests = {
+    st("test1",
+       0.1f,
+       {
+           {Speak,  Freq,   10}
+       }),
+
+    st("test2",
+       0.1f,
+       {
+           {Delay,   Freq,   10},
+           {Speak,  Freq,   10}
+       }),
+
+    st("test3",
+       0.1f,
+       {
+           {Delay,   Freq,   10},
+           {Speak,  Freq,   10},
+           {Break,   Freq,    5}
+       }),
+
+    st("test4",
+       0.3f,
+       {
+           {Delay,   Freq,   10},
+           {Speak,  Silent, 10},
+           {Break,   Silent,  5}
+       }),
+    st("test5",
+       0.4f,
+       {
+           {Delay,   Freq,   10},
+           {Delay,   Silent,  5},
+           {Speak,  Silent, 10},
+           {Break,   Silent,  5}
+           })
+};
+
+float metric_score(agent *a, Metric m) {
+    float sum = 0.0f;
+
+    for(ScoredTest *t: scored_tests) {
+        float tmetric = t->metric(a, m);
+        
+        sum += tmetric;
     }
-);
 
-ScoredTest test2(
-    0.1f,
-    {
-        {Wait,   Freq,   10},
-        {Speak,  Freq,   10}
-    }
-);
-
-ScoredTest test3(
-    0.1f,
-    {
-        {Wait,   Freq,   10},
-        {Speak,  Freq,   10},
-        {Wait,   Freq,    5}
-    }
-);
-
-ScoredTest test4(
-    0.3f,
-    {
-        {Wait,   Freq,   10},
-        {Speak,  Silent, 10},
-        {Wait,   Silent,  5}
-    }
-);
-
-ScoredTest test5(
-    0.4f,
-    {
-        {Wait,   Freq,   10},
-        {Wait,   Silent,  5},
-        {Speak,  Silent, 10},
-        {Wait,   Silent,  5}
-    }
-);
-
-float compute_agent_fitness(agent *a) {
-    float correspondence_score =
-        0.6f * (
-            test1.metric(a, 0, Corr)
-            + test2.metric(a, 1, Corr)
-            + test3.metric(a, 1, Corr)
-            + test4.metric(a, 1, Corr)
-            + test5.metric(a, 2, Corr)
-            );
-
-    float respond_score =
-        0.2f * (
-            test1.metric(a, 0, Resp)
-            + test2.metric(a, 1, Resp)
-            + test3.metric(a, 1, Resp)
-            + test4.metric(a, 1, Resp)
-            + test5.metric(a, 2, Resp)
-            );
-
-    float delay_score = 
-        0.1f * (
-            test2.metric(a, 0)
-            + test3.metric(a, 0)
-            + test4.metric(a, 0)
-            + 0.5f*test5.metric(a, 0) + 0.5f*test5.metric(a, 1)
-            );
-
-    float break_score =
-        0.1f * (
-            test3.metric(a, 2)
-            + test4.metric(a, 2)
-            + test5.metric(a, 3)
-            );
-
-    return correspondence_score
-        + respond_score
-        + delay_score
-        + break_score;
+    return sum;
 }
 
-#define count_score(COUNT_NAME) (float(trial_state.COUNT_NAME##_count) / get_trial_timestep_count())
+float compute_agent_fitness(agent *a) {
+    float score =
+        (0.6f * metric_score(a, Metric::Correspondence))
+        + (0.2f * metric_score(a, Metric::Respond))
+        + (0.1f * metric_score(a, Metric::Delay))
+        + (0.1f * metric_score(a, Metric::Break));
+
+    return score;
+}
 
 template<typename Tfit>
 struct TestImpl : public Test
@@ -377,6 +468,13 @@ struct Test0 : public TestImpl<Test0TrialState>
     }
 
     virtual void end_generation(vector<long> &ranking) {
+        for(long agent_number: ranking) {
+            for(int i = 0; i < NTRIALS; i++) {
+                auto &trial_state = get(i, agent_number);
+                trial_state.covariance = covariance(trial_state.x, trial_state.y);
+            }
+        }
+
         // Trials
         {
             static const char *colnames[] = {
@@ -397,7 +495,7 @@ struct Test0 : public TestImpl<Test0TrialState>
                                     coltypes );
 
                 for(int i = 0; i < NTRIALS; i++) {
-                    auto trial_state = get(i, agent_number);
+                    auto &trial_state = get(i, agent_number);
 
                     writer->addRow( i, trial_state.covariance );
                 }
@@ -416,11 +514,9 @@ TrialsState::TrialsState(TSimulation *sim_) {
     trial_number = -1;
 
     tests.push_back(new Test0());
-    tests.push_back(&test1);
-    tests.push_back(&test2);
-    tests.push_back(&test3);
-    tests.push_back(&test4);
-    tests.push_back(&test5);
+    for(ScoredTest *t: scored_tests) {
+        tests.push_back(t);
+    }
     
     long nsteps = 0;
     for(auto test: tests) {
@@ -431,7 +527,7 @@ TrialsState::TrialsState(TSimulation *sim_) {
 
     for(int freq = 0; freq < 2; freq++) {
         for(int i = 0; i < NTRIALS/2; i++) {
-            freq_sequence.push_back(i);
+            freq_sequence.push_back(freq);
         }
     }
 
@@ -466,10 +562,16 @@ void TrialsState::timestep_begin() {
         }
     }
 
+    //db("Sim timestep: " << sim->getStep());
+
     trial_timestep++;
+    
+    //db("trial timestep: " << trial_timestep);
 
     if(trial_timestep > TEST_INTERLUDE) {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
+
+        //db("test timestep: " << test_timestep);
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
         for(agent *a: get_agents()) {
@@ -479,6 +581,10 @@ void TrialsState::timestep_begin() {
 }
 
 void TrialsState::timestep_end() {
+    if(test_number == (int)tests.size()) {
+        return; // timestep_begin called end_generation()
+    }
+
     if(trial_timestep > TEST_INTERLUDE) {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
         int freq = freq_sequence[trial_number];
@@ -547,7 +653,7 @@ void TrialsState::end_generation() {
     {
         FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
 
-        for(int i = 0; i < ElitesCount; i++)
+        for(int i = 0; i < sim->fNumberFittest; i++)
         {
             Fitness &fit = fitnesses[i];
             fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
@@ -599,6 +705,12 @@ float stddev(vector<float> scores) {
     }
     float result = sqrt( (sum2 - (sum*sum) / N) / N );
     return result;
+}
+
+void echo(vector<float> &x) {
+    for(auto v: x)
+        cout << v << " ";
+    cout << endl;
 }
 
 float covariance(vector<float> &x, vector<float> &y) {
