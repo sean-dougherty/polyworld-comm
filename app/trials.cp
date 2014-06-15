@@ -358,31 +358,32 @@ vector<ScoredTest *> scored_tests = {
     st("test2",
        0.1f,
        {
-           {Delay,   Freq,   10},
+           {Delay,  Freq,   10},
            {Speak,  Freq,   10}
        }),
 
     st("test3",
        0.1f,
        {
-           {Delay,   Freq,   10},
+           {Delay,  Freq,   10},
            {Speak,  Freq,   10},
-           {Break,   Freq,    5}
+           {Break,  Freq,    5}
        }),
 
     st("test4",
        0.3f,
        {
-           {Delay,   Freq,   10},
+           {Delay,  Freq,   10},
            {Speak,  Silent, 10},
-           {Break,   Silent,  5}
+           {Break,  Silent,  5}
        }),
+
     st("test5",
        0.4f,
        {
            {Delay,   Freq,   10},
            {Delay,   Silent,  5},
-           {Speak,  Silent, 10},
+           {Speak,   Silent, 10},
            {Break,   Silent,  5}
            })
 };
