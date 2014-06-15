@@ -51,7 +51,7 @@ InitSeed 1
 MinAgents 1
 MaxAgents 150
 InitAgents 40
-NumberFittest 10
+NumberFittest 30
 SeedMutationProbability 0.5
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
