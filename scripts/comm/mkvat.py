@@ -7,6 +7,9 @@ Med_Mutation_Rate = 0.001
 High_Mutation_Rate = 0.001
 #High_Mutation_Rate = 0.05
 
+Seed_Agents_run0 = 0
+Seed_Agents = 40
+
 seed_from_run = False
 
 mutation_rate = Low_Mutation_Rate
@@ -31,6 +34,10 @@ while True:
 	else:
 		break
 
+if seed_from_run:
+	seed_agents = Seed_Agents
+else:
+	seed_agents = Seed_Agents_run0
 
 min_mutation = mutation_rate
 max_mutation = float(str(mutation_rate) + "1")
@@ -46,7 +53,9 @@ MaxMutationRate %f
 
 print """\
 SeedGenomeFromRun %s
-""" % seed_from_run
+SeedAgents %d
+""" % (seed_from_run, seed_agents)
+
 
 print """\
 Vision False
@@ -56,13 +65,13 @@ InitSeed 1
 MinAgents 1
 MaxAgents 150
 InitAgents 40
-SeedAgents 40
 NumberFittest 10
-MinLifeSpan 100000
-MaxLifeSpan 100001
 SeedMutationProbability 0.5
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
+
+MinLifeSpan 100000
+MaxLifeSpan 100001
 MateWait 0
 
 EnableTopologicalDistortionRngSeed True
