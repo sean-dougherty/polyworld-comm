@@ -4,7 +4,7 @@ import sys
 
 Seed_Agents_run0 = 20
 Seed_Agents = 40
-mutation_rate = 0.001
+mutation_rate = 0.0005
 
 seed_from_run = False
 
@@ -51,7 +51,7 @@ InitSeed 1
 MinAgents 1
 MaxAgents 150
 InitAgents 40
-NumberFittest 30
+NumberFittest 10
 SeedMutationProbability 0.5
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
