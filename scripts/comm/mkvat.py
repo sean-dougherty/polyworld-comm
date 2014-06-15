@@ -2,31 +2,17 @@
 
 import sys
 
-Low_Mutation_Rate = 0.0005
-Med_Mutation_Rate = 0.001
-High_Mutation_Rate = 0.001
-#High_Mutation_Rate = 0.05
-
 Seed_Agents_run0 = 0
 Seed_Agents = 40
+mutation_rate = 0.0005
 
 seed_from_run = False
 
-mutation_rate = Low_Mutation_Rate
 
 args = sys.argv[1:]
 while True:
 	if len(args) and args[0] == '--seed-from-run':
 		seed_from_run = True
-		args = args[1:]
-	elif len(args) and args[0] == '--high-mutation':
-		mutation_rate = High_Mutation_Rate
-		args = args[1:]
-	elif len(args) and args[0] == '--med-mutation':
-		mutation_rate = Med_Mutation_Rate
-		args = args[1:]
-	elif len(args) and args[0] == '--low-mutation':
-		mutation_rate = Low_Mutation_Rate
 		args = args[1:]
 	elif len(args) and args[0][:2] == '--':
 		print 'invalid option:', args[0]
