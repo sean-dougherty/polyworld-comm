@@ -6,6 +6,7 @@
 #include "SoundPatch.h"
 
 #include <algorithm>
+#include <string>
 
 using namespace datalib;
 using namespace std;
@@ -57,6 +58,264 @@ bool is_voicing(agent *a) {
     return get_voice_frequency(a) >= 0;
 }
 
+enum TaskCategory {
+    Wait,
+    Speak
+};
+
+enum Sound {
+    Freq,
+    Silent
+};
+
+enum Metric {
+    Delay,
+    Corr,
+    Resp,
+    Break
+};
+
+struct Task {
+    TaskCategory category;
+    Sound sound;
+    long timesteps;
+
+    struct AgentTrialState {
+        long silence_count = 0;
+        long correspondence_count = 0;
+        long respond_count = 0;
+    };
+    map<long, AgentTrialState> agent_trial_state[NTRIALS];
+
+    void timestep_input(agent *a, int freq) {
+        //
+        // Sound
+        //
+        if(sound == Freq) {
+            make_sound(a, freq);
+        } else {
+            make_silence(a);
+        }
+
+        //
+        // Vision
+        //
+        switch(category) {
+        case Wait:
+            show_black(a);
+            break;
+        case Speak:
+            show_green(a);
+            break;
+        default:
+            assert(false);
+        }
+    }
+
+    void timestep_output(int trial_number,
+                         agent *a,
+                         int freq) {
+        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+
+        switch(category) {
+        case Wait:
+            if(!is_voicing(a)) {
+                state.silence_count++;
+            }
+            break;
+        case Speak:
+            if(is_voicing(a)) {
+                state.respond_count++;
+            }
+            if(freq == get_voice_frequency(a)) {
+                state.correspondence_count++;
+            }
+            break;
+        default:
+            assert(false);
+            break;
+        }
+    }
+
+    float metric(int trial_number, agent *a, Metric m) {
+        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+
+        switch(m) {
+        case Resp:
+            assert(category == Speak);
+            return float(state.respond_count) / timesteps;
+        case Corr:
+            assert(category == Speak);
+            return float(state.correspondence_count) / timesteps;
+        default:
+            assert(false);
+        }
+    }
+
+    float metric(int trial_number, agent *a) {
+        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+
+        assert(category == Wait);
+
+        return float(state.silence_count) / timesteps;
+    }
+};
+
+struct ScoredTest : public Test {
+    float weight;
+    vector<Task> tasks;
+    vector<long> task_ends;
+
+    ScoredTest(float weight_,
+               const vector<Task> &tasks_)
+        : weight(weight_)
+        , tasks(tasks)
+    {
+        long end = 0;
+
+        for(auto t: tasks) {
+            end += t.timesteps;
+            task_ends.push_back(end);
+        }
+    }
+
+    virtual ~ScoredTest() {
+    }
+
+    virtual long get_trial_timestep_count() {
+        return task_ends.back();
+    }
+
+    virtual void timestep_input(int trial_number,
+                                long test_timestep,
+                                agent *a,
+                                int freq) {
+
+        for(size_t i = 0; i < tasks.size(); i++) {
+            if(test_timestep <= task_ends[i]) {
+                tasks[i].timestep_input(a, freq);
+            }
+        }
+    }
+
+    virtual void timestep_output(int trial_number,
+                                 long test_timestep,
+                                 agent *a,
+                                 int freq) {
+
+        for(size_t i = 0; i < tasks.size(); i++) {
+            if(test_timestep <= task_ends[i]) {
+                tasks[i].timestep_output(trial_number, a, freq);
+            }
+        }
+    }
+
+    virtual void end_generation(std::vector<long> &ranking) {
+        assert(false);
+    }
+
+    float metric(agent *a, int task_index, Metric m) {
+        float sum = 0.0f;
+        for(int i = 0; i < NTRIALS; i++) {
+            sum += tasks[task_index].metric(i, a, m);
+        }
+        return weight * (sum / NTRIALS);
+    }
+
+    float metric(agent *a, int task_index) {
+        float sum = 0.0f;
+        for(int i = 0; i < NTRIALS; i++) {
+            sum += tasks[task_index].metric(i, a);
+        }
+        return weight * (sum / NTRIALS);
+    }
+};
+
+const int TrialsState::ElitesCount = 10;
+
+ScoredTest test1(
+    0.1f,
+    {
+        {Speak,  Freq,   10}
+    }
+);
+
+ScoredTest test2(
+    0.1f,
+    {
+        {Wait,   Freq,   10},
+        {Speak,  Freq,   10}
+    }
+);
+
+ScoredTest test3(
+    0.1f,
+    {
+        {Wait,   Freq,   10},
+        {Speak,  Freq,   10},
+        {Wait,   Freq,    5}
+    }
+);
+
+ScoredTest test4(
+    0.3f,
+    {
+        {Wait,   Freq,   10},
+        {Speak,  Silent, 10},
+        {Wait,   Silent,  5}
+    }
+);
+
+ScoredTest test5(
+    0.4f,
+    {
+        {Wait,   Freq,   10},
+        {Wait,   Silent,  5},
+        {Speak,  Silent, 10},
+        {Wait,   Silent,  5}
+    }
+);
+
+float compute_agent_fitness(agent *a) {
+    float correspondence_score =
+        0.6f * (
+            test1.metric(a, 0, Corr)
+            + test2.metric(a, 1, Corr)
+            + test3.metric(a, 1, Corr)
+            + test4.metric(a, 1, Corr)
+            + test5.metric(a, 2, Corr)
+            );
+
+    float respond_score =
+        0.2f * (
+            test1.metric(a, 0, Resp)
+            + test2.metric(a, 1, Resp)
+            + test3.metric(a, 1, Resp)
+            + test4.metric(a, 1, Resp)
+            + test5.metric(a, 2, Resp)
+            );
+
+    float delay_score = 
+        0.1f * (
+            test2.metric(a, 0)
+            + test3.metric(a, 0)
+            + test4.metric(a, 0)
+            + 0.5f*test5.metric(a, 0) + 0.5f*test5.metric(a, 1)
+            );
+
+    float break_score =
+        0.1f * (
+            test3.metric(a, 2)
+            + test4.metric(a, 2)
+            + test5.metric(a, 3)
+            );
+
+    return correspondence_score
+        + respond_score
+        + delay_score
+        + break_score;
+}
+
 #define count_score(COUNT_NAME) (float(trial_state.COUNT_NAME##_count) / get_trial_timestep_count())
 
 template<typename Tfit>
@@ -67,38 +326,12 @@ struct TestImpl : public Test
     virtual ~TestImpl() {}
     Tfit &get(int trial_number, agent *a) { return get(trial_number, a->Number()); }
     Tfit &get(int trial_number, long agent_number) { return fitness[trial_number][agent_number]; }
-    void record_test_scores(int test_number, vector<long> &ranking) {
-        static const char *colnames[] = {
-            "Agent", "Score", NULL
-        };
-        static const datalib::Type coltypes[] = {
-            INT,     FLOAT
-        };
-
-        char path[512];
-        sprintf(path, "run/test%d-score.log", test_number);
-        DataLibWriter *writer = new DataLibWriter( path, true, true );
-
-        writer->beginTable( "Scores",
-                            colnames,
-                            coltypes );
-
-        for(long agent_number: ranking) {
-            writer->addRow( agent_number,
-                            test_scores[agent_number] );
-        }
-
-        writer->endTable();
-
-        delete writer;
-    }
 };
 
 struct Test0TrialState {
     vector<float> x;
     vector<float> y;
     float covariance;
-    float score;
 };
 
 struct Test0 : public TestImpl<Test0TrialState>
@@ -143,26 +376,14 @@ struct Test0 : public TestImpl<Test0TrialState>
         trial_state.y.push_back(get_voice_activation(a));
     }
 
-    virtual float get_trial_score(int trial_number, agent *a) {
-        auto trial_state = get(trial_number, a);
-
-        trial_state.covariance = covariance(trial_state.x, trial_state.y);
-        trial_state.score = trial_state.covariance;
-        return trial_state.score;
-    }
-
-    virtual float get_test_score(vector<float> &trial_scores) {
-        return mean(trial_scores);
-    }
-
     virtual void end_generation(vector<long> &ranking) {
         // Trials
         {
             static const char *colnames[] = {
-                "Trial", "Covariance", "Score", NULL
+                "Trial", "Covariance", NULL
             };
             static const datalib::Type coltypes[] = {
-                INT,     FLOAT,        FLOAT
+                INT,     FLOAT,
             };
 
             DataLibWriter *writer = new DataLibWriter( "run/test0-trials.log", true, true );
@@ -178,10 +399,7 @@ struct Test0 : public TestImpl<Test0TrialState>
                 for(int i = 0; i < NTRIALS; i++) {
                     auto trial_state = get(i, agent_number);
 
-                    writer->addRow( i,
-                                    trial_state.covariance,
-                                    trial_state.score );
-
+                    writer->addRow( i, trial_state.covariance );
                 }
 
                 writer->endTable();
@@ -189,482 +407,6 @@ struct Test0 : public TestImpl<Test0TrialState>
 
             delete writer;
         }
-
-        record_test_scores(0);
-    }
-};
-
-
-struct Test1TrialState {
-    int correspondence_count = 0;
-    int respond_count = 0;
-    int break_count = 0;
-    float score;
-};
-
-struct Test1 : public TestImpl<Test1TrialState>
-{
-    const long Timesteps_on = 10;
-    const long Timesteps_off = 5;
-
-    const long Phase0_end = Timesteps_on;
-    const long Phase1_end = Phase0_end + Timesteps_off;
-
-    virtual ~Test1() {}
-
-    virtual long get_trial_timestep_count() {
-        return Phase1_end;
-    }
-
-    virtual void timestep_input(int trial_number,
-                                long time,
-                                agent *a,
-                                int freq) {
-
-        if(time <= Phase0_end) {
-            show_green(a);
-            make_sound(a, freq);
-        } else {
-            show_black(a);
-            make_silence(a);
-        }
-    }
-
-    virtual void timestep_output(int trial_number,
-                                 long time,
-                                 agent *a,
-                                 int freq) {
-        auto &trial_state = get(trial_number, a);
-
-        if(time <= Phase0_end) {
-            if(is_voicing(a)) {
-                trial_state.respond_count++;
-            }
-
-            if(freq == get_voice_frequency(a)) {
-                trial_state.correspondence_count++;
-            }
-        } else {
-            if(!is_voicing(a)) {
-                trial_state.break_count++;
-            }
-        }
-    }
-
-    virtual float get_trial_score(int trial_number, agent *a) {
-        auto trial_state = get(trial_number, a);
-
-        trial_state.score =
-            (0.333f * count_score(correspondence))
-            + (0.333f * count_score(respond))
-            + (0.333f * count_score(break));
-
-        return trial_state.score;
-    }
-
-    virtual float get_test_score(vector<float> &trial_scores) {
-        return mean(trial_scores);
-    }
-
-    virtual void end_generation(vector<long> &ranking) {
-        // Trials
-        {
-            static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Break", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT,            FLOAT,     FLOAT,   FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test1-trials.log", true, true );
-
-            for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-
-                writer->beginTable( tableName,
-                                    colnames,
-                                    coltypes );
-
-                for(int i = 0; i < NTRIALS; i++) {
-                    auto trial_state = get(i, agent_number);
-
-                    writer->addRow( i,
-                                    count_score(correspondence),
-                                    count_score(respond),
-                                    count_score(break),
-                                    trial_state.score );
-                }
-
-                writer->endTable();
-            }
-
-            delete writer;
-        }
-
-        record_test_scores(1);
-    }
-};
-
-struct Test2TrialState {
-    int correspondence_count = 0;
-    int respond_count = 0;
-    int delay_count = 0;
-    float score;
-};
-
-struct Test2 : public TestImpl<Test2TrialState>
-{
-    const long Timesteps_green_off = 10;
-    const long Timesteps_green_on = 10;
-
-    const long Phase0_end = Timesteps_green_off;
-    const long Phase1_end = Phase0_end + Timesteps_green_on;
-
-    virtual ~Test2() {}
-
-    virtual long get_trial_timestep_count() {
-        return Phase1_end;
-    }
-
-    virtual void timestep_input(int trial_number,
-                                long time,
-                                agent *a,
-                                int freq) {
-
-        if(time <= Phase0_end) {
-            show_black(a);
-            make_sound(a, freq);
-        } else {
-            show_green(a);
-            make_sound(a, freq);
-        }
-    }
-
-    virtual void timestep_output(int trial_number,
-                                 long time,
-                                 agent *a,
-                                 int freq) {
-        auto &trial_state = get(trial_number, a);
-
-        if(time <= Phase0_end) {
-            if(!is_voicing(a)) {
-                trial_state.delay_count++;
-            }
-        } else {
-            if(is_voicing(a)) {
-                trial_state.respond_count++;
-            }
-
-            if(freq == get_voice_frequency(a)) {
-                trial_state.correspondence_count++;
-            }
-        }
-    }
-
-    virtual float get_trial_score(int trial_number, agent *a) {
-        auto trial_state = get(trial_number, a);
-
-        trial_state.score =
-            (0.333f * count_score(correspondence))
-            + (0.333f * count_score(respond))
-            + (0.333f * count_score(delay));
-
-        return trial_state.score;
-    }
-
-    virtual float get_test_score(vector<float> &trial_scores) {
-        return mean(trial_scores);
-    }
-
-    virtual void end_generation(vector<long> &ranking) {
-        // Trials
-        {
-            static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Delay", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT,            FLOAT,      FLOAT,  FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test2-trials.log", true, true );
-
-            for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-
-                writer->beginTable( tableName,
-                                    colnames,
-                                    coltypes );
-
-                for(int i = 0; i < NTRIALS; i++) {
-                    auto trial_state = get(i, agent_number);
-
-                    writer->addRow( i,
-                                    count_score(correspondence),
-                                    count_score(respond),
-                                    count_score(delay),
-                                    trial_state.score );
-                }
-
-                writer->endTable();
-            }
-
-            delete writer;
-        }
-
-        record_test_scores(2);
-    }
-};
-
-struct Test4TrialState {
-    int correspondence_count = 0;
-    int respond_count = 0;
-    int delay_count = 0;
-    int break_count = 0;
-    float score;
-};
-
-struct Test4 : public TestImpl<Test4TrialState>
-{
-    const long Timesteps_green_off0 = 10;
-    const long Timesteps_green_on = 10;
-    const long Timesteps_green_off1 = 5;
-
-    const long Phase0_end = Timesteps_green_off0;
-    const long Phase1_end = Phase0_end + Timesteps_green_on;
-    const long Phase2_end = Phase1_end + Timesteps_green_off1;
-
-    virtual ~Test4() {}
-
-    virtual long get_trial_timestep_count() {
-        return Phase2_end;
-    }
-
-    virtual void timestep_input(int trial_number,
-                                long time,
-                                agent *a,
-                                int freq) {
-
-        if(time <= Phase0_end) {
-            show_black(a);
-            make_sound(a, freq);
-        } else if(time <= Phase1_end) {
-            show_green(a);
-            make_silence(a);
-        } else {
-            show_black(a);
-            make_silence(a);
-        }
-    }
-
-    virtual void timestep_output(int trial_number,
-                                 long time,
-                                 agent *a,
-                                 int freq) {
-        auto &trial_state = get(trial_number, a);
-
-        if(time <= Phase0_end) {
-            if(!is_voicing(a)) {
-                trial_state.delay_count++;
-            }
-        } else if(time <= Phase1_end) {
-            if(is_voicing(a)) {
-                trial_state.respond_count++;
-            }
-            if(freq == get_voice_frequency(a)) {
-                trial_state.correspondence_count++;
-            }
-        } else {
-            if(!is_voicing(a)) {
-                trial_state.break_count++;
-            }
-        }
-    }
-
-    virtual float get_trial_score(int trial_number, agent *a) {
-        auto trial_state = get(trial_number, a);
-
-        trial_state.score =
-            (0.25f * count_score(correspondence))
-            + (0.25f * count_score(respond))
-            + (0.25f * count_score(delay))
-            + (0.25f * count_score(break));
-
-        return trial_state.score;
-    }
-
-    virtual float get_test_score(vector<float> &trial_scores) {
-        return mean(trial_scores);
-    }
-
-    virtual void end_generation(vector<long> &ranking) {
-        // Trials
-        {
-            static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Delay", "Break", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT,            FLOAT,      FLOAT,  FLOAT,   FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test4-trials.log", true, true );
-
-            for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-
-                writer->beginTable( tableName,
-                                    colnames,
-                                    coltypes );
-
-                for(int i = 0; i < NTRIALS; i++) {
-                    auto trial_state = get(i, agent_number);
-
-                    writer->addRow( i,
-                                    count_score(correspondence),
-                                    count_score(respond),
-                                    count_score(delay),
-                                    count_score(break),
-                                    trial_state.score );
-
-                }
-
-                writer->endTable();
-            }
-
-            delete writer;
-        }
-        
-        record_test_scores(4);
-    }
-};
-
-struct Test5TrialState {
-    int correspondence_count = 0;
-    int respond_count = 0;
-    int delay_count = 0;
-    int break_count = 0;
-    float score;
-};
-
-struct Test5 : public TestImpl<Test5TrialState>
-{
-    const long Timesteps_sound_on = 10;
-    const long Timesteps_sound_off = 5;
-    const long Timesteps_green_on = 10;
-    const long Timesteps_green_off = 5;
-
-    const long Phase0_end = Timesteps_sound_on;
-    const long Phase1_end = Phase0_end + Timesteps_sound_off;
-    const long Phase2_end = Phase1_end + Timesteps_green_on;
-    const long Phase3_end = Phase2_end + Timesteps_green_off;
-
-    virtual ~Test5() {}
-
-    virtual long get_trial_timestep_count() {
-        return Phase3_end;
-    }
-
-    virtual void timestep_input(int trial_number,
-                                long time,
-                                agent *a,
-                                int freq) {
-
-        if(time <= Phase0_end) {
-            show_black(a);
-            make_sound(a, freq);
-        } else if(time <= Phase1_end) {
-            show_black(a);
-            make_silence(a);
-        } else if(time <= Phase2_end) {
-            show_green(a);
-            make_silence(a);
-        } else {
-            show_black(a);
-            make_silence(a);
-        }
-    }
-
-    virtual void timestep_output(int trial_number,
-                                 long time,
-                                 agent *a,
-                                 int freq) {
-
-        auto &trial_state = get(trial_number, a);
-
-        if(time <= Phase1_end) {
-            if(!is_voicing(a)) {
-                trial_state.delay_count++;
-            }
-        } else if(time <= Phase2_end) {
-            if(is_voicing(a)) {
-                trial_state.respond_count++;
-            }
-            if(freq == get_voice_frequency(a)) {
-                trial_state.correspondence_count++;
-            }
-        } else {
-            if(!is_voicing(a)) {
-                trial_state.break_count++;
-            }
-        }
-    }
-
-    virtual float get_trial_score(int trial_number, agent *a) {
-        auto trial_state = get(trial_number, a);
-
-        trial_state.score =
-            (0.25f * count_score(correspondence))
-             + (0.25f * count_score(respond))
-             + (0.25f * count_score(delay))
-             + (0.25f * count_score(break));
-
-        return trial_state.score;
-    }
-
-    virtual float get_test_score(vector<float> &trial_scores) {
-        return mean(trial_scores);
-    }
-
-    virtual void end_generation(vector<long> &ranking) {
-        // Trials
-        {
-            static const char *colnames[] = {
-                "Trial", "Correspondence", "Respond", "Delay", "Break", "Score", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT,            FLOAT,      FLOAT,  FLOAT,   FLOAT
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test5-trials.log", true, true );
-
-            for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-
-                writer->beginTable( tableName,
-                                    colnames,
-                                    coltypes );
-
-                for(int i = 0; i < NTRIALS; i++) {
-                    auto trial_state = get(i, agent_number);
-
-                    writer->addRow( i,
-                                    count_score(correspondence),
-                                    count_score(respond),
-                                    count_score(delay),
-                                    count_score(break),
-                                    trial_state.score );
-                }
-
-                writer->endTable();
-            }
-
-            delete writer;
-        }
-
-        record_test_scores(5);
     }
 };
 
@@ -674,10 +416,11 @@ TrialsState::TrialsState(TSimulation *sim_) {
     trial_number = -1;
 
     tests.push_back(new Test0());
-    tests.push_back(new Test1());
-    tests.push_back(new Test2());
-    tests.push_back(new Test4());
-    tests.push_back(new Test5());
+    tests.push_back(&test1);
+    tests.push_back(&test2);
+    tests.push_back(&test3);
+    tests.push_back(&test4);
+    tests.push_back(&test5);
     
     long nsteps = 0;
     for(auto test: tests) {
@@ -752,12 +495,6 @@ void TrialsState::init_test() {
 
 void TrialsState::end_test() {
     db("=== Ending test " << test_number);
-
-    auto test = tests[test_number];
-    for(agent *a: get_agents()) {
-        float test_score = test->get_test_score(test->trial_scores[a->Number()]);
-        test->test_scores[a->Number()] = test_score;
-    }
 }
 
 void TrialsState::init_trial() {
@@ -777,80 +514,48 @@ void TrialsState::init_trial() {
 
 void TrialsState::end_trial() {
     db("*** Ending trial " << trial_number << " of test " << test_number);
-
-    auto test = tests[test_number];
-    for(agent *a: get_agents()) {
-        float score = test->get_trial_score(trial_number, a);
-        test->trial_scores[a->Number()].push_back(score);
-    }
 }
 
-struct TotalFitness {
-    long agent_number = 0;
-    vector<float> test_scores;
-    float score = 0;
+struct Fitness {
+    agent *a;
+    float score;
 };
 
 void TrialsState::end_generation() {
     db("END OF GENERATION");
     sim->End("endTests");
 
-    map<long, TotalFitness> total_fitnesses_lookup;
-
-    for(auto test: tests) {
-        for(auto test_score: test->test_scores) {
-            long agent_number = test_score.first;
-            float score = test_score.second;
-
-            TotalFitness &fitness = total_fitnesses_lookup[agent_number];
-            fitness.agent_number = agent_number;
-            fitness.test_scores.push_back(score);
-            fitness.score += score;
-        }
+    vector<Fitness> fitnesses;
+    for(agent *a: get_agents()) {
+        fitnesses.push_back({a, compute_agent_fitness(a)});
     }
 
-    vector<TotalFitness> total_fitnesses;
-    for(auto fitness: total_fitnesses_lookup) {
-        total_fitnesses.push_back(fitness.second);
-    }
-
-    for(auto fitness: total_fitnesses) {
-        fitness.score = mean(fitness.test_scores);
-    }
-
-    sort(total_fitnesses.begin(), total_fitnesses.end(),
-         [](const TotalFitness &x, const TotalFitness &y) {
+    sort(fitnesses.begin(), fitnesses.end(),
+         [](const Fitness &x, const Fitness &y) {
              return y.score < x.score;
          });
 
     vector<long> ranking;
-
-    for(auto fitness: total_fitnesses) {
-        ranking.push_back(fitness.agent_number);
+    for(auto fitness: fitnesses) {
+        ranking.push_back(fitness.a->Number());
     }
-
     for(auto test: tests) {
         test->end_generation(ranking);
-    }
-
-    map<long, agent *> agents;
-    for(agent *a: get_agents()) {
-        agents[a->Number()] = a;
     }
 
     system("mkdir -p run/genome/Fittest");
     {
         FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
 
-        for(int i = 0; i < 10; i++)
+        for(int i = 0; i < ElitesCount; i++)
         {
-            TotalFitness &fit = total_fitnesses[i];
-            fprintf( ffitness, "%ld %f\n", fit.agent_number, fit.score );
+            Fitness &fit = fitnesses[i];
+            fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
 
             {
-                genome::Genome *g = agents[fit.agent_number]->Genes();
+                genome::Genome *g = fit.a->Genes();
                 char path[256];
-                sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.agent_number );
+                sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.a->Number() );
                 AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
                 g->dump(out);
                 delete out;

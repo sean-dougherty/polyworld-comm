@@ -18,19 +18,22 @@ struct Test
 
     virtual long get_trial_timestep_count() = 0;
 
-    virtual void timestep_input(int trial_number, long test_timestep, agent *a, int freq) = 0;
-    virtual void timestep_output(int trial_number, long test_timestep, agent *a, int freq) = 0;
-    virtual float get_trial_score(int trial_number, agent *a) = 0;
-    virtual float get_test_score(std::vector<float> &trial_scores) = 0;
+    virtual void timestep_input(int trial_number,
+                                long test_timestep,
+                                agent *a,
+                                int freq) = 0;
+    virtual void timestep_output(int trial_number,
+                                 long test_timestep,
+                                 agent *a,
+                                 int freq) = 0;
 
     virtual void end_generation(std::vector<long> &ranking) = 0;
-
-    std::map<long, std::vector<float>> trial_scores;
-    std::map<long, float> test_scores;
 };
 
 struct TrialsState
 {
+    static const int ElitesCount;
+
     TrialsState(TSimulation *sim_);
     ~TrialsState();
 
