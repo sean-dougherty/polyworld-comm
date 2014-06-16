@@ -1,0 +1,12 @@
+#!/bin/bash -x
+
+set -e
+
+dst=$1
+if [ -z $1 ]; then
+    echo "usage: $0 <field_number>" >&2
+    exit 1
+fi
+shift
+
+ssh -t 10.0.0.$dst "set -e; export DISPLAY=:0.0; cd vat/polyworld-comm; screen bash -c \"$@ ; read -p 'press enter...'\""

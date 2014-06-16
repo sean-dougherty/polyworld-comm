@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+shopt -s extglob
+
+dst=$1
+if [ -z $1 ]; then
+    echo "usage: $0 <field_number> cmd" >&2
+    exit 1
+fi
+
+if [ ! -d ~/vat/mnt/$dst ]; then
+    echo "Cannot find mount." >&2
+    exit 1
+fi
+
+vathome=$(readlink -f $(dirname $0)/../../..)
+dstvat=~/vat/mnt/$dst/vat
+
+if [ -d $dstvat/polyworld-comm ]; then
+    echo "Found vat src"
+    mkdir -p $dstvat/srcbak
+    mv $dstvat/polyworld-comm $dstvat/srcbak/$(date -Iseconds)
+    exit
+fi
+
+echo "Copying source..."
+mkdir $dstvat/polyworld-comm
+cp -r $vathome/!(run*|trials*) $dstvat/polyworld-comm
+echo "copy complete"

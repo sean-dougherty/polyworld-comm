@@ -1,0 +1,123 @@
+#!/usr/bin/python
+
+import sys
+sys.path += ['scripts/']
+
+import collections
+import datalib
+import numpy
+import os
+from scipy import stats
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+args = sys.argv[1:]
+trialsdir = args[0]
+outdir = "/home/c/vat/results/"+trialsdir.strip('/').split('/')[-1]
+
+if not os.path.exists("/home/c/vat/results"):
+    os.mkdir("/home/c/vat/results")
+if not os.path.exists(outdir):
+    os.mkdir(outdir)
+
+def get_rundir(trialsdir, runid):
+    return trialsdir+"/run"+str(runid)
+
+def get_fittest_agent(rundir):
+    return int(open(rundir+"/genome/Fittest/fitness.txt").readline().split()[0])
+
+def get_fittest_test(rundir, test_number, task = None):
+    test = datalib.parse(rundir+'/test%d-trial-metrics.log'%test_number,
+                         keycolname='Trial')
+    fittest = get_fittest_agent(rundir)    
+    table = test['Agent%d'%fittest]
+    if task != None:
+        return table.getColumn(task).data
+    else:
+        return table
+
+def get_fitness(rundir):
+    return float(open(rundir+"/genome/Fittest/fitness.txt").readline().split()[1])
+
+def linregress(data):
+    x = numpy.array(data.keys())
+    y = numpy.array(data.values())
+    xregress = x[1:]
+    yregress = y[1:]
+    slope, intercept, r_value, p_value, std_err = stats.linregress(xregress,yregress)
+    line = slope*xregress+intercept
+
+    return {
+        "slope": slope,
+        "intercept": intercept,
+        "r": r_value,
+        "p": p_value,
+        "stderr": std_err,
+        "x": x,
+        "y": y,
+        "xregress": xregress,
+        "yregress": yregress,
+        "line": line
+    }
+
+def save_plot(stats, path_dst):
+    plt.close()
+    lr = stats['linregress']
+    x, y, xregress, line = lr['x'], lr['y'], lr['xregress'], lr['line']
+    plt.plot(xregress,line,'r-',x,y,'o')
+    plt.savefig(path_dst)
+
+def mean(x):
+    return float(sum(x)) / len(x)
+
+def get_stats(data):
+    vals = data.values()
+    return {
+        "min": min(vals),
+        "mean": mean(vals),
+        "max": max(vals),
+        "linregress": linregress(data)
+    }
+
+def save_results(name, stats):
+    lin = stats['linregress']
+    f = open(outdir+'/'+name+'.txt', 'w')
+    f.write("""\
+min:       %12f
+max:       %12f
+mean:      %12f
+
+-- linear regression --
+slope:     %12f
+intercept: %12f
+r:         %12f
+p:         %12f
+""" % (stats['min'], stats['max'], stats['mean'], lin['slope'], lin['intercept'], lin['r'], lin['p']))
+    f.close()
+
+    save_plot(stats, outdir+'/'+name+'.png')
+
+fitness = collections.OrderedDict()
+test1_corr = collections.OrderedDict()
+test4_corr = collections.OrderedDict()
+test5_corr = collections.OrderedDict()
+
+runid = 0
+runstride = 100
+while True:
+    rundir = get_rundir(trialsdir, runid)
+    if not os.path.exists(rundir):
+        break
+
+    fitness[runid] = get_fitness(rundir)
+    test1_corr[runid] = mean(get_fittest_test(rundir, 1, "0.Correspondence"))
+    test4_corr[runid] = mean(get_fittest_test(rundir, 4, "1.Correspondence"))
+    test5_corr[runid] = mean(get_fittest_test(rundir, 5, "2.Correspondence"))
+
+    runid += runstride
+
+
+save_results('fitness', get_stats(fitness))
+save_results('test1', get_stats(test1_corr))
+save_results('test4', get_stats(test4_corr))
+save_results('test5', get_stats(test5_corr))
