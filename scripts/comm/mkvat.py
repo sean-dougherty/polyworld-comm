@@ -2,13 +2,15 @@
 
 import sys
 
+init_seed = 2
+
 Seed_Agents_run0 = 0
 Seed_Agents = 40
 seed_from_run = False
 
-mutation_rate = 0.001
+mutation_rate = 0.002
 high_mutation_rate = 0.05
-high_mutation_rate_generation = 100
+high_mutation_rate_generation = None
 
 number_fittest = 30
 
@@ -41,6 +43,10 @@ print """\
 """
 
 print """\
+InitSeed %d
+""" % init_seed
+
+print """\
 MinMutationRate %f
 MaxMutationRate %f
 """ % (min_mutation, max_mutation)
@@ -57,8 +63,6 @@ SeedAgents %d
 
 print """\
 Vision False
-
-InitSeed 1
 
 MinAgents 1
 MaxAgents 150
