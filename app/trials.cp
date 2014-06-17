@@ -385,7 +385,17 @@ vector<ScoredTest *> scored_tests = {
            {Delay,   Silent,  5},
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
+       }),
+
+    st("test6",
+       0.2f,
+       {
+           {Delay,   Freq,   10},
+           {Delay,   Silent, 10},
+           {Speak,   Silent, 10},
+           {Break,   Silent,  5}
        })
+
 };
 
 float compute_agent_fitness(agent *a) {
