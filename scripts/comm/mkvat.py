@@ -2,10 +2,10 @@
 
 import sys
 
-Seed_Agents_run0 = 20
+Seed_Agents_run0 = 0
 Seed_Agents = 40
-mutation_rate = 0.0005
-
+mutation_rate = 0.002
+number_fittest = 30
 seed_from_run = False
 
 
@@ -38,6 +38,10 @@ MaxMutationRate %f
 """ % (min_mutation, max_mutation)
 
 print """\
+NumberFittest %d
+""" % number_fittest
+
+print """\
 SeedGenomeFromRun %s
 SeedAgents %d
 """ % (seed_from_run, seed_agents)
@@ -51,7 +55,6 @@ InitSeed 1
 MinAgents 1
 MaxAgents 150
 InitAgents 40
-NumberFittest 30
 SeedMutationProbability 0.5
 MinCrossoverPoints 1
 MaxCrossoverPoints 4

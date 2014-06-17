@@ -350,20 +350,20 @@ ScoredTest(const char *name_,
 
 vector<ScoredTest *> scored_tests = {
     st("test1",
-       0.1f,
+       0.2f,
        {
            {Speak,  Freq,   10}
        }),
 
     st("test2",
-       0.1f,
+       0.2f,
        {
            {Delay,  Freq,   10},
            {Speak,  Freq,   10}
        }),
 
     st("test3",
-       0.1f,
+       0.2f,
        {
            {Delay,  Freq,   10},
            {Speak,  Freq,   10},
@@ -371,7 +371,7 @@ vector<ScoredTest *> scored_tests = {
        }),
 
     st("test4",
-       0.3f,
+       0.2f,
        {
            {Delay,  Freq,   10},
            {Speak,  Silent, 10},
@@ -379,14 +379,26 @@ vector<ScoredTest *> scored_tests = {
        }),
 
     st("test5",
-       0.4f,
+       0.2f,
        {
            {Delay,   Freq,   10},
            {Delay,   Silent,  5},
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
-           })
+       })
 };
+
+float compute_agent_fitness(agent *a) {
+    float metric_score(agent *a, Metric m);
+
+    float score =
+        (0.6f * metric_score(a, Metric::Correspondence))
+        + (0.2f * metric_score(a, Metric::Respond))
+        + (0.1f * metric_score(a, Metric::Delay))
+        + (0.1f * metric_score(a, Metric::Break));
+
+    return score;
+}
 
 float metric_score(agent *a, Metric m) {
     float sum = 0.0f;
@@ -398,16 +410,6 @@ float metric_score(agent *a, Metric m) {
     }
 
     return sum;
-}
-
-float compute_agent_fitness(agent *a) {
-    float score =
-        (0.6f * metric_score(a, Metric::Correspondence))
-        + (0.2f * metric_score(a, Metric::Respond))
-        + (0.1f * metric_score(a, Metric::Delay))
-        + (0.1f * metric_score(a, Metric::Break));
-
-    return score;
 }
 
 template<typename Tfit>
@@ -514,7 +516,7 @@ TrialsState::TrialsState(TSimulation *sim_) {
     test_number = -1;
     trial_number = -1;
 
-    tests.push_back(new Test0());
+    //tests.push_back(new Test0());
     for(ScoredTest *t: scored_tests) {
         tests.push_back(t);
     }
