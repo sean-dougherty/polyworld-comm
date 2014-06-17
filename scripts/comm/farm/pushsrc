@@ -21,7 +21,6 @@ if [ -d $dstvat/polyworld-comm ]; then
     echo "Found vat src"
     mkdir -p $dstvat/srcbak
     mv $dstvat/polyworld-comm $dstvat/srcbak/$(date -Iseconds)
-    exit
 fi
 
 echo "Copying source..."
