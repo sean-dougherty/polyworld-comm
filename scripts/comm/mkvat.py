@@ -4,7 +4,7 @@ import sys
 
 Seed_Agents_run0 = 0
 Seed_Agents = 40
-mutation_rate = 0.005
+mutation_rate = 0.001
 number_fittest = 30
 seed_from_run = False
 
