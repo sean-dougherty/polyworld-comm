@@ -8,7 +8,7 @@ Seed_Agents_run0 = 0
 Seed_Agents = 40
 seed_from_run = False
 
-mutation_rate = 0.002
+mutation_rate = 0.005
 high_mutation_rate = 0.05
 high_mutation_rate_generation = None
 
