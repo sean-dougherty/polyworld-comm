@@ -19,7 +19,7 @@ while True:
 		args = args[1:]
 	elif len(args) and args[0] == '--gen':
 		gen = int(args[1])
-		if gen % high_mutation_rate_generation == 0:
+		if high_mutation_rate_generation != None and gen % high_mutation_rate_generation == 0:
 			mutation_rate = high_mutation_rate
 		args = args[2:]
 	elif len(args) and args[0][:2] == '--':
