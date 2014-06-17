@@ -4,18 +4,26 @@ import sys
 
 Seed_Agents_run0 = 0
 Seed_Agents = 40
-mutation_rate = 0.001
-number_fittest = 30
 seed_from_run = False
 
+mutation_rate = 0.001
+high_mutation_rate = 0.05
+high_mutation_rate_generation = 100
+
+number_fittest = 30
 
 args = sys.argv[1:]
 while True:
 	if len(args) and args[0] == '--seed-from-run':
 		seed_from_run = True
 		args = args[1:]
+	elif len(args) and args[0] == '--gen':
+		gen = int(args[1])
+		if gen % high_mutation_rate_generation == 0:
+			mutation_rate = high_mutation_rate
+		args = args[2:]
 	elif len(args) and args[0][:2] == '--':
-		print 'invalid option:', args[0]
+		sys.stderr.write('invalid option: %s\n' % args[0])
 		exit(1)
 	else:
 		break

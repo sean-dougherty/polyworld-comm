@@ -64,9 +64,9 @@ while True:
 i: %d
 ========================================
 """ % (i)
-	
+
 	sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+trialsdir+'/run'+str(i-1))
-	sh('scripts/comm/mkvat.py --seed-from-run > '+trialsdir+'/trial'+str(i)+'.wf')
+	sh('scripts/comm/mkvat.py --gen '+str(i)+' --seed-from-run '+'> '+trialsdir+'/trial'+str(i)+'.wf')
 
 	score = run(i)
 

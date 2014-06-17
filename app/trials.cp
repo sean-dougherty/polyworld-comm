@@ -387,6 +387,7 @@ vector<ScoredTest *> scored_tests = {
            {Break,   Silent,  5}
        }),
 
+/*
     st("test6",
        0.2f,
        {
@@ -395,7 +396,7 @@ vector<ScoredTest *> scored_tests = {
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
        })
-
+*/
 };
 
 float compute_agent_fitness(agent *a) {
