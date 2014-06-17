@@ -70,8 +70,6 @@ EnableHearing True
 EnableVoice True
 NumSoundFrequencies 2
 
-RecordBrainBehaviorNeurons True
-
 FightMultiplier 0.0
 MinAgentMaxEnergy 1000.0
 MaxAgentMaxEnergy 1000.1
