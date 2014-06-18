@@ -12,38 +12,55 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 args = sys.argv[1:]
+
+if len(args) != 2:
+	sys.stderr.write("usage: <trialsdir> <resultsdir>\n")
+	exit(1)
+
 trialsdir = args[0]
-outdir = "/home/c/vat/results/"+trialsdir.strip('/').split('/')[-1]
+resultsdir = args[1]
 
-if not os.path.exists("/home/c/vat/results"):
-    os.mkdir("/home/c/vat/results")
+trialsname = trialsdir.strip('/').split('/')[-1]
+outdir = resultsdir+'/'+trialsname
+generationsdir = trialsdir+'/generations'
+
 if not os.path.exists(outdir):
-    os.mkdir(outdir)
+	os.makedirs(outdir)
 
-def get_rundir(trialsdir, runid):
-    return trialsdir+"/run"+str(runid)
+def is_int(x):
+	try:
+		int(x)
+		return True
+	except:
+		return False
 
-def get_fittest_agent(rundir):
-    return int(open(rundir+"/genome/Fittest/fitness.txt").readline().split()[0])
+generations = sorted(map(int, filter(lambda x: os.path.isdir(generationsdir+'/'+x) and is_int(x), os.listdir(generationsdir))))
 
-def get_fittest_test(rundir, test_number, task = None):
-    test = datalib.parse(rundir+'/test%d-trial-metrics.log'%test_number,
+def get_generationdir(generation):
+    return generationsdir + '/' + str(generation)
+
+def get_fittest_agent(generation):
+    return int(open(get_generationdir(generation)+"/fitness.txt").readline().split()[0])
+
+def get_fittest_test(generation, test_number, task = None):
+    test = datalib.parse(get_generationdir(generation)+'/test%d-trial-metrics.log'%test_number,
                          keycolname='Trial')
-    fittest = get_fittest_agent(rundir)    
+    fittest = get_fittest_agent(generation)    
     table = test['Agent%d'%fittest]
     if task != None:
         return table.getColumn(task).data
     else:
         return table
 
-def get_fitness(rundir):
-    return float(open(rundir+"/genome/Fittest/fitness.txt").readline().split()[1])
+def get_fitness(generation):
+    return float(open(get_generationdir(generation)+"/fitness.txt").readline().split()[1])
 
 def linregress(data):
     x = numpy.array(data.keys())
     y = numpy.array(data.values())
-    xregress = x[-10:]
-    yregress = y[-10:]
+    ngenerations = min(50, len(generations))
+    xregress = x[-ngenerations:]
+    yregress = y[-ngenerations:]
     slope, intercept, r_value, p_value, std_err = stats.linregress(xregress,yregress)
     line = slope*xregress+intercept
 
@@ -120,30 +137,22 @@ test4_resp = collections.OrderedDict()
 test5_resp = collections.OrderedDict()
 test6_resp = collections.OrderedDict()
 
-runid = 0
-runstride = 100
-while True:
-    rundir = get_rundir(trialsdir, runid)
-    if not os.path.exists(rundir):
-        break
+for gen in generations:
+    fitness[gen] = get_fitness(gen)
+    test1_corr[gen] = mean(get_fittest_test(gen, 1, "0.Correspondence"))
+    test1_resp[gen] = mean(get_fittest_test(gen, 1, "0.Respond"))
 
-    fitness[runid] = get_fitness(rundir)
-    test1_corr[runid] = mean(get_fittest_test(rundir, 1, "0.Correspondence"))
-    test1_resp[runid] = mean(get_fittest_test(rundir, 1, "0.Respond"))
+    test4_corr[gen] = mean(get_fittest_test(gen, 4, "1.Correspondence"))
+    test4_resp[gen] = mean(get_fittest_test(gen, 4, "1.Respond"))
 
-    test4_corr[runid] = mean(get_fittest_test(rundir, 4, "1.Correspondence"))
-    test4_resp[runid] = mean(get_fittest_test(rundir, 4, "1.Respond"))
-
-    test5_corr[runid] = mean(get_fittest_test(rundir, 5, "2.Correspondence"))
-    test5_resp[runid] = mean(get_fittest_test(rundir, 5, "2.Respond"))
+    test5_corr[gen] = mean(get_fittest_test(gen, 5, "2.Correspondence"))
+    test5_resp[gen] = mean(get_fittest_test(gen, 5, "2.Respond"))
 
     try:
-        test6_corr[runid] = mean(get_fittest_test(rundir, 6, "2.Correspondence"))
-        test6_resp[runid] = mean(get_fittest_test(rundir, 6, "2.Respond"))
+        test6_corr[gen] = mean(get_fittest_test(gen, 6, "2.Correspondence"))
+        test6_resp[gen] = mean(get_fittest_test(gen, 6, "2.Respond"))
     except:
         pass
-
-    runid += runstride
 
 
 save_results('fitness', get_stats(fitness))

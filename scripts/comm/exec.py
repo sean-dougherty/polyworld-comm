@@ -3,78 +3,53 @@
 import numpy
 import os
 import sys
+import threading
+import time
 
 args = sys.argv[1:]
 
-extend_rundir = None
-i = None
+def err(msg):
+	sys.stderr.write(msg)
+	sys.stderr.write('\n')
+	exit(1)
 
-if args[0] == '--extend':
-	extend_rundir = args[1]
-	args = args[2:]
-elif args[0] == '--resume':
-	i = int(args[1])
-	args = args[2:]
+if len(args) != 1:
+	err("usage: exec <trialsdir>")
 
 trialsdir = args[0]
-repeat = "5,4,3,2"
+
+if os.path.exists(trialsdir):
+	err('%s already exists!' % trialsdir)
 
 def sh(cmd):
 	rc = os.system(cmd)
 	if rc != 0:
 		raise Exception("Failed executing cmd. rc=%d, cmd=%s" % (rc, cmd))
 
-def run(id):
-	sh('echo %d > trial_seed.txt' % id)
-	sh('./Polyworld '+trialsdir+'/trial'+str(id)+'.wf')
-	score = get_score()
-	sh('mv run '+trialsdir+'/run'+str(id))
+if os.path.exists('run'):
+	sh('mv run run_%d' % int(time.time()))
 
-	return score
+def run():
+	sh('scripts/comm/mkvat.py > trials.wf')
+	sh('./Polyworld trials.wf')
 
-def get_score():
-	return float(open('run/genome/Fittest/fitness.txt').readline().strip().split()[1])
+run_thread = threading.Thread(target = run)
+run_thread.start()
 
-if i == None:
-	#
-	# Initial Run
-	#
-	i = 0
-	
-	food_difficulty=0
-	
-	if extend_rundir != None:
-		sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+extend_rundir)
-		sh('scripts/comm/mkvat.py --seed-from-run > '+trialsdir+'/trial0.wf')
-	else:
-		sh('scripts/comm/mkvat.py > '+trialsdir+'/trial0.wf')
-		
-	run(i)
+while not os.path.exists('run'):
+	time.sleep(1)
 
-#
-# Trials
-#
-score_log = open(trialsdir + '/score.log', 'a')
+sh('ln -s run %s' % trialsdir)
+sh('echo "%s" > run/trials-name.txt' % trialsdir)
 
 while True:
-	i += 1
-
-	print """\
-========================================
-i: %d
-========================================
-""" % (i)
-
-	sh('scripts/genomeSeed --repeat "'+repeat+'" --fittest '+trialsdir+'/run'+str(i-1))
-	sh('scripts/comm/mkvat.py --gen '+str(i)+' --seed-from-run '+'> '+trialsdir+'/trial'+str(i)+'.wf')
-
-	score = run(i)
-
-	score_log.write('%d\t%f\n' % (i, score))
-	score_log.flush()
-
-	print """\
-  ----------------------------------------
-  score: %f
-  ----------------------------------------
-""" % (score)
+	cmd = raw_input("Enter command: ")
+	if cmd == 'stop':
+		sh('touch run/stop')
+		run_thread.join()
+		sh('rm %s' % trialsdir)
+		sh('mv run %s' % trialsdir)
+		sh('rm trials.wf')
+		break
+	else:
+		print 'Invalid command.'

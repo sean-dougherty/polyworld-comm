@@ -564,13 +564,13 @@ TrialsState::TrialsState(TSimulation *sim_)
         tests.push_back(t);
     }
     
-#if true
+#if false
     long nsteps = 0;
     for(auto test: tests) {
         nsteps += NTRIALS * (test->get_trial_timestep_count() + TEST_INTERLUDE);
     }
 
-    sim->fMaxSteps = (1000*nsteps) + 1;
+    sim->fMaxSteps = (11*nsteps) + 1;
 #else
     sim->fMaxSteps = 0;
 #endif
@@ -868,6 +868,10 @@ void TrialsState::end_generation() {
 
     for(Test *t: tests) {
         t->reset();
+    }
+
+    if( exists("run/stop") ) {
+        exit(0);
     }
 }
 
