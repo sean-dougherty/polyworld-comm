@@ -414,6 +414,7 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	// ---
 	if (!fLoadState)
 	{
+#if !TRIALS
 		// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		// ^^^ MASTER TASK ExecInitAgents
 		// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -432,7 +433,7 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 		fScheduler.execMasterTask( this,
 								   execInitAgents,
 								   !fParallelInitAgents );
-
+#endif
 		InitFood();
 		InitBricks();
 		InitBarriers();
@@ -749,7 +750,7 @@ void TSimulation::Step()
 	}
 
 
-    if(fStep < 5) {
+    if(false) {
       // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       // ^^^ MASTER TASK ExecInteract
       // ^^^

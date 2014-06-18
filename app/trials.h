@@ -3,6 +3,8 @@
 #define TRIALS true
 
 #if TRIALS
+#include "FittestList.h"
+
 #include <map>
 #include <vector>
 
@@ -11,6 +13,9 @@
 
 class agent;
 class TSimulation;
+namespace genome {
+    class Genome;
+}
 
 struct Test
 {
@@ -27,7 +32,10 @@ struct Test
                                  agent *a,
                                  int freq) = 0;
 
-    virtual void end_generation(std::vector<long> &ranking) = 0;
+    virtual void end_generation(long generation_number,
+                                std::vector<long> &ranking) = 0;
+
+    virtual void reset() = 0;
 };
 
 struct TrialsState
@@ -49,14 +57,22 @@ struct TrialsState
     long trial_end_sim_step;
     
 private:
-    std::vector<agent *> get_agents();
+    long generation_number;
+    std::vector<agent *> generation_agents;
+    FittestList elites;
 
-    void init_test();
-    void end_test();
-    
-    void init_trial();
-    void end_trial();
+    vector<agent *> create_generation(size_t nagents,
+                                      size_t nseeds,
+                                      size_t ncrossover,
+                                      FittestList &elites);
+    void init_generation_genomes(vector<agent *> &agents,
+                                 size_t nseeds,
+                                 size_t ncrossover,
+                                 FittestList &elites);
 
+    void new_test();
+    void new_trial();
+    void new_generation();
     void end_generation();
 };
 

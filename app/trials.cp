@@ -1,4 +1,5 @@
 #include "datalib.h"
+#include "GenomeUtil.h"
 #include "PathDistance.h"
 #include "Retina.h"
 #include "trials.h"
@@ -9,7 +10,10 @@
 #include <string>
 
 using namespace datalib;
+using namespace genome;
 using namespace std;
+
+#define GENERATION_LOG_FREQUENCY 100
 
 #if TRIALS
 
@@ -26,7 +30,7 @@ TrialsState *trials = nullptr;
 float mean(vector<float> scores);
 float stddev(vector<float> scores);
 float covariance(vector<float> &x, vector<float> &y);
-void shuffle(vector<int> &x);
+void shuffle(vector<int> &x, int seed);
 
 void show_color(agent *a, float r, float g, float b) {
     a->GetRetina()->force_color(r, g, b);
@@ -203,6 +207,12 @@ struct Task {
             assert(false);
         }
     }
+
+    void reset() {
+        for(int i = 0; i < NTRIALS; i++) {
+            agent_trial_state[i].clear();
+        }
+    }
 };
 
 struct ScoredTest : public Test {
@@ -276,53 +286,61 @@ ScoredTest(const char *name_,
         }
     }
 
-    virtual void end_generation(std::vector<long> &ranking) {
-        vector<string> colnames;
-        vector<datalib::Type> coltypes;
+    virtual void end_generation(long generation_number,
+                                std::vector<long> &ranking) {
+        if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
+            vector<string> colnames;
+            vector<datalib::Type> coltypes;
 
-        colnames.push_back("Trial");
-        coltypes.push_back(datalib::INT);
+            colnames.push_back("Trial");
+            coltypes.push_back(datalib::INT);
 
-        colnames.push_back("Freq");
-        coltypes.push_back(datalib::INT);
+            colnames.push_back("Freq");
+            coltypes.push_back(datalib::INT);
 
-        int prefix = 0;
-        for(Task &t: tasks) {
-            char prefix_str[32];
-            sprintf(prefix_str, "%d.", prefix);
-            t.create_log_schema(prefix_str, colnames, coltypes);
-            prefix++;
-        }
-
-        {
-            char path[512];
-            sprintf(path, "run/%s-trial-metrics.log", name);        
-            DataLibWriter *writer = new DataLibWriter( path, true, true );
-            vector<Variant> colvalues;
-
-            for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-                writer->beginTable(tableName, colnames, coltypes);
-
-                for(int trial = 0; trial < NTRIALS; trial++) {
-                    colvalues.clear();
-                    colvalues.push_back(trial);
-                    colvalues.push_back(trials->freq_sequence[trial]);
-
-                    for(Task &t: tasks) {
-                        t.log_trial(trial, agent_number, colvalues);
-                    }
-
-                    writer->addRow(&colvalues.front());
-                }
-
-                writer->endTable();
+            int prefix = 0;
+            for(Task &t: tasks) {
+                char prefix_str[32];
+                sprintf(prefix_str, "%d.", prefix);
+                t.create_log_schema(prefix_str, colnames, coltypes);
+                prefix++;
             }
 
-            delete writer;
+            {
+                char path[512];
+                sprintf(path, "run/generations/%ld/%s-trial-metrics.log", generation_number, name);        
+                DataLibWriter *writer = new DataLibWriter( path, true, true );
+                vector<Variant> colvalues;
+
+                for(long agent_number: ranking) {
+                    char tableName[32];
+                    sprintf(tableName, "Agent%ld", agent_number);
+                    writer->beginTable(tableName, colnames, coltypes);
+
+                    for(int trial = 0; trial < NTRIALS; trial++) {
+                        colvalues.clear();
+                        colvalues.push_back(trial);
+                        colvalues.push_back(trials->freq_sequence[trial]);
+
+                        for(Task &t: tasks) {
+                            t.log_trial(trial, agent_number, colvalues);
+                        }
+
+                        writer->addRow(&colvalues.front());
+                    }
+
+                    writer->endTable();
+                }
+
+                delete writer;
+            }
         }
-        
+    }
+
+    virtual void reset() {
+        for(Task &t: tasks) {
+            t.reset();
+        }
     }
 
     float metric(agent *a, Metric m) {
@@ -481,49 +499,63 @@ struct Test0 : public TestImpl<Test0TrialState>
         trial_state.y.push_back(get_voice_activation(a));
     }
 
-    virtual void end_generation(vector<long> &ranking) {
-        for(long agent_number: ranking) {
-            for(int i = 0; i < NTRIALS; i++) {
-                auto &trial_state = get(i, agent_number);
-                trial_state.covariance = covariance(trial_state.x, trial_state.y);
-            }
-        }
-
-        // Trials
-        {
-            static const char *colnames[] = {
-                "Trial", "Covariance", NULL
-            };
-            static const datalib::Type coltypes[] = {
-                INT,     FLOAT,
-            };
-
-            DataLibWriter *writer = new DataLibWriter( "run/test0-trials.log", true, true );
-
+    virtual void end_generation(long generation_number,
+                                vector<long> &ranking) {
+        if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
             for(long agent_number: ranking) {
-                char tableName[32];
-                sprintf(tableName, "Agent%ld", agent_number);
-
-                writer->beginTable( tableName,
-                                    colnames,
-                                    coltypes );
-
                 for(int i = 0; i < NTRIALS; i++) {
                     auto &trial_state = get(i, agent_number);
-
-                    writer->addRow( i, trial_state.covariance );
+                    trial_state.covariance = covariance(trial_state.x, trial_state.y);
                 }
-
-                writer->endTable();
             }
 
-            delete writer;
+            // Trials
+            {
+                static const char *colnames[] = {
+                    "Trial", "Covariance", NULL
+                };
+                static const datalib::Type coltypes[] = {
+                    INT,     FLOAT,
+                };
+
+                char path[512];
+                sprintf(path, "run/generations/%ld/test0-trials.log", generation_number);
+                DataLibWriter *writer = new DataLibWriter( path, true, true );
+
+                for(long agent_number: ranking) {
+                    char tableName[32];
+                    sprintf(tableName, "Agent%ld", agent_number);
+
+                    writer->beginTable( tableName,
+                                        colnames,
+                                        coltypes );
+
+                    for(int i = 0; i < NTRIALS; i++) {
+                        auto &trial_state = get(i, agent_number);
+
+                        writer->addRow( i, trial_state.covariance );
+                    }
+
+                    writer->endTable();
+                }
+
+                delete writer;
+            }
+        }
+    }
+
+    virtual void reset() {
+        for(int i = 0; i < NTRIALS; i++) {
+            fitness[i].clear();
         }
     }
 };
 
-TrialsState::TrialsState(TSimulation *sim_) {
+TrialsState::TrialsState(TSimulation *sim_)
+: elites(sim_->fNumberFittest, true)
+{
     sim = sim_;
+    generation_number = -1;
     test_number = -1;
     trial_number = -1;
 
@@ -532,47 +564,157 @@ TrialsState::TrialsState(TSimulation *sim_) {
         tests.push_back(t);
     }
     
+#if true
     long nsteps = 0;
     for(auto test: tests) {
         nsteps += NTRIALS * (test->get_trial_timestep_count() + TEST_INTERLUDE);
     }
 
-    sim->fMaxSteps = nsteps + 1;
-
-    for(int freq = 0; freq < 2; freq++) {
-        for(int i = 0; i < NTRIALS/2; i++) {
-            freq_sequence.push_back(freq);
-        }
-    }
-
-    shuffle(freq_sequence);
+    sim->fMaxSteps = (1000*nsteps) + 1;
+#else
+    sim->fMaxSteps = 0;
+#endif
 }
 
 TrialsState::~TrialsState() {
 }
 
-void TrialsState::timestep_begin() {
-    if(test_number == -1) {
-        test_number = 0;
-        trial_number = 0;
-        init_test();
-        init_trial();
-    } else if(sim->getStep() == trial_end_sim_step) {
-        end_trial();
-        trial_number++;
-        if(trial_number == NTRIALS) {
-            end_test();
-            test_number++;
-            if(test_number == (int)tests.size()) {
-                end_generation();
-                return;
-            } else {
-                trial_number = 0;
-                init_test();
-                init_trial();
+vector<agent *> TrialsState::create_generation(size_t nagents,
+                                               size_t nseeds,
+                                               size_t ncrossover,
+                                               FittestList &elites) {
+    db("CREATING NEW GENERATION")
+
+    vector<agent *> agents;
+
+    for(size_t i = 0; i < nagents; i++) {
+        agent *a = agent::getfreeagent(sim, &sim->fStage);
+        a->setx(0.0f);
+        a->sety(0.0f);
+        a->setz(0.0f);
+
+        agents.push_back(a);
+        objectxsortedlist::gXSortedObjects.add(a);
+    }
+
+    init_generation_genomes(agents,
+                            nseeds,
+                            ncrossover,
+                            elites);
+
+    class GrowAgents : public ITask {
+    public:
+        vector<agent *> &agents;
+
+        GrowAgents(vector<agent *> &agents_) : agents(agents_) {}
+
+        virtual void task_exec( TSimulation *sim ) {
+            class GrowAgent : public ITask {
+            public:
+                agent *a;
+                GrowAgent( agent *a ) {
+                    this->a = a;
+                }
+
+                virtual void task_exec( TSimulation *sim ) {
+                    a->grow( sim->fMateWait );
+                }
+            };
+
+            for(agent *a: agents) {
+                sim->fScheduler.postParallel(new GrowAgent(a));
             }
+        }
+    } growAgents(agents);
+
+    sim->fScheduler.execMasterTask( sim,
+                                    growAgents,
+                                    false );
+
+    return agents;
+}
+
+void TrialsState::init_generation_genomes(vector<agent *> &agents,
+                                          size_t nseeds,
+                                          size_t ncrossover,
+                                          FittestList &elites) {
+
+    size_t nagents = agents.size();
+    size_t nrandom = nagents - (nseeds + ncrossover);
+    size_t ninitialized = 0;
+
+    for(size_t i = 0; i < (nseeds + nrandom); i++) {
+        agent *a = agents[i];
+        Genome *g = a->Genes();
+
+        if(i < nseeds) {
+            if(elites.size() == 0) {
+                GenomeUtil::seed( g );
+            } else {
+                Genome *g_elite = elites.get(i % elites.size())->genes;
+                g->copyFrom( g_elite );
+            }
+
+            g->mutate();
         } else {
-            init_trial();
+            g->randomize();
+        }
+
+        ninitialized++;
+    }
+
+    if(ncrossover) {
+        assert(ncrossover > 1);
+
+        size_t iparent1 = 0;
+        size_t iparent2 = 1;
+        for(size_t i = (nseeds + nrandom); i < nagents; i++) {
+            Genome *g = agents[i]->Genes();
+            Genome *g1 = agents[iparent1]->Genes();
+            Genome *g2 = agents[iparent2]->Genes();
+            
+            g->crossover(g1, g2, true);
+
+            iparent2++;
+            if(iparent2 == iparent1)
+                iparent2++;
+            if(iparent2 == (nseeds + nrandom)) {
+                iparent1++;
+                if(iparent1 == (nseeds + nrandom)) {
+                    iparent1 = 0;
+                    iparent2 = 1;
+                } else {
+                    iparent2 = 0;
+                }
+            }
+
+            ninitialized++;
+        }
+    }
+
+    assert(ninitialized == agents.size());
+    for(agent *a: agents) {
+        a->setGenomeReady();
+    }
+}
+
+void TrialsState::timestep_begin() {
+    if(generation_number == -1) {
+        new_generation();
+    } else {
+        if(sim->getStep() == trial_end_sim_step) {
+            // End of trial
+            if(trial_number == (NTRIALS - 1)) {
+                // End of test
+                if(test_number == int(tests.size() - 1)) {
+                    // End of generation
+                    new_generation();
+                } else {
+                    new_test();
+                }
+            } else {
+                new_trial();
+            }
         }
     }
 
@@ -588,7 +730,7 @@ void TrialsState::timestep_begin() {
         //db("test timestep: " << test_timestep);
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
-        for(agent *a: get_agents()) {
+        for(agent *a: generation_agents) {
             test->timestep_input(trial_number, test_timestep, a, freq);
         }
     }
@@ -603,28 +745,21 @@ void TrialsState::timestep_end() {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
-        for(agent *a: get_agents()) {
+        for(agent *a: generation_agents) {
             test->timestep_output(trial_number, test_timestep, a, freq);
         }
     }
 }
 
-void TrialsState::init_test() {
-    db("=== Beginning test " << test_number);
-}
-
-void TrialsState::end_test() {
-    db("=== Ending test " << test_number);
-}
-
-void TrialsState::init_trial() {
+void TrialsState::new_trial() {
+    trial_number++;
     db("*** Beginning trial " << trial_number << " of test " << test_number);
 
     auto test = tests[test_number];
     trial_timestep = 0;
     trial_end_sim_step = sim->getStep() + TEST_INTERLUDE + test->get_trial_timestep_count();
 
-    for(agent *a: get_agents()) {
+    for(agent *a: generation_agents) {
         a->SetEnergy(a->GetMaxEnergy());
         a->setx(0.0);
         a->setz(0.0);
@@ -632,8 +767,34 @@ void TrialsState::init_trial() {
     }
 }
 
-void TrialsState::end_trial() {
-    db("*** Ending trial " << trial_number << " of test " << test_number);
+void TrialsState::new_test() {
+    test_number++;
+    db("=== Beginning test " << test_number);
+
+    trial_number = -1;
+    new_trial();
+}
+
+void TrialsState::new_generation() {
+    if(generation_number == -1) {
+        generation_number++;
+        generation_agents = create_generation(150, 40, 110, elites);
+    } else {
+        end_generation();
+        generation_number++;
+        generation_agents = create_generation(150, 40, 110, elites);
+    }
+
+    freq_sequence.clear();
+    for(int freq = 0; freq < 2; freq++) {
+        for(int i = 0; i < NTRIALS/2; i++) {
+            freq_sequence.push_back(freq);
+        }
+    }
+    shuffle(freq_sequence, generation_number);
+
+    test_number = -1;
+    new_test();
 }
 
 struct Fitness {
@@ -642,11 +803,8 @@ struct Fitness {
 };
 
 void TrialsState::end_generation() {
-    db("END OF GENERATION");
-    sim->End("endTests");
-
     vector<Fitness> fitnesses;
-    for(agent *a: get_agents()) {
+    for(agent *a: generation_agents) {
         fitnesses.push_back({a, compute_agent_fitness(a)});
     }
 
@@ -655,17 +813,33 @@ void TrialsState::end_generation() {
              return y.score < x.score;
          });
 
+    db("END OF GENERATION " << generation_number << ". Top fitness = " << fitnesses.front().score);
+
+
     vector<long> ranking;
     for(auto fitness: fitnesses) {
         ranking.push_back(fitness.a->Number());
-    }
-    for(auto test: tests) {
-        test->end_generation(ranking);
+        elites.update(fitness.a, fitness.score);
     }
 
-    system("mkdir -p run/genome/Fittest");
-    {
-        FILE *ffitness = fopen( "run/genome/Fittest/fitness.txt", "w" );
+    if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
+        char cmd[512];
+        sprintf(cmd, "mkdir -p run/generations/%ld", generation_number);
+        system(cmd);
+    }
+
+    for(auto test: tests) {
+        test->end_generation(generation_number, ranking);
+    }
+
+    if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
+        char path[512];
+        sprintf(path, "run/generations/%ld/fitness.txt", generation_number);
+        FILE *ffitness = fopen(path , "w" );
+
+        if(generation_number == 0) {
+            system("mkdir -p run/genome/Fittest");
+        }
 
         for(int i = 0; i < sim->fNumberFittest; i++)
         {
@@ -674,7 +848,7 @@ void TrialsState::end_generation() {
 
             {
                 genome::Genome *g = fit.a->Genes();
-                char path[256];
+                char path[512];
                 sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.a->Number() );
                 AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
                 g->dump(out);
@@ -686,20 +860,15 @@ void TrialsState::end_generation() {
         fclose( ffitness );
     }
 
-}
-
-vector<agent *> TrialsState::get_agents() {
-    vector<agent *> agents;
-
-    {
-        agent *a;
-        objectxsortedlist::gXSortedObjects.reset();
-        while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-            agents.push_back(a);
-        }
+    for(agent *a: generation_agents) {
+        a->Die();
     }
 
-    return agents;
+    objectxsortedlist::gXSortedObjects.clear();
+
+    for(Test *t: tests) {
+        t->reset();
+    }
 }
 
 float mean(vector<float> scores) {
@@ -760,12 +929,7 @@ int get_max_repeat(vector<int> &x) {
     return maxrepeat;
 }
 
-void shuffle(vector<int> &x) {
-    ifstream in("trial_seed.txt");
-    int seed;
-    in >> seed;
-    db("Food sequence RNG seed: " << seed);
-
+void shuffle(vector<int> &x, int seed) {
     auto rng = std::default_random_engine(seed);
 
     do {
