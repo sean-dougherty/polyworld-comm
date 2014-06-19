@@ -2,12 +2,12 @@
 
 import sys
 
-InitSeed = 2 # RNG Seed
+InitSeed = 1 # RNG Seed
 
 InitAgents = 40 # Total number of random/seed agents in generation 0
 SeedAgents0 = 0 # Number of seed agents in generation 0
 SeedAgents = 40 # Number of seed agents in generations 1..N
-MutationRate = 0.05
+MutationRate = 0.01
 NumberFittest = 30
 
 args = sys.argv[1:]
@@ -17,11 +17,6 @@ while True:
 		exit(1)
 	else:
 		break
-
-if seed_from_run:
-	seed_agents = Seed_Agents
-else:
-	seed_agents = Seed_Agents_run0
 
 min_mutation = MutationRate
 max_mutation = float(str(MutationRate) + "1")
@@ -39,6 +34,7 @@ print 'NumberFittest', NumberFittest
 print """\
 Vision False
 
+MinAgents 1
 MaxAgents 150
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
