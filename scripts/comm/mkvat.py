@@ -7,7 +7,7 @@ InitSeed = 1 # RNG Seed
 InitAgents = 40 # Total number of random/seed agents in generation 0
 SeedAgents0 = 0 # Number of seed agents in generation 0
 SeedAgents =  0 # Number of seed agents in generations 1..N
-MutationRate = 0.01
+MutationRate = 0.02
 NumberFittest = 30
 
 args = sys.argv[1:]

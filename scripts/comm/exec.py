@@ -42,14 +42,7 @@ while not os.path.exists('run'):
 sh('ln -s run %s' % trialsdir)
 sh('echo "%s" > run/trials-name.txt' % trialsdir)
 
-while True:
-	cmd = raw_input("Enter command: ")
-	if cmd == 'stop':
-		sh('touch run/stop')
-		run_thread.join()
-		sh('rm %s' % trialsdir)
-		sh('mv run %s' % trialsdir)
-		sh('rm trials.wf')
-		break
-	else:
-		print 'Invalid command.'
+run_thread.join()
+sh('rm %s' % trialsdir)
+sh('mv run %s' % trialsdir)
+sh('rm trials.wf')

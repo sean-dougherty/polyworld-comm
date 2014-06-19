@@ -54,7 +54,7 @@ int FittestList::update( agent *candidate, float fitness )
 		int rank = -1;
 		for( int i = 0; i < _size; i++ )
 		{
-			if( fitness > _elements[i]->fitness )
+			if( fitness >= _elements[i]->fitness )
 			{
 				rank = i;
 				break;

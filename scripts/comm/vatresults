@@ -56,13 +56,13 @@ def get_fittest_test(generation, test_number, task = None):
     else:
         return table
 
-def get_fitness(generation):
-    return float(open(get_generationdir(generation)+"/global-fitness.txt").readline().split()[1])
+def get_fitness(generation, type):
+    return float(open(get_generationdir(generation)+"/"+type+"-fitness.txt").readline().split()[1])
 
 def linregress(data):
     x = numpy.array(data.keys())
     y = numpy.array(data.values())
-    ngenerations = int(len(generations) * 0.25)
+    ngenerations = int(len(generations) * 0.25 + 0.5)
     xregress = x[-ngenerations:]
     yregress = y[-ngenerations:]
     slope, intercept, r_value, p_value, std_err = stats.linregress(xregress,yregress)
@@ -131,7 +131,8 @@ p:         %12f
 
     save_plot(stats, outdir+'/'+name+'.png')
 
-fitness = collections.OrderedDict()
+fitness_global = collections.OrderedDict()
+#fitness_generation = collections.OrderedDict()
 
 test1_corr = collections.OrderedDict()
 test4_corr = collections.OrderedDict()
@@ -144,7 +145,8 @@ test6_resp = collections.OrderedDict()
 
 
 for gen in generations:
-    fitness[gen] = get_fitness(gen)
+    fitness_global[gen] = get_fitness(gen, 'global')
+    #fitness_generation[gen] = get_fitness(gen, 'generation')
 
     test1_corr[gen] = mean(get_fittest_test(gen, 1, "0.Correspondence"))
     test1_resp[gen] = mean(get_fittest_test(gen, 1, "0.Respond"))
@@ -163,7 +165,8 @@ for gen in generations:
 
 
 
-save_results('fitness', get_stats(fitness))
+save_results('fitness-global', get_stats(fitness_global))
+#save_results('fitness-generation', get_stats(fitness_generation))
 
 save_results('test1-corr', get_stats(test1_corr))
 save_results('test1-resp', get_stats(test1_resp))
