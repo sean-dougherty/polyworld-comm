@@ -564,16 +564,7 @@ TrialsState::TrialsState(TSimulation *sim_)
         tests.push_back(t);
     }
     
-#if false
-    long nsteps = 0;
-    for(auto test: tests) {
-        nsteps += NTRIALS * (test->get_trial_timestep_count() + TEST_INTERLUDE);
-    }
-
-    sim->fMaxSteps = (11*nsteps) + 1;
-#else
     sim->fMaxSteps = 0;
-#endif
 }
 
 TrialsState::~TrialsState() {
@@ -778,11 +769,17 @@ void TrialsState::new_test() {
 void TrialsState::new_generation() {
     if(generation_number == -1) {
         generation_number++;
-        generation_agents = create_generation(150, 40, 110, elites);
+        generation_agents = create_generation(sim->fMaxNumAgents,
+                                              sim->fNumberToSeed0,
+                                              sim->fMaxNumAgents - sim->fInitNumAgents,
+                                              elites);
     } else {
         end_generation();
         generation_number++;
-        generation_agents = create_generation(150, 40, 110, elites);
+        generation_agents = create_generation(sim->fMaxNumAgents,
+                                              sim->fNumberToSeed,
+                                              sim->fMaxNumAgents - sim->fNumberToSeed,
+                                              elites);
     }
 
     freq_sequence.clear();

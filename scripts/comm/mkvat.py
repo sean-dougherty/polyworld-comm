@@ -2,29 +2,17 @@
 
 import sys
 
-init_seed = 2
+InitSeed = 2 # RNG Seed
 
-Seed_Agents_run0 = 0
-Seed_Agents = 40
-seed_from_run = False
-
-mutation_rate = 0.01
-high_mutation_rate = 0.05
-high_mutation_rate_generation = None
-
-number_fittest = 30
+InitAgents = 40 # Total number of random/seed agents in generation 0
+SeedAgents0 = 0 # Number of seed agents in generation 0
+SeedAgents = 40 # Number of seed agents in generations 1..N
+MutationRate = 0.05
+NumberFittest = 30
 
 args = sys.argv[1:]
 while True:
-	if len(args) and args[0] == '--seed-from-run':
-		seed_from_run = True
-		args = args[1:]
-	elif len(args) and args[0] == '--gen':
-		gen = int(args[1])
-		if high_mutation_rate_generation != None and gen % high_mutation_rate_generation == 0:
-			mutation_rate = high_mutation_rate
-		args = args[2:]
-	elif len(args) and args[0][:2] == '--':
+	if len(args) and args[0][:2] == '--':
 		sys.stderr.write('invalid option: %s\n' % args[0])
 		exit(1)
 	else:
@@ -35,45 +23,28 @@ if seed_from_run:
 else:
 	seed_agents = Seed_Agents_run0
 
-min_mutation = mutation_rate
-max_mutation = float(str(mutation_rate) + "1")
+min_mutation = MutationRate
+max_mutation = float(str(MutationRate) + "1")
 
-print """\
-@version 2
-"""
+print '@version 2'
 
-print """\
-InitSeed %d
-""" % init_seed
-
-print """\
-MinMutationRate %f
-MaxMutationRate %f
-""" % (min_mutation, max_mutation)
-
-print """\
-NumberFittest %d
-""" % number_fittest
-
-print """\
-SeedGenomeFromRun %s
-SeedAgents %d
-""" % (seed_from_run, seed_agents)
-
+print 'InitSeed', InitSeed
+print 'InitAgents', InitAgents
+print 'SeedAgents0', SeedAgents0
+print 'SeedAgents', SeedAgents
+print 'MinMutationRate', min_mutation
+print 'MaxMutationRate', max_mutation
+print 'NumberFittest', NumberFittest
 
 print """\
 Vision False
 
-MinAgents 1
 MaxAgents 150
-InitAgents 40
-SeedMutationProbability 0.5
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
 
 MinLifeSpan 100000
 MaxLifeSpan 100001
-MateWait 0
 
 EnableTopologicalDistortionRngSeed True
 EnableInitWeightRngSeed True
@@ -82,17 +53,7 @@ EnableHearing True
 EnableVoice True
 NumSoundFrequencies 2
 
-FightMultiplier 0.0
 MinAgentMaxEnergy 1000.0
 MaxAgentMaxEnergy 1000.1
 EnergyUseMultiplier 0.001
-
-Domains [
-    {
-      InitAgentsCenterX 0.5
-      InitAgentsCenterZ 0.5
-      FoodPatches [
-      ]
-    }
-  ]
 """

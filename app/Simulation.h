@@ -319,6 +319,7 @@ private:
 	long fMinNumAgentsWithMetabolism[ MAXMETABOLISMS ];
 	long fInitNumAgents;
 	long fNumberToSeed;
+	long fNumberToSeed0;
 	float fProbabilityOfMutatingSeeds;
 	bool fSeedFromFile;
 	std::vector<std::string> fSeedFilePaths;

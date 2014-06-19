@@ -4302,6 +4302,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fMaxNumAgents = doc.get( "MaxAgents" );
 	fInitNumAgents = doc.get( "InitAgents" );
 	fNumberToSeed = doc.get( "SeedAgents" );
+	fNumberToSeed0 = doc.get( "SeedAgents0" );
 	fProbabilityOfMutatingSeeds = doc.get( "SeedMutationProbability" );
 	fSeedFromFile = doc.get( "SeedGenomeFromRun" );
 	fPositionSeedsFromFile = doc.get( "SeedPositionFromRun" );

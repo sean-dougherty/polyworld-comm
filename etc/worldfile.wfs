@@ -128,6 +128,13 @@ SeedAgents {
   max     InitAgents
 }
 
+SeedAgents0 {
+  type    Int
+  defaults { default InitAgents; }
+  min     0
+  max     InitAgents
+}
+
 SeedMutationProbability {
   type    Float
   default 0.0
