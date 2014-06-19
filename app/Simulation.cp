@@ -4346,6 +4346,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else
 			fFittest = NULL;
 	}
+    fProportionCrossoverGlobalElites = doc.get( "ProportionCrossoverGlobalElites" );
 	{
 		int numberRecentFittest = doc.get( "NumberRecentFittest" );
 		if( (numberRecentFittest > 0) && (fEpochFrequency > 0) )

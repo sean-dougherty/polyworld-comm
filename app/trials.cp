@@ -7,13 +7,14 @@
 #include "SoundPatch.h"
 
 #include <algorithm>
+#include <functional>
 #include <string>
 
 using namespace datalib;
 using namespace genome;
 using namespace std;
 
-#define GENERATION_LOG_FREQUENCY 100
+#define GENERATION_LOG_FREQUENCY 20
 
 #if TRIALS
 
@@ -286,54 +287,50 @@ ScoredTest(const char *name_,
         }
     }
 
-    virtual void end_generation(long generation_number,
-                                std::vector<long> &ranking) {
-        if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
-            vector<string> colnames;
-            vector<datalib::Type> coltypes;
+    virtual void log_performance(agent *a,
+                                 const char *path_dir) {
+        vector<string> colnames;
+        vector<datalib::Type> coltypes;
 
-            colnames.push_back("Trial");
-            coltypes.push_back(datalib::INT);
+        colnames.push_back("Trial");
+        coltypes.push_back(datalib::INT);
 
-            colnames.push_back("Freq");
-            coltypes.push_back(datalib::INT);
+        colnames.push_back("Freq");
+        coltypes.push_back(datalib::INT);
 
-            int prefix = 0;
-            for(Task &t: tasks) {
-                char prefix_str[32];
-                sprintf(prefix_str, "%d.", prefix);
-                t.create_log_schema(prefix_str, colnames, coltypes);
-                prefix++;
-            }
+        int prefix = 0;
+        for(Task &t: tasks) {
+            char prefix_str[32];
+            sprintf(prefix_str, "%d.", prefix);
+            t.create_log_schema(prefix_str, colnames, coltypes);
+            prefix++;
+        }
 
-            {
-                char path[512];
-                sprintf(path, "run/generations/%ld/%s-trial-metrics.log", generation_number, name);        
-                DataLibWriter *writer = new DataLibWriter( path, true, true );
-                vector<Variant> colvalues;
+        {
+            char path[512];
+            sprintf(path, "%s/%s-trial-metrics.log", path_dir, name);        
+            DataLibWriter *writer = new DataLibWriter( path, true, true );
+            vector<Variant> colvalues;
 
-                for(long agent_number: ranking) {
-                    char tableName[32];
-                    sprintf(tableName, "Agent%ld", agent_number);
-                    writer->beginTable(tableName, colnames, coltypes);
+            char tableName[32];
+            sprintf(tableName, "Agent%ld", a->Number());
+            writer->beginTable(tableName, colnames, coltypes);
 
-                    for(int trial = 0; trial < NTRIALS; trial++) {
-                        colvalues.clear();
-                        colvalues.push_back(trial);
-                        colvalues.push_back(trials->freq_sequence[trial]);
+            for(int trial = 0; trial < NTRIALS; trial++) {
+                colvalues.clear();
+                colvalues.push_back(trial);
+                colvalues.push_back(trials->freq_sequence[trial]);
 
-                        for(Task &t: tasks) {
-                            t.log_trial(trial, agent_number, colvalues);
-                        }
-
-                        writer->addRow(&colvalues.front());
-                    }
-
-                    writer->endTable();
+                for(Task &t: tasks) {
+                    t.log_trial(trial, a->Number(), colvalues);
                 }
 
-                delete writer;
+                writer->addRow(&colvalues.front());
             }
+
+            writer->endTable();
+
+            delete writer;
         }
     }
 
@@ -415,6 +412,17 @@ vector<ScoredTest *> scored_tests = {
        })
 };
 
+void normalize_test_weights() {
+    float sum = 0.0f;
+    for(auto t: scored_tests) {
+        sum += t->weight;
+    }
+
+    for(auto t: scored_tests) {
+        t->weight /= sum;
+    }
+}
+
 float compute_agent_fitness(agent *a) {
     float metric_score(agent *a, Metric m);
 
@@ -439,125 +447,17 @@ float metric_score(agent *a, Metric m) {
     return sum;
 }
 
-template<typename Tfit>
-struct TestImpl : public Test
-{
-    std::map<long, Tfit> fitness[NTRIALS];
-
-    virtual ~TestImpl() {}
-    Tfit &get(int trial_number, agent *a) { return get(trial_number, a->Number()); }
-    Tfit &get(int trial_number, long agent_number) { return fitness[trial_number][agent_number]; }
-};
-
-struct Test0TrialState {
-    vector<float> x;
-    vector<float> y;
-    float covariance;
-};
-
-struct Test0 : public TestImpl<Test0TrialState>
-{
-    const long Timesteps_sound_on = 10;
-    const long Timesteps_sound_off = 5;
-
-    const long Phase0_end = Timesteps_sound_on;
-    const long Phase1_end = Phase0_end + Timesteps_sound_off;
-
-    virtual ~Test0() {}
-
-    virtual long get_trial_timestep_count() {
-        return Phase1_end;
-    }
-
-    virtual void timestep_input(int trial_number,
-                                long time,
-                                agent *a,
-                                int freq) {
-
-        auto &trial_state = get(trial_number, a);
-
-        if(time <= Phase0_end) {
-            show_black(a);
-            make_sound(a, freq);
-            trial_state.x.push_back(1.0f);
-        } else {
-            show_black(a);
-            make_silence(a);
-            trial_state.x.push_back(0.0f);
-        }
-    }
-
-    virtual void timestep_output(int trial_number,
-                                 long time,
-                                 agent *a,
-                                 int freq) {
-
-        auto &trial_state = get(trial_number, a);
-
-        trial_state.y.push_back(get_voice_activation(a));
-    }
-
-    virtual void end_generation(long generation_number,
-                                vector<long> &ranking) {
-        if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
-            for(long agent_number: ranking) {
-                for(int i = 0; i < NTRIALS; i++) {
-                    auto &trial_state = get(i, agent_number);
-                    trial_state.covariance = covariance(trial_state.x, trial_state.y);
-                }
-            }
-
-            // Trials
-            {
-                static const char *colnames[] = {
-                    "Trial", "Covariance", NULL
-                };
-                static const datalib::Type coltypes[] = {
-                    INT,     FLOAT,
-                };
-
-                char path[512];
-                sprintf(path, "run/generations/%ld/test0-trials.log", generation_number);
-                DataLibWriter *writer = new DataLibWriter( path, true, true );
-
-                for(long agent_number: ranking) {
-                    char tableName[32];
-                    sprintf(tableName, "Agent%ld", agent_number);
-
-                    writer->beginTable( tableName,
-                                        colnames,
-                                        coltypes );
-
-                    for(int i = 0; i < NTRIALS; i++) {
-                        auto &trial_state = get(i, agent_number);
-
-                        writer->addRow( i, trial_state.covariance );
-                    }
-
-                    writer->endTable();
-                }
-
-                delete writer;
-            }
-        }
-    }
-
-    virtual void reset() {
-        for(int i = 0; i < NTRIALS; i++) {
-            fitness[i].clear();
-        }
-    }
-};
-
 TrialsState::TrialsState(TSimulation *sim_)
-: elites(sim_->fNumberFittest, true)
+    : global_elites( nint(sim_->fNumberFittest * sim_->fProportionCrossoverGlobalElites), true )
+    , generation_elites( sim_->fNumberFittest - global_elites.capacity(), true )
 {
     sim = sim_;
     generation_number = -1;
     test_number = -1;
     trial_number = -1;
 
-    //tests.push_back(new Test0());
+    normalize_test_weights();
+
     for(ScoredTest *t: scored_tests) {
         tests.push_back(t);
     }
@@ -570,8 +470,7 @@ TrialsState::~TrialsState() {
 
 vector<agent *> TrialsState::create_generation(size_t nagents,
                                                size_t nseeds,
-                                               size_t ncrossover,
-                                               FittestList &elites) {
+                                               size_t ncrossover) {
     //db("CREATING NEW GENERATION")
 
     vector<agent *> agents;
@@ -588,8 +487,7 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
 
     init_generation_genomes(agents,
                             nseeds,
-                            ncrossover,
-                            elites);
+                            ncrossover);
 
     class GrowAgents : public ITask {
     public:
@@ -625,22 +523,33 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
 
 void TrialsState::init_generation_genomes(vector<agent *> &agents,
                                           size_t nseeds,
-                                          size_t ncrossover,
-                                          FittestList &elites) {
+                                          size_t ncrossover) {
 
     size_t nagents = agents.size();
     size_t nrandom = nagents - (nseeds + ncrossover);
     size_t ninitialized = 0;
+
+    size_t nelites = global_elites.size() + generation_elites.size();
+    //db("nglobal = " << global_elites.size() << "/" << global_elites.capacity());
+    //db("ngeneration = " << generation_elites.size() << "/" << generation_elites.capacity());
+    auto get_elite = [=] (size_t i) {
+        int i_ = (int)i;
+        if( i_ < global_elites.size() ) {
+            return global_elites.get(i_)->genes;
+        } else {
+            return generation_elites.get(i_ - global_elites.size())->genes;
+        }
+    };
 
     for(size_t i = 0; i < (nseeds + nrandom); i++) {
         agent *a = agents[i];
         Genome *g = a->Genes();
 
         if(i < nseeds) {
-            if(elites.size() == 0) {
+            if( nelites == 0 ) {
                 GenomeUtil::seed( g );
             } else {
-                Genome *g_elite = elites.get(i % elites.size())->genes;
+                Genome *g_elite = get_elite(i % nelites);
                 g->copyFrom( g_elite );
             }
 
@@ -653,23 +562,39 @@ void TrialsState::init_generation_genomes(vector<agent *> &agents,
     }
 
     if(ncrossover) {
-        assert(ncrossover > 1);
+        size_t nparents;
+        function<Genome * (size_t i)> get_parent;
+        if(nelites > 0) {
+            nparents = nelites;
+            get_parent = [=] (size_t i) {
+                return get_elite(i);
+            };
+        } else {
+            nparents = ninitialized;
+            get_parent = [&agents] (size_t i) {
+                return agents[i]->Genes();
+            };
+        }
+        assert(nparents > 1);
 
         size_t iparent1 = 0;
         size_t iparent2 = 1;
+
         for(size_t i = (nseeds + nrandom); i < nagents; i++) {
             Genome *g = agents[i]->Genes();
-            Genome *g1 = agents[iparent1]->Genes();
-            Genome *g2 = agents[iparent2]->Genes();
+            Genome *g1 = get_parent(iparent1);
+            Genome *g2 = get_parent(iparent2);
+
+            //db("crossover: " << iparent1 << " x " << iparent2);
             
             g->crossover(g1, g2, true);
 
             iparent2++;
             if(iparent2 == iparent1)
                 iparent2++;
-            if(iparent2 == (nseeds + nrandom)) {
+            if(iparent2 == nparents) {
                 iparent1++;
-                if(iparent1 == (nseeds + nrandom)) {
+                if(iparent1 == nparents) {
                     iparent1 = 0;
                     iparent2 = 1;
                 } else {
@@ -770,15 +695,13 @@ void TrialsState::new_generation() {
         generation_number++;
         generation_agents = create_generation(sim->fMaxNumAgents,
                                               sim->fNumberToSeed0,
-                                              sim->fMaxNumAgents - sim->fInitNumAgents,
-                                              elites);
+                                              sim->fMaxNumAgents - sim->fInitNumAgents);
     } else {
         end_generation();
         generation_number++;
         generation_agents = create_generation(sim->fMaxNumAgents,
                                               sim->fNumberToSeed,
-                                              sim->fMaxNumAgents - sim->fNumberToSeed,
-                                              elites);
+                                              sim->fMaxNumAgents - sim->fNumberToSeed);
     }
 
     freq_sequence.clear();
@@ -793,71 +716,107 @@ void TrialsState::new_generation() {
     new_test();
 }
 
-struct Fitness {
-    agent *a;
-    float score;
-};
+void log_fitness(const string &path,
+                 int nagents,
+                 function<long (int i)> get_number,
+                 function<float (int i)> get_score) {
+    FILE *ffitness = fopen(path.c_str() , "w" );
+
+    for(int i = 0; i < nagents; i++) {
+        fprintf( ffitness, "%ld %f\n", get_number(i), get_score(i) );
+    }
+
+    fclose(ffitness);
+}
+
+void log_fitness(const string &path,
+                 FittestList &fittest) {
+    log_fitness(path,
+                fittest.size(),
+                [&fittest] (int i) { return fittest.get(i)->agentID; },
+                [&fittest] (int i) { return fittest.get(i)->fitness; });
+}
+
+void log_genome(agent *a) {
+    char path[512];
+
+    sprintf( path, "run/genome/Fittest/genome_%ld.txt", a->Number() );
+    if( !AbstractFile::exists(path) ) {
+        makeParentDir(path);
+
+        genome::Genome *g = a->Genes();
+        AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
+        g->dump(out);
+        delete out;
+    }
+}
+
+void TrialsState::log_elite(agent *a, float score) {
+    char path_dir[512];
+    sprintf(path_dir, "run/elites/%ld", a->Number());
+
+    makeDirs( path_dir );
+
+    log_fitness( string(path_dir) + "/fitness.txt",
+                 1,
+                 [a] (int i) { return a->Number(); },
+                 [score] (int i) { return score; });
+    log_genome( a );
+
+    for(Test *t: tests) {
+        t->log_performance(a, path_dir);
+    }
+}
 
 void TrialsState::end_generation() {
+    struct Fitness {
+        agent *a;
+        float score;
+    };
     vector<Fitness> fitnesses;
     for(agent *a: generation_agents) {
         fitnesses.push_back({a, compute_agent_fitness(a)});
     }
-
     sort(fitnesses.begin(), fitnesses.end(),
          [](const Fitness &x, const Fitness &y) {
              return y.score < x.score;
          });
+         
+    generation_elites.clear();
+    for(Fitness fit: fitnesses) {
+        if(generation_elites.update(fit.a, fit.score) < 0)
+            break;
+    }
 
-    db("END OF GENERATION " << generation_number << ". Top fitness = " << fitnesses.front().score);
+    for(Fitness fit: fitnesses) {
+        if(global_elites.update(fit.a, fit.score) < 0) {
+            break;
+        } else {
+            log_elite(fit.a, fit.score);
+        }
+    }
 
-
-    vector<long> ranking;
-    for(auto fitness: fitnesses) {
-        ranking.push_back(fitness.a->Number());
-        elites.update(fitness.a, fitness.score);
+    db("END OF GENERATION " << generation_number);
+    db("  Generation fitness = " << fitnesses.front().score);
+    if(global_elites.size() > 0) {
+        db("  Global fitness = " << global_elites.get(0)->fitness);
     }
 
     if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
-        char cmd[512];
-        sprintf(cmd, "mkdir -p run/generations/%ld", generation_number);
-        int rc = system(cmd);
-        if(rc != 0) {
-            fprintf(stderr, "failed executing '%s'. RC=%d", cmd, rc);
-            exit(rc);
+        char path_dir[512];
+        sprintf(path_dir, "run/generations/%ld", generation_number);
+        makeDirs(path_dir);
+
+        if(global_elites.size() > 0) {
+            char path[512];
+            sprintf(path, "%s/global-fitness.txt", path_dir);
+            log_fitness(path, global_elites);
         }
-    }
-
-    for(auto test: tests) {
-        test->end_generation(generation_number, ranking);
-    }
-
-    if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
-        char path[512];
-        sprintf(path, "run/generations/%ld/fitness.txt", generation_number);
-        FILE *ffitness = fopen(path , "w" );
-
-        if(generation_number == 0) {
-            system("mkdir -p run/genome/Fittest");
+        if(generation_elites.size() > 0) {
+            char path[512];
+            sprintf(path, "%s/generation-fitness.txt", path_dir);
+            log_fitness(path, generation_elites);
         }
-
-        for(int i = 0; i < sim->fNumberFittest; i++)
-        {
-            Fitness &fit = fitnesses[i];
-            fprintf( ffitness, "%ld %f\n", fit.a->Number(), fit.score );
-
-            {
-                genome::Genome *g = fit.a->Genes();
-                char path[512];
-                sprintf( path, "run/genome/Fittest/genome_%ld.txt", fit.a->Number() );
-                AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
-                g->dump(out);
-                delete out;
-            }
-
-        }
-
-        fclose( ffitness );
     }
 
     for(agent *a: generation_agents) {

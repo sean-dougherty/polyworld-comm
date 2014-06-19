@@ -9,7 +9,7 @@
 #include <vector>
 
 #define TEST_INTERLUDE 10
-#define NTRIALS 6
+#define NTRIALS 10
 
 class agent;
 class TSimulation;
@@ -32,8 +32,8 @@ struct Test
                                  agent *a,
                                  int freq) = 0;
 
-    virtual void end_generation(long generation_number,
-                                std::vector<long> &ranking) = 0;
+    virtual void log_performance(agent *a,
+                                 const char *path_dir) = 0;
 
     virtual void reset() = 0;
 };
@@ -59,21 +59,22 @@ struct TrialsState
 private:
     long generation_number;
     std::vector<agent *> generation_agents;
-    FittestList elites;
+    FittestList global_elites;
+    FittestList generation_elites;
 
     vector<agent *> create_generation(size_t nagents,
                                       size_t nseeds,
-                                      size_t ncrossover,
-                                      FittestList &elites);
+                                      size_t ncrossover);
     void init_generation_genomes(vector<agent *> &agents,
                                  size_t nseeds,
-                                 size_t ncrossover,
-                                 FittestList &elites);
+                                 size_t ncrossover);
 
     void new_test();
     void new_trial();
     void new_generation();
     void end_generation();
+
+    void log_elite(agent *a, float score);
 };
 
 extern TrialsState *trials;

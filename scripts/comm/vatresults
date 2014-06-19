@@ -14,8 +14,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 args = sys.argv[1:]
 
 if len(args) != 2:
-	sys.stderr.write("usage: <trialsdir> <resultsdir>\n")
-	exit(1)
+    sys.stderr.write("usage: <trialsdir> <resultsdir>\n")
+    exit(1)
 
 trialsdir = args[0]
 resultsdir = args[1]
@@ -23,29 +23,33 @@ resultsdir = args[1]
 trialsname = trialsdir.strip('/').split('/')[-1]
 outdir = resultsdir+'/'+trialsname
 generationsdir = trialsdir+'/generations'
+elitesdir = trialsdir+'/elites'
 
 if not os.path.exists(outdir):
-	os.makedirs(outdir)
+    os.makedirs(outdir)
 
 def is_int(x):
-	try:
-		int(x)
-		return True
-	except:
-		return False
+    try:
+        int(x)
+        return True
+    except:
+        return False
 
 generations = sorted(map(int, filter(lambda x: os.path.isdir(generationsdir+'/'+x) and is_int(x), os.listdir(generationsdir))))
 
 def get_generationdir(generation):
     return generationsdir + '/' + str(generation)
 
+def get_elitedir(agent):
+    return elitesdir + '/' + str(agent)
+
 def get_fittest_agent(generation):
-    return int(open(get_generationdir(generation)+"/fitness.txt").readline().split()[0])
+    return int(open(get_generationdir(generation)+"/global-fitness.txt").readline().split()[0])
 
 def get_fittest_test(generation, test_number, task = None):
-    test = datalib.parse(get_generationdir(generation)+'/test%d-trial-metrics.log'%test_number,
+    fittest = get_fittest_agent(generation)
+    test = datalib.parse(get_elitedir(fittest)+'/test%d-trial-metrics.log'%test_number,
                          keycolname='Trial')
-    fittest = get_fittest_agent(generation)    
     table = test['Agent%d'%fittest]
     if task != None:
         return table.getColumn(task).data
@@ -53,12 +57,12 @@ def get_fittest_test(generation, test_number, task = None):
         return table
 
 def get_fitness(generation):
-    return float(open(get_generationdir(generation)+"/fitness.txt").readline().split()[1])
+    return float(open(get_generationdir(generation)+"/global-fitness.txt").readline().split()[1])
 
 def linregress(data):
     x = numpy.array(data.keys())
     y = numpy.array(data.values())
-    ngenerations = min(50, len(generations))
+    ngenerations = int(len(generations) * 0.25)
     xregress = x[-ngenerations:]
     yregress = y[-ngenerations:]
     slope, intercept, r_value, p_value, std_err = stats.linregress(xregress,yregress)
@@ -128,6 +132,7 @@ p:         %12f
     save_plot(stats, outdir+'/'+name+'.png')
 
 fitness = collections.OrderedDict()
+
 test1_corr = collections.OrderedDict()
 test4_corr = collections.OrderedDict()
 test5_corr = collections.OrderedDict()
@@ -137,8 +142,10 @@ test4_resp = collections.OrderedDict()
 test5_resp = collections.OrderedDict()
 test6_resp = collections.OrderedDict()
 
+
 for gen in generations:
     fitness[gen] = get_fitness(gen)
+
     test1_corr[gen] = mean(get_fittest_test(gen, 1, "0.Correspondence"))
     test1_resp[gen] = mean(get_fittest_test(gen, 1, "0.Respond"))
 
@@ -155,7 +162,9 @@ for gen in generations:
         pass
 
 
+
 save_results('fitness', get_stats(fitness))
+
 save_results('test1-corr', get_stats(test1_corr))
 save_results('test1-resp', get_stats(test1_resp))
 save_results('test4-corr', get_stats(test4_corr))
@@ -165,3 +174,4 @@ save_results('test5-resp', get_stats(test5_resp))
 if len(test6_corr):
     save_results('test6-corr', get_stats(test6_corr))
     save_results('test6-resp', get_stats(test6_resp))
+

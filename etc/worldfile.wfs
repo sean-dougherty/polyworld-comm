@@ -2683,6 +2683,13 @@ NumberFittest {
   default 30
 }
 
+ProportionCrossoverGlobalElites {
+  type    Float
+  min     0.0
+  max     1.0
+  default 1.0
+}
+
 NumberRecentFittest {
   type    Int
   default 10

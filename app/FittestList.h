@@ -27,11 +27,12 @@ class FittestList
 	FittestList( int capacity, bool storeGenome );
 	virtual ~FittestList();
 
-	void update( class agent *candidate, float fitness );
+	int update( class agent *candidate, float fitness );
 
 	bool isFull();
 	void clear();
 	int size();
+    int capacity();
 
 	// rank is 0-based
 	FitStruct *get( int rank );
@@ -49,4 +50,5 @@ class FittestList
 
 inline bool FittestList::isFull() { return _size == _capacity; }
 inline int FittestList::size() { return _size; }
+inline int FittestList::capacity() { return _capacity; }
 inline FitStruct *FittestList::get( int rank ) { assert(rank < _size); return _elements[rank]; }

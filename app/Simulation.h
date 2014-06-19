@@ -288,6 +288,7 @@ private:
 	Color fGroundColor;
 
     int fNumberFittest;
+    float fProportionCrossoverGlobalElites;
 	agent* fCurrentFittestAgent[MAXFITNESSITEMS];	// based on heuristic fitness
 	float fCurrentMaxFitness[MAXFITNESSITEMS];	// based on heuristic fitness
 	int fCurrentFittestCount = 0;

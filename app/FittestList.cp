@@ -47,9 +47,9 @@ FittestList::~FittestList()
 //---------------------------------------------------------------------------
 // FittestList::update
 //---------------------------------------------------------------------------
-void FittestList::update( agent *candidate, float fitness )
+int FittestList::update( agent *candidate, float fitness )
 {
-	if( !isFull() || (fitness > _elements[_size - 1]->fitness) )
+	if( !isFull() || (_capacity > 0 && fitness > _elements[_size - 1]->fitness) )
 	{
 		int rank = -1;
 		for( int i = 0; i < _size; i++ )
@@ -85,7 +85,13 @@ void FittestList::update( agent *candidate, float fitness )
 			newElement->genes->copyFrom( candidate->Genes() );
 		newElement->agentID = candidate->Number();
 		newElement->complexity = candidate->Complexity();
+
+        return rank;
 	}
+    else
+    {
+        return -1;
+    }
 }
 
 //---------------------------------------------------------------------------
