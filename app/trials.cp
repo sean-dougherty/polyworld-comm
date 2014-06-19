@@ -405,7 +405,6 @@ vector<ScoredTest *> scored_tests = {
            {Break,   Silent,  5}
        }),
 
-/*
     st("test6",
        0.2f,
        {
@@ -414,7 +413,6 @@ vector<ScoredTest *> scored_tests = {
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
        })
-*/
 };
 
 float compute_agent_fitness(agent *a) {
@@ -574,7 +572,7 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
                                                size_t nseeds,
                                                size_t ncrossover,
                                                FittestList &elites) {
-    db("CREATING NEW GENERATION")
+    //db("CREATING NEW GENERATION")
 
     vector<agent *> agents;
 
@@ -691,6 +689,7 @@ void TrialsState::init_generation_genomes(vector<agent *> &agents,
 
 void TrialsState::timestep_begin() {
     if(generation_number == -1) {
+        db("Beginning trials");
         new_generation();
     } else {
         if(sim->getStep() == trial_end_sim_step) {
@@ -744,7 +743,7 @@ void TrialsState::timestep_end() {
 
 void TrialsState::new_trial() {
     trial_number++;
-    db("*** Beginning trial " << trial_number << " of test " << test_number);
+    //db("*** Beginning trial " << trial_number << " of test " << test_number);
 
     auto test = tests[test_number];
     trial_timestep = 0;
@@ -760,7 +759,7 @@ void TrialsState::new_trial() {
 
 void TrialsState::new_test() {
     test_number++;
-    db("=== Beginning test " << test_number);
+    //db("=== Beginning test " << test_number);
 
     trial_number = -1;
     new_trial();
@@ -822,7 +821,11 @@ void TrialsState::end_generation() {
     if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
         char cmd[512];
         sprintf(cmd, "mkdir -p run/generations/%ld", generation_number);
-        system(cmd);
+        int rc = system(cmd);
+        if(rc != 0) {
+            fprintf(stderr, "failed executing '%s'. RC=%d", cmd, rc);
+            exit(rc);
+        }
     }
 
     for(auto test: tests) {
@@ -859,6 +862,7 @@ void TrialsState::end_generation() {
 
     for(agent *a: generation_agents) {
         a->Die();
+        delete a;
     }
 
     objectxsortedlist::gXSortedObjects.clear();
