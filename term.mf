@@ -1,5 +1,9 @@
 @defaults term
 
+StatusText {
+    Enabled False
+}
+  
 MainScene {
     Enabled False
 }
