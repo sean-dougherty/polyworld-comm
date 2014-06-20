@@ -525,6 +525,71 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
     return agents;
 }
 
+namespace crossover {
+    size_t strong_rank_bias(function<Genome * (size_t i)> get_parent,
+                            function<Genome * (size_t i)> get_child,
+                            size_t nparents,
+                            size_t ncrossover,
+                            long generation_number) {
+        size_t iparent1 = 0;
+        size_t iparent2 = 1;
+        size_t ninitialized = 0;
+
+        for(size_t i = 0; i < ncrossover; i++) {
+            Genome *g = get_child(i);
+            Genome *g1 = get_parent(iparent1);
+            Genome *g2 = get_parent(iparent2);
+
+            g->crossover(g1, g2, true);
+            ninitialized++;
+
+            iparent2++;
+            if(iparent2 == iparent1)
+                iparent2++;
+            if(iparent2 == nparents) {
+                iparent1++;
+                if(iparent1 == nparents) {
+                    iparent1 = 0;
+                    iparent2 = 1;
+                } else {
+                    iparent2 = 0;
+                }
+            }
+        }
+
+        return ninitialized;
+    }
+
+    size_t uniform_stochastic(function<Genome * (size_t i)> get_parent,
+                              function<Genome * (size_t i)> get_child,
+                              size_t nparents,
+                              size_t ncrossover,
+                              long generation_number) {
+
+        default_random_engine rng(generation_number);
+        uniform_int_distribution<size_t> distribution(0, nparents - 1);
+        size_t ninitialized = 0;
+
+        for(size_t i = 0; i < ncrossover; i++) {
+            Genome *g = get_child(i);
+
+            size_t iparent1 = distribution(rng);
+            size_t iparent2;
+            while(iparent1 == (iparent2 = distribution(rng))) {
+            }
+            //db(i << ": " << iparent1 << " x " << iparent2);
+
+            Genome *g1 = get_parent(iparent1);
+            Genome *g2 = get_parent(iparent2);
+
+            g->crossover(g1, g2, true);
+            ninitialized++;
+        }
+
+        return ninitialized;
+    }
+}
+
 void TrialsState::init_generation_genomes(vector<agent *> &agents,
                                           size_t nseeds,
                                           size_t ncrossover) {
@@ -581,33 +646,23 @@ void TrialsState::init_generation_genomes(vector<agent *> &agents,
         }
         assert(nparents > 1);
 
-        size_t iparent1 = 0;
-        size_t iparent2 = 1;
+        function<Genome * (size_t i)> get_child = [=] (size_t i) {
+            return agents[i + (nseeds + nrandom)]->Genes();
+        };
 
-        for(size_t i = (nseeds + nrandom); i < nagents; i++) {
-            Genome *g = agents[i]->Genes();
-            Genome *g1 = get_parent(iparent1);
-            Genome *g2 = get_parent(iparent2);
+/*
+        ninitialized += crossover::strong_rank_bias(get_parent,
+                                                   get_child,
+                                                   nparents,
+                                                   ncrossover,
+                                                   generation_number);
+*/
 
-            //db("crossover: " << iparent1 << " x " << iparent2);
-            
-            g->crossover(g1, g2, true);
-
-            iparent2++;
-            if(iparent2 == iparent1)
-                iparent2++;
-            if(iparent2 == nparents) {
-                iparent1++;
-                if(iparent1 == nparents) {
-                    iparent1 = 0;
-                    iparent2 = 1;
-                } else {
-                    iparent2 = 0;
-                }
-            }
-
-            ninitialized++;
-        }
+        ninitialized += crossover::uniform_stochastic(get_parent,
+                                                      get_child,
+                                                      nparents,
+                                                      ncrossover,
+                                                      generation_number);
     }
 
     assert(ninitialized == agents.size());
