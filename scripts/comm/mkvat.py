@@ -9,6 +9,7 @@ SeedAgents0 = 0 # Number of seed agents in generation 0
 SeedAgents =  0 # Number of seed agents in generations 1..N
 MutationRate = 0.02
 NumberFittest = 30
+ProportionCrossoverGlobalElites = 0.9
 
 args = sys.argv[1:]
 while True:
@@ -30,6 +31,7 @@ print 'SeedAgents', SeedAgents
 print 'MinMutationRate', min_mutation
 print 'MaxMutationRate', max_mutation
 print 'NumberFittest', NumberFittest
+print 'ProportionCrossoverGlobalElites', ProportionCrossoverGlobalElites
 
 print """\
 Vision False

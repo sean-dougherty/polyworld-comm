@@ -14,9 +14,14 @@ using namespace datalib;
 using namespace genome;
 using namespace std;
 
+#if TRIALS
+
 #define GENERATION_LOG_FREQUENCY 20
 
-#if TRIALS
+#define CROSSOVER_RANK_BIAS 1
+#define CROSSOVER_UNIVERSAL_STOCHASTIC 2
+
+#define CROSSOVER_METHOD CROSSOVER_RANK_BIAS
 
 #define DEBUG true
 
@@ -650,19 +655,19 @@ void TrialsState::init_generation_genomes(vector<agent *> &agents,
             return agents[i + (nseeds + nrandom)]->Genes();
         };
 
-/*
+#if CROSSOVER_METHOD == CROSSOVER_RANK_BIAS
         ninitialized += crossover::strong_rank_bias(get_parent,
                                                    get_child,
                                                    nparents,
                                                    ncrossover,
                                                    generation_number);
-*/
-
+#elif CROSSOVER_METHOD == CROSSOVER_UNIVERSAL_STOCHASTIC
         ninitialized += crossover::uniform_stochastic(get_parent,
                                                       get_child,
                                                       nparents,
                                                       ncrossover,
                                                       generation_number);
+#endif
     }
 
     assert(ninitialized == agents.size());
