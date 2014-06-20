@@ -2,7 +2,7 @@
 
 import sys
 
-InitSeed = 3 # RNG Seed
+InitSeed = 1 # RNG Seed
 
 InitAgents = 40 # Total number of random/seed agents in generation 0
 SeedAgents0 = 0 # Number of seed agents in generation 0

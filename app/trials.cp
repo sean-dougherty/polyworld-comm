@@ -21,7 +21,7 @@ using namespace std;
 #define CROSSOVER_RANK_BIAS 1
 #define CROSSOVER_UNIVERSAL_STOCHASTIC 2
 
-#define CROSSOVER_METHOD CROSSOVER_RANK_BIAS
+#define CROSSOVER_METHOD CROSSOVER_UNIVERSAL_STOCHASTIC
 
 #define DEBUG true
 
@@ -373,7 +373,6 @@ ScoredTest(const char *name_,
 #define st(x...) new ScoredTest(x)
 
 vector<ScoredTest *> scored_tests = {
-/*
     st("test1",
        0.2f,
        {
@@ -411,7 +410,6 @@ vector<ScoredTest *> scored_tests = {
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
        }),
-*/
 
     st("test6",
        0.2f,
