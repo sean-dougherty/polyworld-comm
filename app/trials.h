@@ -9,7 +9,7 @@
 #include <vector>
 
 #define TEST_INTERLUDE 10
-#define NTRIALS 6
+#define NTRIALS 20
 
 class agent;
 class TSimulation;
