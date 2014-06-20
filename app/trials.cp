@@ -342,6 +342,8 @@ ScoredTest(const char *name_,
 
     float metric(agent *a, Metric m) {
         vector<int> &metric_tasks = tasks_by_metric[int(m)];
+        if(metric_tasks.empty())
+            return weight;  // This ensures the overall metric score will sum to 1.0
 
         float sum = 0.0f;
 
@@ -351,8 +353,10 @@ ScoredTest(const char *name_,
             for(int i = 0; i < NTRIALS; i++) {
                 tsum += t.metric(i, a->Number(), m);
             }
-            sum += tsum / metric_tasks.size();
+            sum += tsum;
         }
+
+        sum /= metric_tasks.size();
 
         float mean = (sum / NTRIALS);
         float result = weight * mean;
