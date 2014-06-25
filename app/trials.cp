@@ -18,7 +18,7 @@ using namespace std;
 
 #define GENERATION_LOG_FREQUENCY 20
 
-#define TOURNAMENT_SIZE 20
+#define TOURNAMENT_SIZE 5
 
 #define DEBUG true
 
