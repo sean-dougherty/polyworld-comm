@@ -18,10 +18,7 @@ using namespace std;
 
 #define GENERATION_LOG_FREQUENCY 20
 
-#define CROSSOVER_RANK_BIAS 1
-#define CROSSOVER_UNIVERSAL_STOCHASTIC 2
-
-#define CROSSOVER_METHOD CROSSOVER_RANK_BIAS
+#define TOURNAMENT_SIZE 5
 
 #define DEBUG true
 
@@ -292,7 +289,7 @@ ScoredTest(const char *name_,
         }
     }
 
-    virtual void log_performance(agent *a,
+    virtual void log_performance(long agent_number,
                                  const char *path_dir) {
         vector<string> colnames;
         vector<datalib::Type> coltypes;
@@ -318,7 +315,7 @@ ScoredTest(const char *name_,
             vector<Variant> colvalues;
 
             char tableName[32];
-            sprintf(tableName, "Agent%ld", a->Number());
+            sprintf(tableName, "Agent%ld", agent_number);
             writer->beginTable(tableName, colnames, coltypes);
 
             for(int trial = 0; trial < NTRIALS; trial++) {
@@ -327,7 +324,7 @@ ScoredTest(const char *name_,
                 colvalues.push_back(trials->freq_sequence[trial]);
 
                 for(Task &t: tasks) {
-                    t.log_trial(trial, a->Number(), colvalues);
+                    t.log_trial(trial, agent_number, colvalues);
                 }
 
                 writer->addRow(&colvalues.front());
@@ -373,7 +370,6 @@ ScoredTest(const char *name_,
 #define st(x...) new ScoredTest(x)
 
 vector<ScoredTest *> scored_tests = {
-/*
     st("test1",
        0.2f,
        {
@@ -411,7 +407,7 @@ vector<ScoredTest *> scored_tests = {
            {Speak,   Silent, 10},
            {Break,   Silent,  5}
        }),
-*/
+
     st("test6",
        0.2f,
        {
@@ -458,8 +454,8 @@ float metric_score(agent *a, Metric m) {
 }
 
 TrialsState::TrialsState(TSimulation *sim_)
-    : global_elites( nint(sim_->fNumberFittest * sim_->fProportionCrossoverGlobalElites), true )
-    , generation_elites( sim_->fNumberFittest - global_elites.capacity(), true )
+    : elites( sim_->fNumberFittest, true )
+    , prev_generation( sim_->fMaxNumAgents, true )
 {
     sim = sim_;
     generation_number = -1;
@@ -478,13 +474,12 @@ TrialsState::TrialsState(TSimulation *sim_)
 TrialsState::~TrialsState() {
 }
 
-vector<agent *> TrialsState::create_generation(size_t nagents,
-                                               size_t nseeds,
-                                               size_t ncrossover) {
-    //db("CREATING NEW GENERATION")
+vector<agent *> TrialsState::create_generation() {
+    db("CREATING NEW GENERATION");
+
+    size_t nagents = sim->fMaxNumAgents;
 
     vector<agent *> agents;
-
     for(size_t i = 0; i < nagents; i++) {
         agent *a = agent::getfreeagent(sim, &sim->fStage);
         a->setx(0.0f);
@@ -495,9 +490,15 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
         objectxsortedlist::gXSortedObjects.add(a);
     }
 
-    init_generation_genomes(agents,
-                            nseeds,
-                            ncrossover);
+    if(generation_number == 0) {
+        init_generation0_genomes(agents);
+    } else {
+        default_random_engine rng(generation_number);
+        init_generation_genomes(agents, rng);
+    }
+    for(agent *a: agents) {
+        a->setGenomeReady();
+    }
 
     class GrowAgents : public ITask {
     public:
@@ -531,149 +532,94 @@ vector<agent *> TrialsState::create_generation(size_t nagents,
     return agents;
 }
 
-namespace crossover {
-    size_t strong_rank_bias(function<Genome * (size_t i)> get_parent,
-                            function<Genome * (size_t i)> get_child,
-                            size_t nparents,
-                            size_t ncrossover,
-                            long generation_number) {
-        size_t iparent1 = 0;
-        size_t iparent2 = 1;
-        size_t ninitialized = 0;
+namespace selection {
+    typedef function<vector<pair<size_t, size_t>> (size_t nparents,
+                                                   size_t nchildren,
+                                                   function<float (size_t i)> get_fitness,
+                                                   default_random_engine &rng)> method;
 
-        for(size_t i = 0; i < ncrossover; i++) {
-            Genome *g = get_child(i);
-            Genome *g1 = get_parent(iparent1);
-            Genome *g2 = get_parent(iparent2);
+    vector<pair<size_t, size_t>> tournament(size_t nparents,
+                                            size_t nchildren,
+                                            function<float (size_t i)> get_fitness,
+                                            default_random_engine &rng) {
+        uniform_int_distribution<size_t> dist(0, nparents - 1);
 
-            g->crossover(g1, g2, true);
-            ninitialized++;
+        auto select_parent = [&dist, &rng, &get_fitness] (size_t exclude) {
+            array<size_t, TOURNAMENT_SIZE + 1> excludes;
+            excludes.fill(exclude);
+            size_t winner = exclude;
+            float winner_fitness = 0.0f;
 
-            iparent2++;
-            if(iparent2 == iparent1)
-                iparent2++;
-            if(iparent2 == nparents) {
-                iparent1++;
-                if(iparent1 == nparents) {
-                    iparent1 = 0;
-                    iparent2 = 1;
-                } else {
-                    iparent2 = 0;
+            for(int icandidate = 0; icandidate < TOURNAMENT_SIZE; icandidate++) {
+                while(true) {
+                    size_t i = dist(rng);
+                    if(find(excludes.begin(), excludes.end(), i) == excludes.end()) {
+                        excludes[icandidate] = i;
+                        float fitness = get_fitness(i);
+                        if(fitness > winner_fitness) {
+                            winner = i;
+                            winner_fitness = fitness;
+                        }
+                        break;
+                    }
                 }
             }
+
+            assert(winner != exclude);
+
+            return winner;
+        };
+
+        vector<pair<size_t,size_t>> result;
+        for(size_t i = 0; i < nchildren; i++) {
+            size_t parent1 = select_parent(nparents);
+            size_t parent2 = select_parent(parent1);
+
+            result.emplace_back(parent1, parent2);
         }
 
-        return ninitialized;
+        return result;
     }
+                                                   
+}
 
-    size_t uniform_stochastic(function<Genome * (size_t i)> get_parent,
-                              function<Genome * (size_t i)> get_child,
-                              size_t nparents,
-                              size_t ncrossover,
-                              long generation_number) {
-
-        default_random_engine rng(generation_number);
-        uniform_int_distribution<size_t> distribution(0, nparents - 1);
-        size_t ninitialized = 0;
-
-        for(size_t i = 0; i < ncrossover; i++) {
-            Genome *g = get_child(i);
-
-            size_t iparent1 = distribution(rng);
-            size_t iparent2;
-            while(iparent1 == (iparent2 = distribution(rng))) {
-            }
-            //db(i << ": " << iparent1 << " x " << iparent2);
-
-            Genome *g1 = get_parent(iparent1);
-            Genome *g2 = get_parent(iparent2);
-
-            g->crossover(g1, g2, true);
-            ninitialized++;
-        }
-
-        return ninitialized;
+void TrialsState::init_generation0_genomes(vector<agent *> &agents) {
+    for(agent *a: agents) {
+        a->Genes()->randomize();
     }
 }
 
-void TrialsState::init_generation_genomes(vector<agent *> &agents,
-                                          size_t nseeds,
-                                          size_t ncrossover) {
+void TrialsState::init_generation_genomes(vector<agent *> &next_generation,
+                                          default_random_engine &rng) {
+    size_t nparents = size_t(prev_generation.size()) + size_t(elites.size());
+    size_t nchildren = next_generation.size();
 
-    size_t nagents = agents.size();
-    size_t nrandom = nagents - (nseeds + ncrossover);
-    size_t ninitialized = 0;
-
-    size_t nelites = global_elites.size() + generation_elites.size();
-    //db("nglobal = " << global_elites.size() << "/" << global_elites.capacity());
-    //db("ngeneration = " << generation_elites.size() << "/" << generation_elites.capacity());
-    auto get_elite = [=] (size_t i) {
-        int i_ = (int)i;
-        if( i_ < global_elites.size() ) {
-            return global_elites.get(i_)->genes;
-        } else {
-            return generation_elites.get(i_ - global_elites.size())->genes;
-        }
+    auto get_fitness = [=] (size_t i) {
+        if(i < size_t(elites.size()))
+            return elites.get(i)->fitness;
+        else
+            return prev_generation.get(i - elites.size())->fitness;
     };
+    
+    auto get_parent = [=] (size_t i) {
+        if(i < size_t(elites.size()))
+            return elites.get(i)->genes.get();
+        else
+            return prev_generation.get(i - elites.size())->genes.get();
+    };
+    
+    vector<pair<size_t,size_t>> parents = selection::tournament(nparents,
+                                                                nchildren,
+                                                                get_fitness,
+                                                                rng);
+    assert(parents.size() == nchildren);
 
-    for(size_t i = 0; i < (nseeds + nrandom); i++) {
-        agent *a = agents[i];
-        Genome *g = a->Genes();
-
-        if(i < nseeds) {
-            if( nelites == 0 ) {
-                GenomeUtil::seed( g );
-            } else {
-                Genome *g_elite = get_elite(i % nelites);
-                g->copyFrom( g_elite );
-            }
-
-            g->mutate();
-        } else {
-            g->randomize();
-        }
-
-        ninitialized++;
-    }
-
-    if(ncrossover) {
-        size_t nparents;
-        function<Genome * (size_t i)> get_parent;
-        if(nelites > 0) {
-            nparents = nelites;
-            get_parent = [=] (size_t i) {
-                return get_elite(i);
-            };
-        } else {
-            nparents = ninitialized;
-            get_parent = [&agents] (size_t i) {
-                return agents[i]->Genes();
-            };
-        }
-        assert(nparents > 1);
-
-        function<Genome * (size_t i)> get_child = [=] (size_t i) {
-            return agents[i + (nseeds + nrandom)]->Genes();
-        };
-
-#if CROSSOVER_METHOD == CROSSOVER_RANK_BIAS
-        ninitialized += crossover::strong_rank_bias(get_parent,
-                                                   get_child,
-                                                   nparents,
-                                                   ncrossover,
-                                                   generation_number);
-#elif CROSSOVER_METHOD == CROSSOVER_UNIVERSAL_STOCHASTIC
-        ninitialized += crossover::uniform_stochastic(get_parent,
-                                                      get_child,
-                                                      nparents,
-                                                      ncrossover,
-                                                      generation_number);
-#endif
-    }
-
-    assert(ninitialized == agents.size());
-    for(agent *a: agents) {
-        a->setGenomeReady();
+    for(size_t i = 0; i < nchildren; i++) {
+        pair<size_t, size_t> p = parents[i];
+        
+        next_generation[i]->Genes()->crossover(get_parent(p.first),
+                                               get_parent(p.second),
+                                               true);
     }
 }
 
@@ -756,18 +702,11 @@ void TrialsState::new_test() {
 }
 
 void TrialsState::new_generation() {
-    if(generation_number == -1) {
-        generation_number++;
-        generation_agents = create_generation(sim->fMaxNumAgents,
-                                              sim->fNumberToSeed0,
-                                              sim->fMaxNumAgents - sim->fInitNumAgents);
-    } else {
+    if(generation_number != -1) {
         end_generation();
-        generation_number++;
-        generation_agents = create_generation(sim->fMaxNumAgents,
-                                              sim->fNumberToSeed,
-                                              sim->fMaxNumAgents - sim->fNumberToSeed);
     }
+    generation_number++;
+    generation_agents = create_generation();
 
     freq_sequence.clear();
     for(int freq = 0; freq < 2; freq++) {
@@ -783,12 +722,12 @@ void TrialsState::new_generation() {
 
 void log_fitness(const string &path,
                  int nagents,
-                 function<long (int i)> get_number,
-                 function<float (int i)> get_score) {
+                 function<FitStruct *(int i)> get_fitness) {
     FILE *ffitness = fopen(path.c_str() , "w" );
 
     for(int i = 0; i < nagents; i++) {
-        fprintf( ffitness, "%ld %f\n", get_number(i), get_score(i) );
+        FitStruct *fs = get_fitness(i);
+        fprintf( ffitness, "%ld %f\n", fs->agentID, fs->fitness );
     }
 
     fclose(ffitness);
@@ -798,73 +737,58 @@ void log_fitness(const string &path,
                  FittestList &fittest) {
     log_fitness(path,
                 fittest.size(),
-                [&fittest] (int i) { return fittest.get(i)->agentID; },
-                [&fittest] (int i) { return fittest.get(i)->fitness; });
+                [&fittest] (int i) { return fittest.get(i); });
 }
 
-void log_genome(agent *a) {
+void log_genome(FitStruct *fs) {
     char path[512];
 
-    sprintf( path, "run/genome/Fittest/genome_%ld.txt", a->Number() );
+    sprintf( path, "run/genome/Fittest/genome_%ld.txt", fs->agentID );
     if( !AbstractFile::exists(path) ) {
         makeParentDir(path);
 
-        genome::Genome *g = a->Genes();
         AbstractFile *out = AbstractFile::open(globals::recordFileType, path, "w");
-        g->dump(out);
+        fs->genes->dump(out);
         delete out;
     }
 }
 
-void TrialsState::log_elite(agent *a, float score) {
+void TrialsState::log_elite(FitStruct *fs) {
     char path_dir[512];
-    sprintf(path_dir, "run/elites/%ld", a->Number());
+    sprintf(path_dir, "run/elites/%ld", fs->agentID);
 
     makeDirs( path_dir );
 
     log_fitness( string(path_dir) + "/fitness.txt",
                  1,
-                 [a] (int i) { return a->Number(); },
-                 [score] (int i) { return score; });
-    log_genome( a );
+                 [fs] (int i) { return fs; });
+    log_genome( fs );
 
     for(Test *t: tests) {
-        t->log_performance(a, path_dir);
+        t->log_performance(fs->agentID, path_dir);
     }
 }
 
 void TrialsState::end_generation() {
-    struct Fitness {
-        agent *a;
-        float score;
-    };
-    vector<Fitness> fitnesses;
+    db("END OF GENERATION " << generation_number);
+
+    prev_generation.clear();
     for(agent *a: generation_agents) {
-        fitnesses.push_back({a, compute_agent_fitness(a)});
-    }
-    sort(fitnesses.begin(), fitnesses.end(),
-         [](const Fitness &x, const Fitness &y) {
-             return y.score < x.score;
-         });
-         
-    generation_elites.clear();
-    for(Fitness fit: fitnesses) {
-        if(generation_elites.update(fit.a, fit.score) < 0)
-            break;
+        prev_generation.update(a, compute_agent_fitness(a));
     }
 
-    for(Fitness fit: fitnesses) {
-        if(global_elites.update(fit.a, fit.score) < 0) {
-            break;
+    for(int i = 0; i < prev_generation.size(); i++) {
+        FitStruct *fs = prev_generation.get(i);
+        if( elites.update(fs) >= 0 ) {
+            log_elite(fs);
         } else {
-            log_elite(fit.a, fit.score);
+            break;
         }
     }
 
-    db("END OF GENERATION " << generation_number);
-    db("  Generation fitness = " << fitnesses.front().score);
-    if(global_elites.size() > 0) {
-        db("  Global fitness = " << global_elites.get(0)->fitness);
+    db("  Generation fitness = " << prev_generation.get(0)->fitness);
+    if(elites.size() > 0) {
+        db("      Global fitness = " << elites.get(0)->fitness);
     }
 
     if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
@@ -872,15 +796,15 @@ void TrialsState::end_generation() {
         sprintf(path_dir, "run/generations/%ld", generation_number);
         makeDirs(path_dir);
 
-        if(global_elites.size() > 0) {
+        if(elites.size() > 0) {
             char path[512];
             sprintf(path, "%s/global-fitness.txt", path_dir);
-            log_fitness(path, global_elites);
+            log_fitness(path, elites);
         }
-        if(generation_elites.size() > 0) {
+        {
             char path[512];
             sprintf(path, "%s/generation-fitness.txt", path_dir);
-            log_fitness(path, generation_elites);
+            log_fitness(path, prev_generation);
         }
     }
 

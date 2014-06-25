@@ -258,7 +258,6 @@ agent::agent(TSimulation* sim, gstage* stage)
 agent::~agent()
 {
 //	delete fPolygon;
-	delete fGenome;
 	delete fCns;
 	delete fRandomSensor;
 	delete fEnergySensor;
@@ -469,7 +468,7 @@ void agent::setGenomeReady()
 	switch( Metabolism::selectionMode )
 	{
 	case Metabolism::Gene:
-		fMetabolism = GenomeUtil::getMetabolism( fGenome );
+		fMetabolism = GenomeUtil::getMetabolism( fGenome.get() );
 		break;
 	case Metabolism::Random:
 		{
@@ -563,7 +562,7 @@ void agent::grow( long mateWait )
 	// ---
 	// --- Grow Nervous System (Brain)
 	// ---
-	fCns->grow( fGenome );
+	fCns->grow( fGenome.get() );
 	logs->postEvent( BrainGrownEvent(this) );
 
 	fCns->prebirth();
@@ -781,7 +780,7 @@ Energy agent::damage(const Energy &e, bool nullMode)
 //---------------------------------------------------------------------------    
 float agent::MateProbability(agent* c)
 {
-	return fGenome->mateProbability(c->fGenome);
+	return fGenome->mateProbability(c->fGenome.get());
 }
 
 

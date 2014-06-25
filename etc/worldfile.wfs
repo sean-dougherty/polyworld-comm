@@ -128,13 +128,6 @@ SeedAgents {
   max     InitAgents
 }
 
-SeedAgents0 {
-  type    Int
-  defaults { default InitAgents; }
-  min     0
-  max     InitAgents
-}
-
 SeedMutationProbability {
   type    Float
   default 0.0
@@ -2681,13 +2674,6 @@ PairFrequency {
 NumberFittest {
   type    Int
   default 30
-}
-
-ProportionCrossoverGlobalElites {
-  type    Float
-  min     0.0
-  max     1.0
-  default 0.5
 }
 
 NumberRecentFittest {

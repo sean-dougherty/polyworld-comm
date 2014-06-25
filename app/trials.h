@@ -7,9 +7,10 @@
 
 #include <map>
 #include <vector>
+#include <random>
 
 #define TEST_INTERLUDE 10
-#define NTRIALS 20
+#define NTRIALS 6
 
 class agent;
 class TSimulation;
@@ -32,7 +33,7 @@ struct Test
                                  agent *a,
                                  int freq) = 0;
 
-    virtual void log_performance(agent *a,
+    virtual void log_performance(long agent_number,
                                  const char *path_dir) = 0;
 
     virtual void reset() = 0;
@@ -59,22 +60,20 @@ struct TrialsState
 private:
     long generation_number;
     std::vector<agent *> generation_agents;
-    FittestList global_elites;
-    FittestList generation_elites;
+    FittestList elites;
+    FittestList prev_generation;
 
-    vector<agent *> create_generation(size_t nagents,
-                                      size_t nseeds,
-                                      size_t ncrossover);
-    void init_generation_genomes(vector<agent *> &agents,
-                                 size_t nseeds,
-                                 size_t ncrossover);
+    vector<agent *> create_generation();
+    void init_generation0_genomes(vector<agent *> &agents);
+    void init_generation_genomes(vector<agent *> &next_generation,
+                                 std::default_random_engine &rng);
 
     void new_test();
     void new_trial();
     void new_generation();
     void end_generation();
 
-    void log_elite(agent *a, float score);
+    void log_elite(FitStruct *fs);
 };
 
 extern TrialsState *trials;

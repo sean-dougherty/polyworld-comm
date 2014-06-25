@@ -3,6 +3,7 @@
 
 // System
 #include <algorithm>
+#include <memory>
 
 // qt
 //#include <qrect.h>
@@ -225,7 +226,7 @@ public:
     long LastMate();
 	long LastEat();
 	float LastEatDistance();
-	genome::Genome* Genes();
+    std::shared_ptr<genome::Genome> Genes();
 	NervousSystem* GetNervousSystem();
     long Number();
 	float CurrentHeuristicFitness();
@@ -316,7 +317,7 @@ protected:
         bool *segmentVisited;
     } fCustomFitness;
 	
-	genome::Genome* fGenome;
+    std::shared_ptr<genome::Genome> fGenome;
 	struct GeneCache
 	{
 		float maxSpeed;
@@ -410,7 +411,7 @@ inline long agent::MaxAge() { return geneCache.lifespan; }
 inline long agent::LastMate() { return fLastMate; }
 inline long agent::LastEat() { return fLastEat; }
 inline float agent::LastEatDistance() { return dist( fPosition[0], fPosition[2], fLastEatPosition[0], fLastEatPosition[2] ); }
-inline genome::Genome* agent::Genes() { return fGenome; }
+inline shared_ptr<genome::Genome> agent::Genes() { return fGenome; }
 inline NervousSystem* agent::GetNervousSystem() { return fCns; }
 inline long agent::Number() { return getTypeNumber(); }
 // replace both occurences of 0.8 with actual estimate of fraction of lifespan agent will live

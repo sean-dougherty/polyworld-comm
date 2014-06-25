@@ -148,7 +148,7 @@ void Genome::mutate()
 void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
 {
 	assert(g1 != NULL && g2 != NULL);
-	assert(g1 != g2);
+	//assert(g1 != g2);
 	assert(mutable_data != NULL);
 
     // Randomly select number of crossover points from chosen genome

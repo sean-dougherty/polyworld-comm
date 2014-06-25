@@ -1005,7 +1005,7 @@ void TSimulation::InitAgents()
 				isSeed = true;
 
 				SeedGenome( c->Number(),
-							c->Genes(),
+							c->Genes().get(),
 							fDomains[id].probabilityOfMutatingSeeds,
 							numSeededDomain + numSeededTotal );
 				numSeededDomain++;
@@ -1073,7 +1073,7 @@ void TSimulation::InitAgents()
 			isSeed = true;
 
 			SeedGenome( c->Number(),
-						c->Genes(),
+						c->Genes().get(),
 						fProbabilityOfMutatingSeeds,
 						numSeededTotal );
 			numSeededTotal++;
@@ -2198,7 +2198,7 @@ void TSimulation::MateLockstep( void )
 		agent* e = agent::getfreeagent( this, &fStage );
 		Q_CHECK_PTR(e);
 
-		e->Genes()->crossover(c->Genes(), d->Genes(), true);
+		e->Genes()->crossover(c->Genes().get(), d->Genes().get(), true);
 		e->setGenomeReady();
 		e->grow( fMateWait );
 		Energy eenergy = c->mating( fMateFitnessParameter, fMateWait, /*lockstep*/ true )
@@ -2411,7 +2411,7 @@ void TSimulation::Mate( agent *c,
 				agent* e = agent::getfreeagent(this, &fStage);
 				Q_CHECK_PTR(e);
 
-				e->Genes()->crossover(c->Genes(), d->Genes(), true);
+				e->Genes()->crossover(c->Genes().get(), d->Genes().get(), true);
 				e->setGenomeReady();
 
 				Energy eenergy = c->mating( fMateFitnessParameter, fMateWait, /*lockstep*/ false )
@@ -3301,7 +3301,7 @@ void TSimulation::CreateAgents( void )
                     	&& ((fDomains[id].numcreated / fFitness1Frequency) * fFitness1Frequency == fDomains[id].numcreated) )
                     {
                         // revive 1 fittest
-                        newAgent->Genes()->copyFrom(fDomains[id].fittest->get(0)->genes);
+                        newAgent->Genes()->copyFrom(fDomains[id].fittest->get(0)->genes.get());
                         fNumberCreated1Fit++;
 						gaPrint( "%5ld: domain %d creation from one fittest (%4lu) %4ld\n", fStep, id, fDomains[id].fittest->get(0)->agentID, fNumberCreated1Fit );
                     }
@@ -3314,8 +3314,8 @@ void TSimulation::CreateAgents( void )
 							// using tournament selection
 							int parent1, parent2;
 							PickParentsUsingTournament(fDomains[id].fittest->size(), &parent1, &parent2);
-							newAgent->Genes()->crossover(fDomains[id].fittest->get(parent1)->genes,
-														 fDomains[id].fittest->get(parent2)->genes,
+							newAgent->Genes()->crossover(fDomains[id].fittest->get(parent1)->genes.get(),
+														 fDomains[id].fittest->get(parent2)->genes.get(),
 														 true);
 							fNumberCreated2Fit++;
 							gaPrint( "%5ld: domain %d creation from two (%d, %d) fittest (%4lu, %4lu) %4ld\n", fStep, id, parent1, parent2, fDomains[id].fittest->get(parent1)->agentID, fDomains[id].fittest->get(parent2)->agentID, fNumberCreated2Fit );
@@ -3323,8 +3323,8 @@ void TSimulation::CreateAgents( void )
 						else
 						{
 							// by iterating through the array of fittest
-							newAgent->Genes()->crossover(fDomains[id].fittest->get(fDomains[id].ifit)->genes,
-														 fDomains[id].fittest->get(fDomains[id].jfit)->genes,
+							newAgent->Genes()->crossover(fDomains[id].fittest->get(fDomains[id].ifit)->genes.get(),
+														 fDomains[id].fittest->get(fDomains[id].jfit)->genes.get(),
 														 true);
 							fNumberCreated2Fit++;
 							gaPrint( "%5ld: domain %d creation from two (%d, %d) fittest (%4lu, %4lu) %4ld\n", fStep, id, fDomains[id].ifit, fDomains[id].jfit, fDomains[id].fittest->get(fDomains[id].ifit)->agentID, fDomains[id].fittest->get(fDomains[id].jfit)->agentID, fNumberCreated2Fit );
@@ -3441,7 +3441,7 @@ void TSimulation::CreateAgents( void )
                 	&& ((numglobalcreated / fFitness1Frequency) * fFitness1Frequency == numglobalcreated) )
                 {
                     // revive 1 fittest
-                    newAgent->Genes()->copyFrom( fFittest->get(0)->genes );
+                    newAgent->Genes()->copyFrom( fFittest->get(0)->genes.get() );
                     fNumberCreated1Fit++;
 					gaPrint( "%5ld: global creation from one fittest (%4lu) %4ld\n", fStep, fFittest->get(0)->agentID, fNumberCreated1Fit );
                 }
@@ -3453,14 +3453,14 @@ void TSimulation::CreateAgents( void )
 						// using tournament selection
 						int parent1, parent2;
 						TSimulation::PickParentsUsingTournament(fFittest->size(), &parent1, &parent2);
-						newAgent->Genes()->crossover( fFittest->get(parent1)->genes, fFittest->get(parent2)->genes, true );
+						newAgent->Genes()->crossover( fFittest->get(parent1)->genes.get(), fFittest->get(parent2)->genes.get(), true );
 						fNumberCreated2Fit++;
 						gaPrint( "%5ld: global creation from two (%d, %d) fittest (%4lu, %4lu) %4ld\n", fStep, parent1, parent2, fFittest->get(parent1)->agentID, fFittest->get(parent2)->agentID, fNumberCreated2Fit );
 					}
 					else
 					{
 						// by iterating through the array of fittest
-						newAgent->Genes()->crossover( fFittest->get(fFitI)->genes, fFittest->get(fFitJ)->genes, true );
+						newAgent->Genes()->crossover( fFittest->get(fFitI)->genes.get(), fFittest->get(fFitJ)->genes.get(), true );
 						fNumberCreated2Fit++;
 						gaPrint( "%5ld: global creation from two (%d, %d) fittest (%4lu, %4lu) %4ld\n", fStep, fFitI, fFitJ, fFittest->get(fFitI)->agentID, fFittest->get(fFitJ)->agentID, fNumberCreated2Fit );
 						ijfitinc( fFittest->size(), &fFitI, &fFitJ );
@@ -4302,7 +4302,6 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 	fMaxNumAgents = doc.get( "MaxAgents" );
 	fInitNumAgents = doc.get( "InitAgents" );
 	fNumberToSeed = doc.get( "SeedAgents" );
-	fNumberToSeed0 = doc.get( "SeedAgents0" );
 	fProbabilityOfMutatingSeeds = doc.get( "SeedMutationProbability" );
 	fSeedFromFile = doc.get( "SeedGenomeFromRun" );
 	fPositionSeedsFromFile = doc.get( "SeedPositionFromRun" );
@@ -4346,7 +4345,6 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else
 			fFittest = NULL;
 	}
-    fProportionCrossoverGlobalElites = doc.get( "ProportionCrossoverGlobalElites" );
 	{
 		int numberRecentFittest = doc.get( "NumberRecentFittest" );
 		if( (numberRecentFittest > 0) && (fEpochFrequency > 0) )

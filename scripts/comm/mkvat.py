@@ -4,12 +4,9 @@ import sys
 
 InitSeed = 3 # RNG Seed
 
-InitAgents = 40 # Total number of random/seed agents in generation 0
-SeedAgents0 = 0 # Number of seed agents in generation 0
-SeedAgents =  0 # Number of seed agents in generations 1..N
-MutationRate = 0.02
-NumberFittest = 30
-ProportionCrossoverGlobalElites = 0.9
+MutationRate = 0.001
+MaxAgents = 500
+NumberFittest = 15
 
 args = sys.argv[1:]
 while True:
@@ -25,19 +22,20 @@ max_mutation = float(str(MutationRate) + "1")
 print '@version 2'
 
 print 'InitSeed', InitSeed
-print 'InitAgents', InitAgents
-print 'SeedAgents0', SeedAgents0
-print 'SeedAgents', SeedAgents
 print 'MinMutationRate', min_mutation
 print 'MaxMutationRate', max_mutation
 print 'NumberFittest', NumberFittest
-print 'ProportionCrossoverGlobalElites', ProportionCrossoverGlobalElites
+
+print """\
+MinAgents 1
+MaxAgents %d
+InitAgents %d
+SeedAgents %d
+""" % (MaxAgents, MaxAgents, MaxAgents)
 
 print """\
 Vision False
 
-MinAgents 1
-MaxAgents 150
 MinCrossoverPoints 1
 MaxCrossoverPoints 4
 

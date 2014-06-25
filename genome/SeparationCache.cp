@@ -75,7 +75,7 @@ float SeparationCache::createEntry( agent *a, agent *b )
 	if( it == entries.end() )
 	{
 		DB("  CACHE MISS\n");
-		result = a->Genes()->separation( b->Genes() );
+		result = a->Genes()->separation( b->Genes().get() );
 		entries[y->Number()] = result;
 	}
 	else

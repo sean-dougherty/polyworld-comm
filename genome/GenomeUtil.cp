@@ -70,25 +70,19 @@ GenomeSchema *GenomeUtil::createSchema()
 	layout = GenomeLayout::create( schema, GenomeSchema::config.layoutType );
 
 	
-#if false
-	//	schema->printIndexes( stdout );
-	Genome *g = schema->createGenome( layout );
-	exit( 0 );
-#endif
-
 	return schema;
 }
 
-Genome *GenomeUtil::createGenome( bool randomized )
+std::shared_ptr<Genome> GenomeUtil::createGenome( bool randomized )
 {
 	assert(schema);
 	assert(layout);
 
-	Genome *g = schema->createGenome( layout );
+	shared_ptr<Genome> g(schema->createGenome(layout));
 
 	if( randomized )
 	{
-		randomize( g );
+		randomize( g.get() );
 	}
 	
 	return g;

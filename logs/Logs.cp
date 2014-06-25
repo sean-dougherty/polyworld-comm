@@ -1222,7 +1222,7 @@ void Logs::GenomeLog::processEvent( const sim::AgentBirthEvent &birth )
 {
 	if( birth.reason != LifeSpan::BR_VIRTUAL )
 	{
-        log( "agents", birth.a->Genes(), birth.a->Number() );
+        log( "agents", birth.a->Genes().get(), birth.a->Number() );
 	}
 }
 
@@ -1233,7 +1233,7 @@ void Logs::GenomeLog::processEvent( const sim::AgentDeathEvent &death )
 {
 	if( death.reason == LifeSpan::DR_SIMEND )
 	{
-        log( "agents", death.a->Genes(), death.a->Number() );
+        log( "agents", death.a->Genes().get(), death.a->Number() );
 	}
 }
 
@@ -1251,7 +1251,7 @@ void Logs::GenomeLog::processEvent( const sim::SimEndEvent &end )
     for(int i = 0; i < fittest->size(); i++)
     {
         FitStruct *fs = fittest->get(i);
-        log( "Fittest", fs->genes, fs->agentID );
+        log( "Fittest", fs->genes.get(), fs->agentID );
         fprintf( ffitness, "%ld %f\n", fs->agentID, fs->fitness );
     }
 

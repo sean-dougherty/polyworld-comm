@@ -288,7 +288,6 @@ private:
 	Color fGroundColor;
 
     int fNumberFittest;
-    float fProportionCrossoverGlobalElites;
 	agent* fCurrentFittestAgent[MAXFITNESSITEMS];	// based on heuristic fitness
 	float fCurrentMaxFitness[MAXFITNESSITEMS];	// based on heuristic fitness
 	int fCurrentFittestCount = 0;
@@ -320,7 +319,6 @@ private:
 	long fMinNumAgentsWithMetabolism[ MAXMETABOLISMS ];
 	long fInitNumAgents;
 	long fNumberToSeed;
-	long fNumberToSeed0;
 	float fProbabilityOfMutatingSeeds;
 	bool fSeedFromFile;
 	std::vector<std::string> fSeedFilePaths;

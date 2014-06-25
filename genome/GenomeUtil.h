@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "Genome.h"
 #include "GroupsGenome.h"
 
@@ -15,7 +17,7 @@ namespace genome
 	{
 	public:
 		static GenomeSchema *createSchema();
-		static Genome *createGenome( bool randomized = false );
+		static std::shared_ptr<Genome> createGenome( bool randomized = false );
 		static void randomize( Genome *g );
 		static void seed( Genome *g );
 		static const Metabolism *getMetabolism( Genome *g );

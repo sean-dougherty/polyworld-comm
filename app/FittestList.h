@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <iostream>
+#include <memory>
 
 #include "Genome.h"
 
@@ -14,7 +15,7 @@ struct FitStruct
 	unsigned long	agentID;
 	float	fitness;
 	float   complexity;
-	genome::Genome *genes;
+    std::shared_ptr<genome::Genome> genes;
 };
 typedef struct FitStruct FitStruct;
 
@@ -28,6 +29,7 @@ class FittestList
 	virtual ~FittestList();
 
 	int update( class agent *candidate, float fitness );
+	int update( FitStruct *fs );
 
 	bool isFull();
 	void clear();

@@ -23,7 +23,6 @@ FittestList::FittestList( int capacity, bool storeGenome )
 	for( int i = 0; i < _capacity; i++ )
 	{
 		FitStruct *element = new FitStruct;
-		element->genes = NULL;
 		_elements[i] = element;
 	}
 
@@ -37,8 +36,6 @@ FittestList::~FittestList()
 {
 	for( int i = 0; i < _capacity; i++ )
 	{
-		if( _elements[i]->genes )
-			delete _elements[i]->genes;
 		delete _elements[i];
 	}
 	delete [] _elements;
@@ -49,12 +46,21 @@ FittestList::~FittestList()
 //---------------------------------------------------------------------------
 int FittestList::update( agent *candidate, float fitness )
 {
-	if( !isFull() || (_capacity > 0 && fitness > _elements[_size - 1]->fitness) )
+    FitStruct fs = {(unsigned long)candidate->Number(), fitness, candidate->Complexity(), candidate->Genes()};
+    return update( &fs );
+}
+
+//---------------------------------------------------------------------------
+// FittestList::update
+//---------------------------------------------------------------------------
+int FittestList::update( FitStruct *fs )
+{
+	if( !isFull() || (_capacity > 0 && fs->fitness > _elements[_size - 1]->fitness) )
 	{
 		int rank = -1;
 		for( int i = 0; i < _size; i++ )
 		{
-			if( fitness >= _elements[i]->fitness )
+			if( fs->fitness >= _elements[i]->fitness )
 			{
 				rank = i;
 				break;
@@ -68,10 +74,6 @@ int FittestList::update( agent *candidate, float fitness )
 
 		if( !isFull() )
 		{
-			// We're growing the list. We may or may not need to allocate a genome, depending
-			// on whether this list was previously a larger size but then cleared.
-			if( _storeGenome && (_elements[_size]->genes == NULL) )
-				_elements[_size]->genes = GenomeUtil::createGenome();
 			_size++;
 		}
 
@@ -80,11 +82,7 @@ int FittestList::update( agent *candidate, float fitness )
 			_elements[i] = _elements[i-1];
 		_elements[rank] = newElement;
 
-		newElement->fitness = fitness;
-		if( _storeGenome )
-			newElement->genes->copyFrom( candidate->Genes() );
-		newElement->agentID = candidate->Number();
-		newElement->complexity = candidate->Complexity();
+        *newElement = *fs;
 
         return rank;
 	}
