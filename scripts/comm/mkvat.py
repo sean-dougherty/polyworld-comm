@@ -2,11 +2,11 @@
 
 import sys
 
-InitSeed = 3 # RNG Seed
+InitSeed = 1 # RNG Seed
 
 MutationRate = 0.001
-MaxAgents = 500
-NumberFittest = 15
+MaxAgents = 1000
+NumberFittest = 10
 
 args = sys.argv[1:]
 while True:
