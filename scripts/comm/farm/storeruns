@@ -1,0 +1,10 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+for x in ~/vat/mnt/*; do
+    for y in $x/vat/polyworld-comm/trials-*; do
+        echo $y
+        mv $y $x/vat/runs
+    done
+done
