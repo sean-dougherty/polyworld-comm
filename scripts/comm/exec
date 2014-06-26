@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd . # deal with our current directory having been moved to srcbak underneath us.
+
+python scripts/comm/__exec.py "$@"
