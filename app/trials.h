@@ -39,6 +39,29 @@ struct Test
     virtual void reset() = 0;
 };
 
+struct Deme {
+    Deme(TSimulation *sim_, size_t id_, size_t nagents_, size_t nelites);
+
+    vector<agent *> create_generation(long generation_number_);
+    void init_generation0_genomes(vector<agent *> &agents);
+    void init_generation_genomes(vector<agent *> &next_generation);
+    void end_generation();
+
+    FitStruct *get_fittest();
+    void accept_immigrant(FitStruct *fs);
+
+    TSimulation *sim;
+
+    size_t id;
+    size_t nagents;
+    std::default_random_engine rng;
+
+    long generation_number = -1;
+    std::vector<agent *> generation_agents;
+    FittestList elites;
+    FittestList prev_generation;
+};
+
 struct TrialsState
 {
     TrialsState(TSimulation *sim_);
@@ -52,21 +75,18 @@ struct TrialsState
 
     std::vector<Test *> tests;
 
-    long test_number;
-    long trial_number;
-    long trial_timestep;
-    long trial_end_sim_step;
-    
-private:
-    long generation_number;
+    std::vector<Deme *> demes;
     std::vector<agent *> generation_agents;
     FittestList elites;
     FittestList prev_generation;
 
+    long test_number = -1;
+    long trial_number = -1;
+    long trial_timestep = -1;
+    long trial_end_sim_step = -1;    
+    long generation_number = -1;
+
     vector<agent *> create_generation();
-    void init_generation0_genomes(vector<agent *> &agents);
-    void init_generation_genomes(vector<agent *> &next_generation,
-                                 std::default_random_engine &rng);
 
     void new_test();
     void new_trial();

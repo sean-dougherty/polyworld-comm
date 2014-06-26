@@ -44,6 +44,7 @@ class TSimulation : public QObject
 
 public:
     friend class TrialsState;
+    friend class Deme;
 
 	TSimulation( std::string worldfilePath, std::string monitorPath );
 	virtual ~TSimulation();

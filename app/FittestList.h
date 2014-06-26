@@ -35,6 +35,7 @@ class FittestList
 	void clear();
 	int size();
     int capacity();
+    void dropLast();
 
 	// rank is 0-based
 	FitStruct *get( int rank );

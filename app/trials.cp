@@ -16,9 +16,11 @@ using namespace std;
 
 #if TRIALS
 
-#define GENERATION_LOG_FREQUENCY 20
-
+#define NDEMES 8
+#define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
+
+#define GENERATION_LOG_FREQUENCY 20
 
 #define DEBUG true
 
@@ -453,85 +455,6 @@ float metric_score(agent *a, Metric m) {
     return sum;
 }
 
-TrialsState::TrialsState(TSimulation *sim_)
-    : elites( sim_->fNumberFittest, true )
-    , prev_generation( sim_->fMaxNumAgents, true )
-{
-    sim = sim_;
-    generation_number = -1;
-    test_number = -1;
-    trial_number = -1;
-
-    normalize_test_weights();
-
-    for(ScoredTest *t: scored_tests) {
-        tests.push_back(t);
-    }
-    
-    sim->fMaxSteps = 0;
-}
-
-TrialsState::~TrialsState() {
-}
-
-vector<agent *> TrialsState::create_generation() {
-    db("CREATING NEW GENERATION");
-
-    size_t nagents = sim->fMaxNumAgents;
-
-    vector<agent *> agents;
-    for(size_t i = 0; i < nagents; i++) {
-        agent *a = agent::getfreeagent(sim, &sim->fStage);
-        a->setx(0.0f);
-        a->sety(0.0f);
-        a->setz(0.0f);
-
-        agents.push_back(a);
-        objectxsortedlist::gXSortedObjects.add(a);
-    }
-
-    if(generation_number == 0) {
-        init_generation0_genomes(agents);
-    } else {
-        default_random_engine rng(generation_number);
-        init_generation_genomes(agents, rng);
-    }
-    for(agent *a: agents) {
-        a->setGenomeReady();
-    }
-
-    class GrowAgents : public ITask {
-    public:
-        vector<agent *> &agents;
-
-        GrowAgents(vector<agent *> &agents_) : agents(agents_) {}
-
-        virtual void task_exec( TSimulation *sim ) {
-            class GrowAgent : public ITask {
-            public:
-                agent *a;
-                GrowAgent( agent *a ) {
-                    this->a = a;
-                }
-
-                virtual void task_exec( TSimulation *sim ) {
-                    a->grow( sim->fMateWait );
-                }
-            };
-
-            for(agent *a: agents) {
-                sim->fScheduler.postParallel(new GrowAgent(a));
-            }
-        }
-    } growAgents(agents);
-
-    sim->fScheduler.execMasterTask( sim,
-                                    growAgents,
-                                    false );
-
-    return agents;
-}
-
 namespace selection {
     typedef function<vector<pair<size_t, size_t>> (size_t nparents,
                                                    size_t nchildren,
@@ -583,14 +506,47 @@ namespace selection {
                                                    
 }
 
-void TrialsState::init_generation0_genomes(vector<agent *> &agents) {
+Deme::Deme(TSimulation *sim_, size_t id_, size_t nagents_, size_t nelites)
+    : sim( sim_ )
+    , id( id_ )
+    , nagents( nagents_ )
+    , elites( nelites, true)
+    , prev_generation( nagents, true)
+{
+}
+
+vector<agent *> Deme::create_generation(long generation_number_) {
+    assert(generation_number_ == generation_number + 1);
+    generation_number = generation_number_;
+
+    rng.seed( (id + 1) * (generation_number + 1) );
+
+    generation_agents.clear();
+    for(size_t i = 0; i < nagents; i++) {
+        agent *a = agent::getfreeagent(sim, &sim->fStage);
+        generation_agents.push_back(a);
+    }
+
+    if(generation_number == 0) {
+        init_generation0_genomes(generation_agents);
+    } else {
+        default_random_engine rng(generation_number);
+        init_generation_genomes(generation_agents);
+    }
+    for(agent *a: generation_agents) {
+        a->setGenomeReady();
+    }
+    
+    return generation_agents;
+}
+
+void Deme::init_generation0_genomes(vector<agent *> &agents) {
     for(agent *a: agents) {
         a->Genes()->randomize();
     }
 }
 
-void TrialsState::init_generation_genomes(vector<agent *> &next_generation,
-                                          default_random_engine &rng) {
+void Deme::init_generation_genomes(vector<agent *> &next_generation) {
     size_t nparents = size_t(prev_generation.size()) + size_t(elites.size());
     size_t nchildren = next_generation.size();
 
@@ -621,6 +577,104 @@ void TrialsState::init_generation_genomes(vector<agent *> &next_generation,
                                                get_parent(p.second),
                                                true);
     }
+}
+
+void Deme::end_generation() {
+    prev_generation.clear();
+    for(agent *a: generation_agents) {
+        prev_generation.update(a, compute_agent_fitness(a));
+    }
+
+    for(int i = 0; i < prev_generation.size(); i++) {
+        FitStruct *fs = prev_generation.get(i);
+        if( elites.update(fs) < 0 ) {
+            break;
+        }
+    }
+
+    generation_agents.clear();
+}
+
+FitStruct *Deme::get_fittest() {
+    return prev_generation.get(0);
+}
+
+void Deme::accept_immigrant(FitStruct *fs) {
+    prev_generation.dropLast();
+    prev_generation.update(fs);
+}
+
+TrialsState::TrialsState(TSimulation *sim_)
+    : sim( sim_ )
+    , elites( 1, true )
+    , prev_generation( NDEMES, true )
+{
+    sim = sim_;
+
+    normalize_test_weights();
+
+    for(ScoredTest *t: scored_tests) {
+        tests.push_back(t);
+    }
+    
+    sim->fMaxSteps = 0;
+
+    for(size_t i = 0; i < NDEMES; i++) {
+        demes.push_back( new Deme(sim,
+                                  i,
+                                  sim->fMaxNumAgents / NDEMES,
+                                  sim->fNumberFittest / NDEMES) );
+    }
+}
+
+TrialsState::~TrialsState() {
+}
+
+vector<agent *> TrialsState::create_generation() {
+    db("CREATING NEW GENERATION");
+
+    vector<agent *> agents;
+    for(Deme *deme: demes) {
+        for(agent *a: deme->create_generation(generation_number)) {
+            a->setx(0.0f);
+            a->sety(0.0f);
+            a->setz(0.0f);
+
+            agents.push_back(a);
+            objectxsortedlist::gXSortedObjects.add(a);
+        }
+    }
+
+    class GrowAgents : public ITask {
+    public:
+        vector<agent *> &agents;
+
+        GrowAgents(vector<agent *> &agents_) : agents(agents_) {}
+
+        virtual void task_exec( TSimulation *sim ) {
+            class GrowAgent : public ITask {
+            public:
+                agent *a;
+                GrowAgent( agent *a ) {
+                    this->a = a;
+                }
+
+                virtual void task_exec( TSimulation *sim ) {
+                    a->grow( sim->fMateWait );
+                }
+            };
+
+            for(agent *a: agents) {
+                sim->fScheduler.postParallel(new GrowAgent(a));
+            }
+        }
+    } growAgents(agents);
+
+    sim->fScheduler.execMasterTask( sim,
+                                    growAgents,
+                                    false );
+
+    return agents;
 }
 
 void TrialsState::timestep_begin() {
@@ -773,8 +827,9 @@ void TrialsState::end_generation() {
     db("END OF GENERATION " << generation_number);
 
     prev_generation.clear();
-    for(agent *a: generation_agents) {
-        prev_generation.update(a, compute_agent_fitness(a));
+    for(Deme *deme: demes) {
+        deme->end_generation();
+        prev_generation.update( deme->get_fittest() );
     }
 
     for(int i = 0; i < prev_generation.size(); i++) {
@@ -819,8 +874,13 @@ void TrialsState::end_generation() {
         t->reset();
     }
 
-    if( exists("run/stop") ) {
-        exit(0);
+    if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
+        FitStruct *immigrant = prev_generation.get(0);
+        db("PERFORMING MIGRATION (" << immigrant->agentID << " " << immigrant->fitness << ")");
+
+        for(Deme *deme: demes) {
+            deme->accept_immigrant( immigrant );
+        }
     }
 }
 
