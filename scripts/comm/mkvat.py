@@ -2,7 +2,7 @@
 
 import sys
 
-InitSeed = 3 # RNG Seed 
+InitSeed = 4 # RNG Seed 
 
 MutationRate = 0.005
 MaxAgents = 1000
