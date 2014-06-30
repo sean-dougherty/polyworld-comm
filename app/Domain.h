@@ -61,7 +61,7 @@ class Domain
 	int fNumLeastFit;
 	int fMaxNumLeastFit;
 	int fNumSmited;
-	class agent** fLeastFit;	// based on heuristic fitness
+	class agent** fLeastFit = nullptr;	// based on heuristic fitness
 
 	FoodPatch* whichFoodPatch( float x, float z );
 };

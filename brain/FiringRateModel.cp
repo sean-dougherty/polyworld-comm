@@ -11,15 +11,6 @@ using namespace std;
 
 using namespace genome;
 
-
-#define GaussianOutputNeurons 0
-#if GaussianOutputNeurons
-	#define GaussianActivationMean 0.0
-	#define GaussianActivationStandardDeviation 1.5
-	#define GaussianActivationVariance (GaussianActivationStandardDeviation * GaussianActivationStandardDeviation)
-#endif
-
-
 FiringRateModel::FiringRateModel( NervousSystem *cns )
 : BaseNeuronModel<Neuron, NeuronAttrs, Synapse>( cns )
 {
@@ -61,22 +52,6 @@ void FiringRateModel::update( bool bprint )
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))
         return;
 
-	IF_BPRINTED
-	(
-        printf("neuron (toneuron)  fromneuron   synapse   efficacy\n");
-        
-        for( i = dims->getFirstOutputNeuron(); i < dims->numNeurons; i++ )
-        {
-            for( k = neuron[i].startsynapses; k < neuron[i].endsynapses; k++ )
-            {
-				printf("%3d   %3d    %3d    %5ld    %f\n",
-					   i, synapse[k].toneuron, synapse[k].fromneuron,
-					   k, synapse[k].efficacy); 
-            }
-        }
-	)
-
-
 	for( i = dims->getFirstOutputNeuron(); i < dims->getFirstInternalNeuron(); i++ )
 	{
         newneuronactivation[i] = neuron[i].bias;
@@ -84,10 +59,8 @@ void FiringRateModel::update( bool bprint )
         {
             newneuronactivation[i] += synapse[k].efficacy *
                neuronactivation[synapse[k].fromneuron];
-		}              
-	#if GaussianOutputNeurons
-        newneuronactivation[i] = gaussian( newneuronactivation[i], GaussianActivationMean, GaussianActivationVariance );
-	#else
+		}
+
 		if( Brain::config.neuronModel == Brain::Configuration::TAU )
 		{
 			float tau = neuron[i].tau;
@@ -97,7 +70,6 @@ void FiringRateModel::update( bool bprint )
 		{
 			newneuronactivation[i] = logistic( newneuronactivation[i], Brain::config.logisticSlope );
 		}
-	#endif
 	}
 
 	long numneurons = dims->numNeurons;
@@ -110,7 +82,6 @@ void FiringRateModel::update( bool bprint )
             newactivation += synapse[k].efficacy *
                neuronactivation[synapse[k].fromneuron];
 		}
-        //newneuronactivation[i] = logistic(newneuronactivation[i], Brain::config.logisticSlope);
 
 		if( Brain::config.neuronModel == Brain::Configuration::TAU )
 		{
@@ -126,15 +97,6 @@ void FiringRateModel::update( bool bprint )
     }
 
     debugcheck( "after updating neurons" );
-
-	IF_BPRINT
-	(
-        printf("  i neuron[i].bias neuronactivation[i] newneuronactivation[i]\n");
-        for (i = 0; i < dims->numNeurons; i++)
-            printf( "%3d  %1.4f  %1.4f  %1.4f\n", i, neuron[i].bias, neuronactivation[i], newneuronactivation[i] );
-	)
-
-//	printf( "yaw activation = %g\n", newneuronactivation[yawneuron] );
 
     float learningrate;
 	long numsynapses = dims->numSynapses;

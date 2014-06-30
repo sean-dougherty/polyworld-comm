@@ -5,7 +5,7 @@ import sys
 InitSeed = 10 # RNG Seed 
 
 MutationRate = 0.005
-MaxAgents = 1000
+MaxAgents = 10
 NumberFittest = 0
 
 args = sys.argv[1:]

@@ -1519,11 +1519,13 @@ void TSimulation::UpdateAgents()
 
 		a->UpdateVision();
 		a->UpdateBrain();
+/*
 		if( !a->BeingCarried() )
 			fFoodEnergyOut += a->UpdateBody(fMoveFitnessParameter,
 											agent::config.speed2DPosition,
 											fSolidObjects,
 											NULL);
+*/
 	}
 }
 

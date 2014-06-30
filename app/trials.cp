@@ -16,9 +16,10 @@ using namespace std;
 
 #if TRIALS
 
-#define NDEMES 8
+#define NDEMES 1
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
+#define ALLOW_SELF_CROSSOVER true
 
 #define GENERATION_LOG_FREQUENCY 20
 
@@ -467,6 +468,23 @@ namespace selection {
                                             default_random_engine &rng) {
         uniform_int_distribution<size_t> dist(0, nparents - 1);
 
+#if ALLOW_SELF_CROSSOVER
+        auto select_parent = [&dist, &rng, &get_fitness] (size_t exclude) {
+            size_t winner = 0;
+            float winner_fitness = 0.0f;
+
+            for(int icandidate = 0; icandidate < TOURNAMENT_SIZE; icandidate++) {
+                size_t i = dist(rng);
+                float fitness = get_fitness(i);
+                if(fitness > winner_fitness) {
+                    winner = i;
+                    winner_fitness = fitness;
+                }
+            }
+
+            return winner;
+        };
+#else
         auto select_parent = [&dist, &rng, &get_fitness] (size_t exclude) {
             array<size_t, TOURNAMENT_SIZE + 1> excludes;
             excludes.fill(exclude);
@@ -492,6 +510,7 @@ namespace selection {
 
             return winner;
         };
+#endif
 
         vector<pair<size_t,size_t>> result;
         for(size_t i = 0; i < nchildren; i++) {
@@ -872,6 +891,10 @@ void TrialsState::end_generation() {
 
     for(Test *t: tests) {
         t->reset();
+    }
+
+    if( generation_number == 5 ) {
+        sim->End("DEBUG BRAINS");
     }
 
     if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
