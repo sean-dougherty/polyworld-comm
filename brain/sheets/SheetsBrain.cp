@@ -202,4 +202,6 @@ void SheetsBrain::grow( SheetsGenome *genome, SheetsModel *model )
 			_neuralnet->set_neuron_endsynapses( neuron->id, synapseIndex );
 		}
 	}
+
+    _neuralnet->complete();
 }

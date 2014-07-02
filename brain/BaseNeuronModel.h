@@ -124,6 +124,11 @@ class BaseNeuronModel : public NeuronModel
 
 	}
 
+    virtual void complete()
+    {
+        // no-op
+    }
+
 	virtual void dumpAnatomical( AbstractFile *file )
 	{
 		size_t	dimCM;

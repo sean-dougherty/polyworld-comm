@@ -52,6 +52,8 @@ class NeuronModel
 							  float efficacy,
 							  float lrate ) = 0;
 
+    virtual void complete() = 0;
+
 	virtual void update( bool bprint ) = 0;
 
 	virtual void dumpAnatomical( AbstractFile *file ) = 0;

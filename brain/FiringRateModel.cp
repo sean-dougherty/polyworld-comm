@@ -14,6 +14,7 @@ using namespace genome;
 FiringRateModel::FiringRateModel( NervousSystem *cns )
 : BaseNeuronModel<Neuron, NeuronAttrs, Synapse>( cns )
 {
+    assert(Brain::config.neuronModel == Brain::Configuration::TAU);
 }
 
 FiringRateModel::~FiringRateModel()
@@ -22,7 +23,6 @@ FiringRateModel::~FiringRateModel()
 
 void FiringRateModel::init_derived( float initial_activation )
 {
-
 	for( int i = 0; i < dims->numNeurons; i++ )
 		neuronactivation[i] = initial_activation;
 }
@@ -43,64 +43,49 @@ void FiringRateModel::set_neuron( int index,
 	n.tau = attrs->tau;
 }
 
+void FiringRateModel::complete()
+{
+    cuda.init(neuron, dims->numNeurons, dims->numInputNeurons,
+              synapse, dims->numSynapses);
+}
+
 void FiringRateModel::update( bool bprint )
 {
     debugcheck( "(firing-rate brain) on entry" );
 
-    short i;
-    long k;
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))
         return;
 
-	for( i = dims->getFirstOutputNeuron(); i < dims->getFirstInternalNeuron(); i++ )
-	{
-        newneuronactivation[i] = neuron[i].bias;
-        for( k = neuron[i].startsynapses; k < neuron[i].endsynapses; k++ )
-        {
-            newneuronactivation[i] += synapse[k].efficacy *
-               neuronactivation[synapse[k].fromneuron];
-		}
-
-		if( Brain::config.neuronModel == Brain::Configuration::TAU )
-		{
-			float tau = neuron[i].tau;
-			newneuronactivation[i] = (1.0 - tau) * neuronactivation[i]  +  tau * logistic( newneuronactivation[i], Brain::config.logisticSlope );
-		}
-		else
-		{
-			newneuronactivation[i] = logistic( newneuronactivation[i], Brain::config.logisticSlope );
-		}
-	}
-
 	long numneurons = dims->numNeurons;
+	long numsynapses = dims->numSynapses;
 	float logisticSlope = Brain::config.logisticSlope;
-    for( i = dims->getFirstInternalNeuron(); i < numneurons; i++ )
+
+    for( short i = dims->getFirstOutputNeuron(); i < numneurons; i++ )
     {
-		float newactivation = neuron[i].bias;
-        for( k = neuron[i].startsynapses; k < neuron[i].endsynapses; k++ )
-        {
-            newactivation += synapse[k].efficacy *
-               neuronactivation[synapse[k].fromneuron];
-		}
+		newneuronactivation[i] = neuron[i].bias;
+    }
 
-		if( Brain::config.neuronModel == Brain::Configuration::TAU )
-		{
-			float tau = neuron[i].tau;
-			newactivation = (1.0 - tau) * neuronactivation[i]  +  tau * logistic( newactivation, logisticSlope );
-		}
-		else
-		{
-			newactivation = logistic( newactivation, logisticSlope );
-		}
+    for( long k = 0; k < numsynapses; k++ ) {
+        FiringRateModel__Synapse &syn = synapse[k];
 
+        float fromactivation = neuronactivation[syn.fromneuron];
+        newneuronactivation[syn.toneuron] += syn.efficacy * fromactivation;
+    }
+
+    cuda.update(neuronactivation, newneuronactivation);
+
+    for( short i = dims->getFirstOutputNeuron(); i < numneurons; i++ )
+    {
+		float newactivation = newneuronactivation[i];
+        float tau = neuron[i].tau;
+        newactivation = (1.0 - tau) * neuronactivation[i]  +  tau * logistic( newactivation, logisticSlope );
         newneuronactivation[i] = newactivation;
     }
 
     debugcheck( "after updating neurons" );
 
     float learningrate;
-	long numsynapses = dims->numSynapses;
-    for (k = 0; k < numsynapses; k++)
+    for (long k = 0; k < numsynapses; k++)
     {
 		FiringRateModel__Synapse &syn = synapse[k];
 

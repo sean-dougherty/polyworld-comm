@@ -604,6 +604,8 @@ void GroupsBrain::grow()
 		+ Brain::config.maxsynapse2energy * float(_dims.numSynapses) / float(config.maxsynapses);
 
     debugcheck( "after setting up brain architecture" );
+
+    _neuralnet->complete();
 }
 
 //---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import inspect
 import os
 import re
 import sys
@@ -22,6 +23,18 @@ def init_env(env):
 		env.Append( FRAMEWORKPATH = [] )
 
 	return env
+
+################################################################################
+###
+### FUNCTION import_cuda
+###
+################################################################################
+def import_cuda(env):
+	thisFile = inspect.getabsfile(import_cuda)
+	thisDir = os.path.dirname(thisFile)
+	env['CUDA_TOOLKIT_PATH'] = '/usr/lib/nvidia-319'
+	env['CUDA_SDK_PATH'] = '/usr/lib/nvidia-319'
+	env.Tool('cuda', toolpath = [os.path.join(thisDir)])	
 
 ################################################################################
 ###

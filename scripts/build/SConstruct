@@ -4,7 +4,7 @@ import os
 import sys
 
 from scons_util import exclude, find, init_env, relocate_paths, export_dynamic
-from scons_util import import_OpenGL, import_OpenMP, import_GSL, import_Qt, import_zlib, import_pthread, import_dlsym, import_python
+from scons_util import import_OpenGL, import_OpenMP, import_GSL, import_Qt, import_zlib, import_pthread, import_dlsym, import_python, import_cuda
 
 SRCDIRS = ['src/' + x
 		   for x in ['agent',
@@ -44,6 +44,11 @@ def build_Polyworld(env):
 	sources = Flatten([find(srcdir,
 							name = '*.cp')
 					   for srcdir in srcdirs])
+
+	import_cuda(env)
+	sources += Flatten([find(srcdir,
+							 name = '*.cu')
+						for srcdir in srcdirs])
 
 	env.VariantDir(blddir, 'src', False)
 
