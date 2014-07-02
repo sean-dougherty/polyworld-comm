@@ -46,7 +46,8 @@ void FiringRateModel::set_neuron( int index,
 void FiringRateModel::complete()
 {
     cuda.init(neuron, dims->numNeurons, dims->numInputNeurons,
-              synapse, dims->numSynapses);
+              synapse, dims->numSynapses,
+              Brain::config.logisticSlope);
 }
 
 void FiringRateModel::update( bool bprint )
@@ -72,8 +73,6 @@ void FiringRateModel::update( bool bprint )
         newneuronactivation[syn.toneuron] += syn.efficacy * fromactivation;
     }
 
-    cuda.update(neuronactivation, newneuronactivation);
-
     for( short i = dims->getFirstOutputNeuron(); i < numneurons; i++ )
     {
 		float newactivation = newneuronactivation[i];
@@ -81,6 +80,8 @@ void FiringRateModel::update( bool bprint )
         newactivation = (1.0 - tau) * neuronactivation[i]  +  tau * logistic( newactivation, logisticSlope );
         newneuronactivation[i] = newactivation;
     }
+
+    cuda.update(neuronactivation, newneuronactivation);
 
     debugcheck( "after updating neurons" );
 
