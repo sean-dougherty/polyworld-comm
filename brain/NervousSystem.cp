@@ -52,8 +52,6 @@ void NervousSystem::update( bool bprint )
 	{
 		(*it)->sensor_update( bprint );
 	}	
-
-	b->update( bprint );
 }
 
 float NervousSystem::getEnergyUse()

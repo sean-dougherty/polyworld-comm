@@ -1505,18 +1505,15 @@ void TSimulation::UpdateAgents()
 	// processed, so we can't do our stage compilation or parallelization
 	// optimizations
 
-#if DEBUGCHECK
-	int pass = 0;
-#endif
+    assert(Brain::config.neuronModel == Brain::Configuration::TAU);
+
+    FiringRateModel::update();
+
+#if 0
 	agent* a;
 	objectxsortedlist::gXSortedObjects.reset();
 	while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a))
 	{
-	#if DEBUGCHECK
-		debugcheck( "in agent loop at age %ld, pass = %d, agent = %lu", fStep, pass, a->Number() );
-		pass++;
-	#endif
-
 		a->UpdateVision();
 		a->UpdateBrain();
 /*
@@ -1527,6 +1524,7 @@ void TSimulation::UpdateAgents()
 											NULL);
 */
 	}
+#endif
 }
 
 
@@ -1535,6 +1533,7 @@ void TSimulation::UpdateAgents()
 //---------------------------------------------------------------------------
 void TSimulation::UpdateAgents_StaticTimestepGeometry()
 {
+    assert(false);
 	if( fParallelBrains )
 	{
 		//************************************************************

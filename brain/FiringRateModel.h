@@ -14,6 +14,8 @@ class FiringRateModel : public BaseNeuronModel<FiringRateModel__Neuron, FiringRa
 	typedef FiringRateModel__Synapse Synapse;
 
  public:
+    static void update();
+
 	FiringRateModel( NervousSystem *cns );
 	virtual ~FiringRateModel();
 

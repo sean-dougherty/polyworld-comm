@@ -1,15 +1,30 @@
 #include "FiringRateModel.h"
 
+#include "agent.h"
 #include "debug.h"
 #include "Genome.h"
 #include "GenomeSchema.h"
+#include "Logs.h"
 #include "misc.h"
+#include "simtypes.h"
 
 #include "Brain.h" // temporary
 
 using namespace std;
+using namespace sim;
 
 using namespace genome;
+
+void FiringRateModel::update()
+{
+	agent* a;
+	objectxsortedlist::gXSortedObjects.reset();
+	while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
+        a->GetNervousSystem()->update(false);
+        a->GetBrain()->update(false);
+        logs->postEvent( BrainUpdatedEvent(a) );
+    }    
+}
 
 FiringRateModel::FiringRateModel( NervousSystem *cns )
 : BaseNeuronModel<Neuron, NeuronAttrs, Synapse>( cns )
@@ -45,7 +60,8 @@ void FiringRateModel::set_neuron( int index,
 
 void FiringRateModel::complete()
 {
-    cuda.init(neuron, dims->numNeurons, dims->numInputNeurons,
+    cuda.init(neuron, dims->numNeurons, dims->numInputNeurons, dims->numOutputNeurons,
+              neuronactivation,
               synapse, dims->numSynapses,
               Brain::config.logisticSlope,
               Brain::config.decayRate,
@@ -54,6 +70,15 @@ void FiringRateModel::complete()
 
 void FiringRateModel::update( bool bprint )
 {
+#if !EXEC_CPU
+    cuda.update(neuronactivation, newneuronactivation, synapse);
+
+    debugcheck( "after updating synapses" );
+
+    float* saveneuronactivation = neuronactivation;
+    neuronactivation = newneuronactivation;
+    newneuronactivation = saveneuronactivation;
+#else
     debugcheck( "(firing-rate brain) on entry" );
 
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))
@@ -128,4 +153,5 @@ void FiringRateModel::update( bool bprint )
     float* saveneuronactivation = neuronactivation;
     neuronactivation = newneuronactivation;
     newneuronactivation = saveneuronactivation;
+#endif
 }

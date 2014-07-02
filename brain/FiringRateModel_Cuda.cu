@@ -34,7 +34,8 @@ FiringRateModel_Cuda::~FiringRateModel_Cuda() {
 }
 
 void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
-                                short neurons_count, short input_neurons_count,
+                                short neurons_count, short input_neurons_count, short output_neurons_count,
+                                float *neuronactivation,
                                 FiringRateModel__Synapse *synapses,
                                 long synapses_count,
                                 float logistic_slope,
@@ -45,6 +46,7 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
 
     gpu.neurons_count = neurons_count;
     gpu.input_neurons_count = input_neurons_count;
+    gpu.output_neurons_count = output_neurons_count;
     gpu.synapses_count = synapses_count;
     gpu.logistic_slope = logistic_slope;
     gpu.decay_rate = decay_rate;
@@ -115,8 +117,12 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     xcuda( cudaMalloc((void**)&gpu.buffers.partitions, sizeof_partitions) );
     xcuda( cudaMemcpy(gpu.buffers.partitions, partitions, sizeof_partitions, cudaMemcpyHostToDevice) );
 
+    gpu.buffers.inputactivation = NULL;
+
     size_t sizeof_activation = sizeof(float) * neurons_count;
     xcuda( cudaMalloc((void **)&gpu.buffers.neuronactivation, sizeof_activation) );
+    xcuda( cudaMemcpy(gpu.buffers.neuronactivation, neuronactivation, sizeof_activation, cudaMemcpyHostToDevice) );
+
     xcuda( cudaMalloc((void **)&gpu.buffers.newneuronactivation, sizeof_activation) );
 
     xcuda( cudaMalloc((void**)&gpu.buffers.efficacy, sizeof(efficacy)) );
@@ -160,6 +166,10 @@ __global__ void update(FiringRateModel_Cuda::GpuState state) {
     float *neuronactivation = (float *)__shared_buf;
     float *newneuronactivation = neuronactivation + state.neurons_count;
     float *partial_activation = newneuronactivation + state.neurons_count;
+
+    if(tid < state.input_neurons_count) {
+        state.buffers.neuronactivation[tid] = state.buffers.inputactivation[tid];
+    }
 
     FiringRateModel_Cuda::Neuron neuron;
     if(tid < state.neurons_count) {
@@ -252,18 +262,49 @@ __global__ void update(FiringRateModel_Cuda::GpuState state) {
 void FiringRateModel_Cuda::update(float *neuronactivation,
                                   float *newneuronactivation,
                                   FiringRateModel__Synapse *synapses) {
-    xcuda( cudaMemcpy(gpu.buffers.neuronactivation, neuronactivation, sizeof(float)*gpu.neurons_count, cudaMemcpyHostToDevice) );
+
+    xcuda( cudaMalloc((void**)&gpu.buffers.inputactivation, sizeof(float) * gpu.input_neurons_count) );
+    xcuda( cudaMemcpy(gpu.buffers.inputactivation, neuronactivation, sizeof(float)*gpu.input_neurons_count, cudaMemcpyHostToDevice) );
 
     size_t sizeof_shared = (2 * gpu.neurons_count + Threads_Per_Block) * sizeof(float);
 
     ::update<<<1, Threads_Per_Block, sizeof_shared>>>( gpu );
 
+    xcuda( cudaFree(gpu.buffers.inputactivation) );
+    gpu.buffers.inputactivation = NULL;
+
+#if !EXEC_CPU
+    // todo: why do we need to copy the input neurons as well?
+    xcuda( cudaMemcpy(newneuronactivation,
+                      gpu.buffers.newneuronactivation,
+                      sizeof(float) * (gpu.output_neurons_count+gpu.input_neurons_count),
+                      cudaMemcpyDeviceToHost) );
+
+/*
+    xcuda( cudaMemcpy(newneuronactivation + gpu.input_neurons_count,
+                      gpu.buffers.newneuronactivation + gpu.input_neurons_count,
+                      sizeof(float) * gpu.output_neurons_count, cudaMemcpyDeviceToHost) );
+*/
+#else
+    static int it = -1;
+    it++;
+    
+    bool is_error = false;
+
     float test_activation[gpu.neurons_count];
     xcuda( cudaMemcpy(test_activation, gpu.buffers.newneuronactivation, sizeof(test_activation), cudaMemcpyDeviceToHost) );
     for(int i = gpu.input_neurons_count; i < gpu.neurons_count; i++) {
-        if(fabs((test_activation[i] - newneuronactivation[i]) / newneuronactivation[i]) > 0.00001) {
-            std::cerr << "bad neuron " << i << ": expected=" << newneuronactivation[i] << ", actual=" << test_activation[i] << std::endl;
+        float expected = newneuronactivation[i];
+        float actual = test_activation[i];
+        float error = fabs(actual - expected);
+        if(error > 0.20) {
+            std::cerr << "bad neuron " << i << ": expected=" << newneuronactivation[i] << ", actual=" << test_activation[i] << ", error=" << error << std::endl;
+            is_error = true;
+            break;
         }
+    }
+    for(int i = 0; i < gpu.neurons_count; i++) {
+        newneuronactivation[i] = test_activation[i];
     }
 
     float test_efficacy[gpu.synapses_count];
@@ -271,10 +312,24 @@ void FiringRateModel_Cuda::update(float *neuronactivation,
     for(int i = 0; i < gpu.synapses_count; i++) {
         float expected = synapses[i].efficacy;
         float actual = test_efficacy[i];
-        if(fabs((actual - expected) / expected) > 0.00001) {
-            std::cerr << "bad synapse " << i << ": expected=" << expected << ", actual=" << actual << std::endl;
+        float error = fabs(actual - expected);
+        if(error > 0.01) {
+            std::cerr << "bad synapse " << i << ": expected=" << expected << ", actual=" << actual << ", error=" << error << std::endl;
+            is_error = true;
+            break;
         }
+        synapses[i].efficacy = test_efficacy[i];
     }
 
-    exit(0);
+    if(is_error) {
+        std::cerr << "it=" << it << std::endl;
+        exit(0);
+    }
+#endif
+
+    {
+        float *swap = gpu.buffers.neuronactivation;
+        gpu.buffers.neuronactivation = gpu.buffers.newneuronactivation;
+        gpu.buffers.newneuronactivation = swap;
+    }
 }

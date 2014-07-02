@@ -1,5 +1,7 @@
 #pragma once
 
+#define EXEC_CPU false
+
 #include "FiringRateModel_Common.h"
 
 struct FiringRateModel_Cuda {
@@ -25,7 +27,8 @@ struct FiringRateModel_Cuda {
     ~FiringRateModel_Cuda();
 
     void init(FiringRateModel__Neuron *neurons,
-              short neurons_count, short input_neurons_count,
+              short neurons_count, short input_neurons_count, short output_neurons_count,
+              float *neuronactivation,
               FiringRateModel__Synapse *synapses,
               long synapses_count,
               float logistic_slope,
@@ -39,6 +42,7 @@ struct FiringRateModel_Cuda {
     struct GpuState {
         short neurons_count;
         short input_neurons_count;
+        short output_neurons_count;
         unsigned short partitions_count;
         long synapses_count;
         float logistic_slope;
@@ -50,6 +54,7 @@ struct FiringRateModel_Cuda {
             Synapse *synapses;
             NeuronActivationPartition *partitions;
             
+            float *inputactivation;
             float *neuronactivation;
             float *newneuronactivation;
             float *efficacy;
