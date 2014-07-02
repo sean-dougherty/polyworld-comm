@@ -12,7 +12,6 @@ struct FiringRateModel_Cuda {
     struct Synapse {
         short fromneuron;
         unsigned short partition;
-        float efficacy;
         float lrate;
     };
 
@@ -29,9 +28,13 @@ struct FiringRateModel_Cuda {
               short neurons_count, short input_neurons_count,
               FiringRateModel__Synapse *synapses,
               long synapses_count,
-              float logistic_slope);
+              float logistic_slope,
+              float decay_rate,
+              float max_weight);
 
-    void update(float *neuronactivation, float *newneuronactivation);
+    void update(float *neuronactivation,
+                float *newneuronactivation,
+                FiringRateModel__Synapse *synapses);
 
     struct GpuState {
         short neurons_count;
@@ -39,7 +42,8 @@ struct FiringRateModel_Cuda {
         unsigned short partitions_count;
         long synapses_count;
         float logistic_slope;
-        
+        float decay_rate;
+        float max_weight;
 
         struct {
             Neuron *neurons;
@@ -48,6 +52,7 @@ struct FiringRateModel_Cuda {
             
             float *neuronactivation;
             float *newneuronactivation;
+            float *efficacy;
         } buffers;
     } gpu;
 };

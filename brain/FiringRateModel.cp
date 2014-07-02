@@ -47,7 +47,9 @@ void FiringRateModel::complete()
 {
     cuda.init(neuron, dims->numNeurons, dims->numInputNeurons,
               synapse, dims->numSynapses,
-              Brain::config.logisticSlope);
+              Brain::config.logisticSlope,
+              Brain::config.decayRate,
+              Brain::config.maxWeight);
 }
 
 void FiringRateModel::update( bool bprint )
@@ -81,8 +83,6 @@ void FiringRateModel::update( bool bprint )
         newneuronactivation[i] = newactivation;
     }
 
-    cuda.update(neuronactivation, newneuronactivation);
-
     debugcheck( "after updating neurons" );
 
     float learningrate;
@@ -91,7 +91,7 @@ void FiringRateModel::update( bool bprint )
 		FiringRateModel__Synapse &syn = synapse[k];
 
 		learningrate = syn.lrate;
-
+        
 		float efficacy = syn.efficacy + learningrate
 			* (newneuronactivation[syn.toneuron]-0.5f)
 			* (   neuronactivation[syn.fromneuron]-0.5f);
@@ -120,6 +120,8 @@ void FiringRateModel::update( bool bprint )
 
 		syn.efficacy = efficacy;
     }
+
+    cuda.update(neuronactivation, newneuronactivation, synapse);
 
     debugcheck( "after updating synapses" );
 
