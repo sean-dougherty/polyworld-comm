@@ -440,7 +440,7 @@ void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
             AgentState &agent = agents[i];
             GpuState *gpu = &agent.model->gpu;
 
-            memcpy(agent.neuronactivation,
+            memcpy(agent.newneuronactivation,
                    all_inputoutput + inputoutput_offset[i],
                    (gpu->input_neurons_count + gpu->output_neurons_count) * sizeof(float));
         }
