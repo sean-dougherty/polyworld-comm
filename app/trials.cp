@@ -1,5 +1,6 @@
 #include "datalib.h"
 #include "GenomeUtil.h"
+#include "Logs.h"
 #include "PathDistance.h"
 #include "Retina.h"
 #include "trials.h"
@@ -884,6 +885,7 @@ void TrialsState::end_generation() {
 
     for(agent *a: generation_agents) {
         a->Die();
+        logs->postEvent( AgentDeathEvent(a, LifeSpan::DR_NATURAL) );
         delete a;
     }
 
