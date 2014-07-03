@@ -118,7 +118,7 @@ int main( int argc, char** argv )
 		*lastslash = 0;
 		if( 0 != strcmp(exe, getenv("PWD")) )
 		{
-			fprintf( stderr, "Must execute from directory containing binary: %s\n", exe );
+			fprintf( stderr, "Must execute from directory containing binary: %s. PWD=%s\n", exe, getenv("PWD") );
 			exit( 1 );
 		}
 	}

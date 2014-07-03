@@ -122,7 +122,7 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     xcuda( cudaMalloc((void**)&gpu.buffers.partitions, sizeof_partitions) );
     xcuda( cudaMemcpy(gpu.buffers.partitions, partitions, sizeof_partitions, cudaMemcpyHostToDevice) );
 
-    gpu.buffers.inputactivation = NULL;
+    gpu.buffers.input_activation = NULL;
 
     size_t sizeof_activation = sizeof(float) * neurons_count;
     xcuda( cudaMalloc((void **)&gpu.buffers.neuronactivation, sizeof_activation) );
@@ -175,7 +175,7 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
     float *partial_activation = newneuronactivation + state.neurons_count;
 
     if(tid < state.input_neurons_count) {
-        state.buffers.neuronactivation[tid] = state.buffers.inputactivation[tid];
+        state.buffers.neuronactivation[tid] = state.buffers.input_activation[tid];
     }
 
     FiringRateModel_Cuda::Neuron neuron;
@@ -261,8 +261,12 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
         state.buffers.efficacy[i] = efficacy;
     }
 
-    for(int i = tid; i < state.neurons_count; i += Threads_Per_Block) {
-        state.buffers.newneuronactivation[i] = newneuronactivation[i];
+    if(tid < state.neurons_count) {
+        state.buffers.newneuronactivation[tid] = newneuronactivation[tid];
+    }
+
+    if(tid < state.input_neurons_count + state.output_neurons_count) {
+        state.buffers.inputoutput_activation[tid] = newneuronactivation[tid];
     }
 }
 
@@ -270,15 +274,15 @@ void FiringRateModel_Cuda::update(float *neuronactivation,
                                   float *newneuronactivation,
                                   FiringRateModel__Synapse *synapses) {
 
-    xcuda( cudaMalloc((void**)&gpu.buffers.inputactivation, sizeof(float) * gpu.input_neurons_count) );
-    xcuda( cudaMemcpy(gpu.buffers.inputactivation, neuronactivation, sizeof(float)*gpu.input_neurons_count, cudaMemcpyHostToDevice) );
+    xcuda( cudaMalloc((void**)&gpu.buffers.input_activation, sizeof(float) * gpu.input_neurons_count) );
+    xcuda( cudaMemcpy(gpu.buffers.input_activation, neuronactivation, sizeof(float)*gpu.input_neurons_count, cudaMemcpyHostToDevice) );
 
     assert(false);
     //size_t sizeof_shared = (2 * gpu.neurons_count + Threads_Per_Block) * sizeof(float);
     //::update<<<1, Threads_Per_Block, sizeof_shared>>>( gpu );
 
-    xcuda( cudaFree(gpu.buffers.inputactivation) );
-    gpu.buffers.inputactivation = NULL;
+    xcuda( cudaFree(gpu.buffers.input_activation) );
+    gpu.buffers.input_activation = NULL;
 
 #if !EXEC_CPU
     // todo: why do we need to copy the input neurons as well?
@@ -345,25 +349,36 @@ static float *d_all_input = NULL;
 static uint total_input_neurons_count = 0;
 static uint *input_offset = NULL;
 
+static float *d_all_inputoutput = NULL;
+static uint total_inputoutput_neurons_count = 0;
+static uint *inputoutput_offset = NULL;
+
 typedef FiringRateModel_Cuda::AgentState AgentState;
 typedef FiringRateModel_Cuda::GpuState GpuState;
-static void alloc_input(AgentState *agents, long nagents) {
+static void alloc_inputoutput(AgentState *agents, long nagents) {
     if(changed) {
         if(d_all_input) {
             xcuda( cudaFree(d_all_input) );
             delete [] input_offset;
+
+            xcuda( cudaFree(d_all_inputoutput) );
+            delete [] inputoutput_offset;
         }
 
         input_offset = new uint[nagents];
+        inputoutput_offset = new uint[nagents];
 
         for(long i = 0; i < nagents; i++) {
             AgentState &agent = agents[i];
             GpuState *gpu = &agent.model->gpu;
             input_offset[i] = total_input_neurons_count;
             total_input_neurons_count += gpu->input_neurons_count;
+            inputoutput_offset[i] = total_inputoutput_neurons_count;
+            total_inputoutput_neurons_count += gpu->input_neurons_count + gpu->output_neurons_count;
         }
 
         xcuda( cudaMalloc((void**)&d_all_input, sizeof(float) * total_input_neurons_count) );
+        xcuda( cudaMalloc((void**)&d_all_inputoutput, sizeof(float) * total_inputoutput_neurons_count) );
 
         changed = false;
     }
@@ -371,17 +386,20 @@ static void alloc_input(AgentState *agents, long nagents) {
 
 void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
     {
-        alloc_input(agents, nagents);
+        alloc_inputoutput(agents, nagents);
 
         float all_input[total_input_neurons_count];
 
         for(long i = 0; i < nagents; i++) {
             AgentState &agent = agents[i];
             GpuState *gpu = &agent.model->gpu;
+
             memcpy(all_input + input_offset[i],
                    agent.neuronactivation,
                    gpu->input_neurons_count * sizeof(float));
-            gpu->buffers.inputactivation = d_all_input + input_offset[i];
+            gpu->buffers.input_activation = d_all_input + input_offset[i];
+
+            gpu->buffers.inputoutput_activation = d_all_inputoutput + inputoutput_offset[i];
         }
 
         xcuda( cudaMemcpy(d_all_input,
@@ -410,15 +428,22 @@ void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
 
     ::update<<<nagents, Threads_Per_Block, sizeof_shared>>>(d_gpus);
 
-    for(long i = 0; i < nagents; i++) {
-        AgentState &agent = agents[i];
-        GpuState &gpu = gpus[i];
-
+    {
+        float all_inputoutput[total_inputoutput_neurons_count];
         // todo: why do we need to copy the input neurons as well?
-        xcuda( cudaMemcpy(agent.newneuronactivation,
-                          gpu.buffers.newneuronactivation,
-                          sizeof(float) * (gpu.output_neurons_count+gpu.input_neurons_count),
+        xcuda( cudaMemcpy(all_inputoutput,
+                          d_all_inputoutput,
+                          sizeof(all_inputoutput),
                           cudaMemcpyDeviceToHost) );
+
+        for(long i = 0; i < nagents; i++) {
+            AgentState &agent = agents[i];
+            GpuState *gpu = &agent.model->gpu;
+
+            memcpy(agent.neuronactivation,
+                   all_inputoutput + inputoutput_offset[i],
+                   (gpu->input_neurons_count + gpu->output_neurons_count) * sizeof(float));
+        }
     }
 
     xcuda( cudaFree(d_gpus) );
