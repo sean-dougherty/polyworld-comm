@@ -202,16 +202,6 @@ void Brain::writeFunctional( AbstractFile *file )
 //---------------------------------------------------------------------------
 void Brain::prebirth()
 {
-    // now send some signals through the system
-    // try pure noise for now...
-    for( int i = 0; i < Brain::config.numPrebirthCycles; i++ )
-    {
-		_cns->prebirthSignal();
-
-		update( false );
-    }
-
-    debugcheck( "after prebirth cycling" );
 }
 
 //---------------------------------------------------------------------------

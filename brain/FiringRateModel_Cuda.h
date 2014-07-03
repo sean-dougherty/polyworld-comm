@@ -6,6 +6,14 @@
 
 struct FiringRateModel_Cuda {
 
+    struct AgentState {
+        FiringRateModel_Cuda *model;
+        float *neuronactivation;
+        float *newneuronactivation;
+    };
+
+    static void update(AgentState *agents, long nagents);
+
     struct Neuron {
         float bias;
         float tau;

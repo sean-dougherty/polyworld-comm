@@ -316,6 +316,15 @@ void objectxsortedlist::removeObjectWithLink( gobject* o )
 	return;
 }
 
+//---------------------------------------------------------------------------
+// objectxsortedlist::clear
+//---------------------------------------------------------------------------
+void objectxsortedlist::clear()
+{
+    gdlist::clear();
+    agentCount = foodCount = brickCount = 0;
+    markedAgent = markedFood = markedBrick = NULL;
+}
 
 //---------------------------------------------------------------------------
 // objectxsortedlist::sort

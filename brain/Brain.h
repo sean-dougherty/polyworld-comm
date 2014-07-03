@@ -119,6 +119,7 @@ public:
 	
 protected:
 	friend class agent;
+    friend class FiringRateModel;
 
 	NervousSystem *_cns;
 	NeuronModel::Dimensions _dims;

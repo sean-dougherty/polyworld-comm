@@ -36,6 +36,7 @@ class objectxsortedlist : public gdlist<gobject*>
     void add( gobject* a );
     void removeCurrentObject();
 	void removeObjectWithLink( gobject* o );
+    void clear();
     void sort();
     void list();
     int getCount( int objType );

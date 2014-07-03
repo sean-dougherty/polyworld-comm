@@ -158,8 +158,10 @@ static __device__ float logistic(float x, float slope) {
     return (1.0 / (1.0 + exp(-1 * x * slope)));
 }
 
-__global__ void update(FiringRateModel_Cuda::GpuState state) {
+__global__ void update(FiringRateModel_Cuda::GpuState *states) {
     int tid = threadIdx.x;
+
+    FiringRateModel_Cuda::GpuState state = states[blockIdx.x];
 
     extern __shared__ char __shared_buf[];
 
@@ -266,9 +268,9 @@ void FiringRateModel_Cuda::update(float *neuronactivation,
     xcuda( cudaMalloc((void**)&gpu.buffers.inputactivation, sizeof(float) * gpu.input_neurons_count) );
     xcuda( cudaMemcpy(gpu.buffers.inputactivation, neuronactivation, sizeof(float)*gpu.input_neurons_count, cudaMemcpyHostToDevice) );
 
-    size_t sizeof_shared = (2 * gpu.neurons_count + Threads_Per_Block) * sizeof(float);
-
-    ::update<<<1, Threads_Per_Block, sizeof_shared>>>( gpu );
+    assert(false);
+    //size_t sizeof_shared = (2 * gpu.neurons_count + Threads_Per_Block) * sizeof(float);
+    //::update<<<1, Threads_Per_Block, sizeof_shared>>>( gpu );
 
     xcuda( cudaFree(gpu.buffers.inputactivation) );
     gpu.buffers.inputactivation = NULL;
@@ -332,4 +334,57 @@ void FiringRateModel_Cuda::update(float *neuronactivation,
         gpu.buffers.neuronactivation = gpu.buffers.newneuronactivation;
         gpu.buffers.newneuronactivation = swap;
     }
+}
+
+void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
+    GpuState gpus[nagents];
+
+    for(long i = 0; i < nagents; i++) {
+        AgentState &agent = agents[i];
+        GpuState *gpu = &agent.model->gpu;
+
+        xcuda( cudaMalloc((void**)&gpu->buffers.inputactivation, sizeof(float) * gpu->input_neurons_count) );
+        xcuda( cudaMemcpy(gpu->buffers.inputactivation, agent.neuronactivation, sizeof(float)*gpu->input_neurons_count, cudaMemcpyHostToDevice) );
+
+        gpus[i] = *gpu;
+    }
+
+    GpuState *d_gpus;
+    xcuda( cudaMalloc((void**)&d_gpus, sizeof(gpus)) );
+    xcuda( cudaMemcpy(d_gpus, gpus, sizeof(gpus), cudaMemcpyHostToDevice) );
+
+    uint sizeof_shared = 0;
+    for(long i = 0; i < nagents; i++) {
+        GpuState &gpu = gpus[i];
+        sizeof_shared = max(sizeof_shared, uint((2 * gpu.neurons_count + Threads_Per_Block) * sizeof(float)));
+    }
+
+    ::update<<<nagents, Threads_Per_Block, sizeof_shared>>>(d_gpus);
+
+    for(long i = 0; i < nagents; i++) {
+        AgentState &agent = agents[i];
+        GpuState &gpu = gpus[i];
+
+        // todo: why do we need to copy the input neurons as well?
+        xcuda( cudaMemcpy(agent.newneuronactivation,
+                          gpu.buffers.newneuronactivation,
+                          sizeof(float) * (gpu.output_neurons_count+gpu.input_neurons_count),
+                          cudaMemcpyDeviceToHost) );
+    }
+
+    for(long i = 0; i < nagents; i++) {
+        GpuState &gpu = gpus[i];
+
+        xcuda( cudaFree(gpu.buffers.inputactivation) );
+    }
+    
+    xcuda( cudaFree(d_gpus) );
+
+    for(long i = 0; i < nagents; i++) {
+        GpuState *gpu = &agents[i].model->gpu;
+        float *swap = gpu->buffers.neuronactivation;
+        gpu->buffers.neuronactivation = gpu->buffers.newneuronactivation;
+        gpu->buffers.newneuronactivation = swap;
+    }
+    
 }
