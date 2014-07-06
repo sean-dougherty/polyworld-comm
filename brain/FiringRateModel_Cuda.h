@@ -57,7 +57,7 @@ struct FiringRateModel_Cuda {
             NeuronActivationPartition *partitions;
             
             float *input_activation;
-            float *inputoutput_activation;
+            float *output_activation;
             float *neuronactivation;
             float *newneuronactivation;
             float *efficacy;
