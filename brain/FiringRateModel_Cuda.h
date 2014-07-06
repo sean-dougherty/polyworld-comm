@@ -15,8 +15,10 @@ struct FiringRateModel_Cuda {
                                      long nagents,
                                      uint *input_offset,
                                      uint ninput,
+                                     float **all_input,
                                      uint *output_offset,
-                                     uint noutput);
+                                     uint noutput,
+                                     float **all_output);
     static void update_all(AgentState *agents,
                            long nagents,
                            float *all_input,

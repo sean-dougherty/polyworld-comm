@@ -46,8 +46,6 @@ void FiringRateModel::update()
             delete [] agents;
             delete [] input_offset;
             delete [] output_offset;
-            delete [] all_input;
-            delete [] all_output;
         }
 
         nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
@@ -81,12 +79,18 @@ void FiringRateModel::update()
                 output_offset[i] = total_output_neurons_count;
                 total_output_neurons_count += gpu->output_neurons_count;
             }
-        }
+        }        
+
+        FiringRateModel_Cuda::alloc_update_buffers(agents,
+                                                   nagents,
+                                                   input_offset,
+                                                   total_input_neurons_count,
+                                                   &all_input,
+                                                   output_offset,
+                                                   total_output_neurons_count,
+                                                   &all_output);
 
         {
-            all_input = new float[total_input_neurons_count];
-            all_output = new float[total_output_neurons_count];
-
             for(long i = 0; i < nagents; i++) {
                 agent *a = agents[i].a;
                 float *input_activations = all_input + input_offset[i];
@@ -101,14 +105,6 @@ void FiringRateModel::update()
                 }
             }
         }
-        
-
-        FiringRateModel_Cuda::alloc_update_buffers(agents,
-                                                   nagents,
-                                                   input_offset,
-                                                   total_input_neurons_count,
-                                                   output_offset,
-                                                   total_output_neurons_count);
 
         changed = false;
     }
