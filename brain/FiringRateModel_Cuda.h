@@ -69,7 +69,6 @@ struct FiringRateModel_Cuda {
             float *input_activation;
             float *output_activation;
             float *neuronactivation;
-            float *newneuronactivation;
             float *efficacy;
         } buffers;
     } gpu;
