@@ -34,6 +34,9 @@ static uint *input_offset = NULL;
 static uint total_output_neurons_count = 0;
 static uint *output_offset = NULL;
 
+static float *all_input = NULL;
+static float *all_output = NULL;
+
 void FiringRateModel::update()
 {
     double start = seconds();
@@ -43,6 +46,8 @@ void FiringRateModel::update()
             delete [] agents;
             delete [] input_offset;
             delete [] output_offset;
+            delete [] all_input;
+            delete [] all_output;
         }
 
         nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
@@ -78,6 +83,26 @@ void FiringRateModel::update()
             }
         }
 
+        {
+            all_input = new float[total_input_neurons_count];
+            all_output = new float[total_output_neurons_count];
+
+            for(long i = 0; i < nagents; i++) {
+                agent *a = agents[i].a;
+                float *input_activations = all_input + input_offset[i];
+                float *output_activations = all_output + output_offset[i] - agents[i].model->gpu.input_neurons_count;
+
+                for(Nerve *n: a->GetNervousSystem()->getNerves(Nerve::INPUT)) {
+                    n->config(input_activations);
+                }
+
+                for(Nerve *n: a->GetNervousSystem()->getNerves(Nerve::OUTPUT)) {
+                    n->config(output_activations);
+                }
+            }
+        }
+        
+
         FiringRateModel_Cuda::alloc_update_buffers(agents,
                                                    nagents,
                                                    input_offset,
@@ -92,31 +117,7 @@ void FiringRateModel::update()
         agents[i].a->GetNervousSystem()->update(false);
     }
 
-    float all_input[total_input_neurons_count];
-    {
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-
-            memcpy(all_input + input_offset[i],
-                   agent.neuronactivation,
-                   gpu->input_neurons_count * sizeof(float));
-        }
-    }
-    float all_output[total_output_neurons_count];
-
     FiringRateModel_Cuda::update_all(agents, nagents, all_input, all_output);
-
-    {
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-
-            memcpy(agent.neuronactivation + gpu->input_neurons_count,
-                   all_output + output_offset[i],
-                   (gpu->output_neurons_count) * sizeof(float));
-        }
-    }
 
     for(long i = 0; i < nagents; i++) {
         logs->postEvent( BrainUpdatedEvent(agents[i].a) );
