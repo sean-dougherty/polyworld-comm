@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#define Threads_Per_Block 512
+#define Threads_Per_Block 1024
 #define MAX_SYNAPSES_PER_THREAD 256
 #define MAX_NEURONS Threads_Per_Block
 

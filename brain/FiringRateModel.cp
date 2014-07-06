@@ -7,6 +7,7 @@
 #include "Logs.h"
 #include "misc.h"
 #include "simtypes.h"
+#include "timer.h"
 
 #include "Brain.h" // temporary
 
@@ -17,8 +18,11 @@ using namespace sim;
 
 using namespace genome;
 
+double brain_time = 0.0;
+
 void FiringRateModel::update()
 {
+    double start = seconds();
 /*
     long nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
     size_t input_size = 0;
@@ -82,7 +86,9 @@ void FiringRateModel::update()
         while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
             logs->postEvent( BrainUpdatedEvent(a) );
         }
-    }    
+    }
+
+    brain_time += seconds() - start;
 }
 
 FiringRateModel::FiringRateModel( NervousSystem *cns )

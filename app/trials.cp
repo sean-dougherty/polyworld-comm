@@ -6,6 +6,7 @@
 #include "trials.h"
 #include "Simulation.h"
 #include "SoundPatch.h"
+#include "timer.h"
 
 #include <algorithm>
 #include <functional>
@@ -34,8 +35,10 @@ using namespace std;
 
 TrialsState *trials = nullptr;
 
-float mean(vector<float> scores);
-float stddev(vector<float> scores);
+template<typename T>
+T mean(vector<T> scores);
+template<typename T>
+T stddev(vector<T> scores);
 float covariance(vector<float> &x, vector<float> &y);
 void shuffle(vector<int> &x, int seed);
 
@@ -776,11 +779,24 @@ void TrialsState::new_test() {
 }
 
 void TrialsState::new_generation() {
+    static double prev_start = 0.0;
+    double start = seconds();
+
     if(generation_number != -1) {
         end_generation();
+        cout << "time to execute previous generation = " << start - prev_start << endl;
+        extern double brain_time;
+        static vector<double> brain_times;
+        brain_times.push_back(brain_time);
+        cout << "time to execute brains = " << brain_time << ", mean = " << mean(brain_times) << ", stddev = " << stddev(brain_times) << endl;
+        brain_time = 0.0;
     }
+    prev_start = start;
+
     generation_number++;
     generation_agents = create_generation();
+
+    cout << "time to make new generation = " << seconds() - start << endl;
 
     freq_sequence.clear();
     for(int freq = 0; freq < 2; freq++) {
@@ -909,22 +925,24 @@ void TrialsState::end_generation() {
     }
 }
 
-float mean(vector<float> scores) {
-    float sum = 0.0f;
+template<typename T>
+T mean(vector<T> scores) {
+    T sum = 0.0;
     for(auto x: scores)
         sum += x;
     return sum / scores.size();
 }
 
-float stddev(vector<float> scores) {
-    const float N = scores.size();
-    float sum = 0.0f;
-    float sum2 = 0.0f;
+template<typename T>
+T stddev(vector<T> scores) {
+    const T N = scores.size();
+    T sum = 0.0;
+    T sum2 = 0.0;
     for(auto x: scores) {
         sum += x;
         sum2 += x*x;
     }
-    float result = sqrt( (sum2 - (sum*sum) / N) / N );
+    T result = sqrt( (sum2 - (sum*sum) / N) / N );
     return result;
 }
 
