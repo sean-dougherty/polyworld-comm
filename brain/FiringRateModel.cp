@@ -135,15 +135,6 @@ void FiringRateModel::complete()
 
 void FiringRateModel::update( bool bprint )
 {
-#if !EXEC_CPU
-    cuda.update(neuronactivation, newneuronactivation, synapse);
-
-    debugcheck( "after updating synapses" );
-
-    float* saveneuronactivation = neuronactivation;
-    neuronactivation = newneuronactivation;
-    newneuronactivation = saveneuronactivation;
-#else
     debugcheck( "(firing-rate brain) on entry" );
 
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))
@@ -211,12 +202,9 @@ void FiringRateModel::update( bool bprint )
 		syn.efficacy = efficacy;
     }
 
-    cuda.update(neuronactivation, newneuronactivation, synapse);
-
     debugcheck( "after updating synapses" );
 
     float* saveneuronactivation = neuronactivation;
     neuronactivation = newneuronactivation;
     newneuronactivation = saveneuronactivation;
-#endif
 }

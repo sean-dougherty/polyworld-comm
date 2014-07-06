@@ -1,7 +1,5 @@
 #pragma once
 
-#define EXEC_CPU false
-
 #include "FiringRateModel_Common.h"
 
 struct FiringRateModel_Cuda {
@@ -42,10 +40,6 @@ struct FiringRateModel_Cuda {
               float logistic_slope,
               float decay_rate,
               float max_weight);
-
-    void update(float *neuronactivation,
-                float *newneuronactivation,
-                FiringRateModel__Synapse *synapses);
 
     struct GpuState {
         short neurons_count;
