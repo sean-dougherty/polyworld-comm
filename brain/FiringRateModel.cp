@@ -50,6 +50,7 @@ void FiringRateModel::update()
                 as.newneuronactivation = model->newneuronactivation;
             }
         }
+        changed = false;
     }
 
     for(long i = 0; i < nagents; i++) {
