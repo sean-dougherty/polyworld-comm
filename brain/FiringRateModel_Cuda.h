@@ -5,6 +5,7 @@
 struct FiringRateModel_Cuda {
 
     struct AgentState {
+        class agent *a;
         FiringRateModel_Cuda *model;
         float *neuronactivation;
         float *newneuronactivation;

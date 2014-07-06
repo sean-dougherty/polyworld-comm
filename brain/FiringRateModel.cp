@@ -20,61 +20,46 @@ using namespace genome;
 
 double brain_time = 0.0;
 
+typedef FiringRateModel_Cuda::AgentState AgentState;
+typedef FiringRateModel_Cuda::GpuState GpuState;
+
+static bool changed = false;
+static AgentState *agents = nullptr;
+static long nagents = 0;
+
 void FiringRateModel::update()
 {
     double start = seconds();
-/*
-    long nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
-    size_t input_size = 0;
-    FiringRateModel_Cuda::AgentInput input[nagents];
-    {
-        agent* a;
-        objectxsortedlist::gXSortedObjects.reset();
-        int i = 0;
-        while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-            FiringRateModel_Cuda::AgentInput &ai = input[i++];
-            FiringRateModel *model = dynamic_cast<FiringRateModel *>(a->GetBrain()->_neuralnet);
-            ai.model = &model->cuda;
-            ai.activations = model->neuronactivation;
-            ai.buffer_offset = input_size;
-            input_size += model->dims->numInputNeurons;
-        }
-    }
-*/
-    {
-        agent* a;
-        objectxsortedlist::gXSortedObjects.reset();
-        while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-            a->GetNervousSystem()->update(false);
-        }
-    }    
 
-    {
-        long nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
-        FiringRateModel_Cuda::AgentState agents[nagents];
+    if(changed) {
+        if(agents)
+            delete [] agents;
+
+        nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
+        agents = new AgentState[nagents];
         {
-            agent* a;
             objectxsortedlist::gXSortedObjects.reset();
             long i = 0;
+            agent *a;
             while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
                 FiringRateModel_Cuda::AgentState &as = agents[i++];
                 FiringRateModel *model = dynamic_cast<FiringRateModel *>(a->GetBrain()->_neuralnet);
+                as.a = a;
                 as.model = &model->cuda;
-                assert(as.model);
                 as.neuronactivation = model->neuronactivation;
                 as.newneuronactivation = model->newneuronactivation;
             }
         }
+    }
 
-        FiringRateModel_Cuda::update(agents, nagents);
-    }    
+    for(long i = 0; i < nagents; i++) {
+        agents[i].a->GetNervousSystem()->update(false);
+    }
 
-    {
-        agent* a;
-        objectxsortedlist::gXSortedObjects.reset();
-        while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-            logs->postEvent( BrainUpdatedEvent(a) );
-        }
+    FiringRateModel_Cuda::update(agents, nagents);
+
+    for(long i = 0; i < nagents; i++) {
+        logs->postEvent( BrainUpdatedEvent(agents[i].a) );
     }
 
     brain_time += seconds() - start;
@@ -84,10 +69,12 @@ FiringRateModel::FiringRateModel( NervousSystem *cns )
 : BaseNeuronModel<Neuron, NeuronAttrs, Synapse>( cns )
 {
     assert(Brain::config.neuronModel == Brain::Configuration::TAU);
+    changed = true;
 }
 
 FiringRateModel::~FiringRateModel()
 {
+    changed = true;
 }
 
 void FiringRateModel::init_derived( float initial_activation )
