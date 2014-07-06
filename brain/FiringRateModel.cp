@@ -24,19 +24,30 @@ typedef FiringRateModel_Cuda::AgentState AgentState;
 typedef FiringRateModel_Cuda::GpuState GpuState;
 
 static bool changed = false;
+
 static AgentState *agents = nullptr;
 static long nagents = 0;
+
+static uint total_input_neurons_count = 0;
+static uint *input_offset = NULL;
+
+static uint total_output_neurons_count = 0;
+static uint *output_offset = NULL;
 
 void FiringRateModel::update()
 {
     double start = seconds();
 
     if(changed) {
-        if(agents)
+        if(agents) {
             delete [] agents;
+            delete [] input_offset;
+            delete [] output_offset;
+        }
 
         nagents = objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE);
         agents = new AgentState[nagents];
+
         {
             objectxsortedlist::gXSortedObjects.reset();
             long i = 0;
@@ -50,6 +61,30 @@ void FiringRateModel::update()
                 as.newneuronactivation = model->newneuronactivation;
             }
         }
+
+        {
+            input_offset = new uint[nagents];
+            output_offset = new uint[nagents];
+            total_input_neurons_count = 0;
+            total_output_neurons_count = 0;
+
+            for(long i = 0; i < nagents; i++) {
+                AgentState &agent = agents[i];
+                GpuState *gpu = &agent.model->gpu;
+                input_offset[i] = total_input_neurons_count;
+                total_input_neurons_count += gpu->input_neurons_count;
+                output_offset[i] = total_output_neurons_count;
+                total_output_neurons_count += gpu->output_neurons_count;
+            }
+        }
+
+        FiringRateModel_Cuda::alloc_update_buffers(agents,
+                                                   nagents,
+                                                   input_offset,
+                                                   total_input_neurons_count,
+                                                   output_offset,
+                                                   total_output_neurons_count);
+
         changed = false;
     }
 
@@ -57,7 +92,31 @@ void FiringRateModel::update()
         agents[i].a->GetNervousSystem()->update(false);
     }
 
-    FiringRateModel_Cuda::update(agents, nagents);
+    float all_input[total_input_neurons_count];
+    {
+        for(long i = 0; i < nagents; i++) {
+            AgentState &agent = agents[i];
+            GpuState *gpu = &agent.model->gpu;
+
+            memcpy(all_input + input_offset[i],
+                   agent.neuronactivation,
+                   gpu->input_neurons_count * sizeof(float));
+        }
+    }
+    float all_output[total_output_neurons_count];
+
+    FiringRateModel_Cuda::update_all(agents, nagents, all_input, all_output);
+
+    {
+        for(long i = 0; i < nagents; i++) {
+            AgentState &agent = agents[i];
+            GpuState *gpu = &agent.model->gpu;
+
+            memcpy(agent.neuronactivation + gpu->input_neurons_count,
+                   all_output + output_offset[i],
+                   (gpu->output_neurons_count) * sizeof(float));
+        }
+    }
 
     for(long i = 0; i < nagents; i++) {
         logs->postEvent( BrainUpdatedEvent(agents[i].a) );

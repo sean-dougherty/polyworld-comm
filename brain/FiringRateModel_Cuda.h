@@ -11,7 +11,16 @@ struct FiringRateModel_Cuda {
         float *newneuronactivation;
     };
 
-    static void update(AgentState *agents, long nagents);
+    static void alloc_update_buffers(AgentState *agents,
+                                     long nagents,
+                                     uint *input_offset,
+                                     uint ninput,
+                                     uint *output_offset,
+                                     uint noutput);
+    static void update_all(AgentState *agents,
+                           long nagents,
+                           float *all_input,
+                           float *all_output);
 
     struct Neuron {
         float bias;

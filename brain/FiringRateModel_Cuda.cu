@@ -18,11 +18,8 @@
         }                                                               \
     }
 
-static bool changed = false;
-
 FiringRateModel_Cuda::FiringRateModel_Cuda() {
     memset(&gpu.buffers, 0, sizeof(gpu.buffers));
-    changed = true;
 }
 
 FiringRateModel_Cuda::~FiringRateModel_Cuda() {
@@ -34,8 +31,6 @@ FiringRateModel_Cuda::~FiringRateModel_Cuda() {
     FREE(neuronactivation);
     FREE(newneuronactivation);
     FREE(efficacy);
-
-    changed = true;
 }
 
 void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
@@ -274,80 +269,57 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
 typedef FiringRateModel_Cuda::AgentState AgentState;
 typedef FiringRateModel_Cuda::GpuState GpuState;
 
-static float *d_all_input = NULL;
-static uint total_input_neurons_count = 0;
-static uint *input_offset = NULL;
-
-static float *d_all_output = NULL;
-static uint total_output_neurons_count = 0;
-static uint *output_offset = NULL;
-
 static GpuState *d_gpus;
 static uint sizeof_shared = 0;
+static float *d_all_input = NULL;
+static uint sizeof_input = 0;
+static float *d_all_output = NULL;
+static uint sizeof_output = 0;
 
-static void alloc_agents(AgentState *agents, long nagents) {
-    if(changed) {
-        if(d_all_input) {
-            xcuda( cudaFree(d_all_input) );
-            delete [] input_offset;
+void FiringRateModel_Cuda::alloc_update_buffers(AgentState *agents,
+                                                long nagents,
+                                                uint *input_offset,
+                                                uint ninput,
+                                                uint *output_offset,
+                                                uint noutput) {
+    if(d_all_input) {
+        xcuda( cudaFree(d_gpus) );
+        xcuda( cudaFree(d_all_input) );
+        xcuda( cudaFree(d_all_output) );
+    }
 
-            xcuda( cudaFree(d_all_output) );
-            delete [] output_offset;
+    sizeof_input = ninput * sizeof(float);
+    sizeof_output = noutput * sizeof(float);
 
-            xcuda( cudaFree(d_gpus) );
-        }
+    sizeof_shared = 0;
+    for(long i = 0; i < nagents; i++) {
+        AgentState &agent = agents[i];
+        GpuState *gpu = &agent.model->gpu;
+        uint sizeof_agent = uint((2 * gpu->neurons_count + Threads_Per_Block) * sizeof(float));
+        sizeof_shared = max(sizeof_shared, sizeof_agent);
+    }
 
-        input_offset = new uint[nagents];
-        output_offset = new uint[nagents];
+    xcuda( cudaMalloc((void**)&d_gpus, sizeof(GpuState) * nagents) );
+    xcuda( cudaMalloc((void**)&d_all_input, sizeof_input) );
+    xcuda( cudaMalloc((void**)&d_all_output, sizeof_output) );
 
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-            input_offset[i] = total_input_neurons_count;
-            total_input_neurons_count += gpu->input_neurons_count;
-            output_offset[i] = total_output_neurons_count;
-            total_output_neurons_count += gpu->output_neurons_count;
-        }
-
-        xcuda( cudaMalloc((void**)&d_all_input, sizeof(float) * total_input_neurons_count) );
-        xcuda( cudaMalloc((void**)&d_all_output, sizeof(float) * total_output_neurons_count) );
-        xcuda( cudaMalloc((void**)&d_gpus, sizeof(GpuState) * nagents) );
-
-        sizeof_shared = 0;
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-            uint sizeof_agent = uint((2 * gpu->neurons_count + Threads_Per_Block) * sizeof(float));
-            sizeof_shared = max(sizeof_shared, sizeof_agent);
-        }
-
-        changed = false;
+    for(long i = 0; i < nagents; i++) {
+        AgentState &agent = agents[i];
+        GpuState *gpu = &agent.model->gpu;
+        gpu->buffers.input_activation = d_all_input + input_offset[i];
+        gpu->buffers.output_activation = d_all_output + output_offset[i];
     }
 }
 
-void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
-    {
-        alloc_agents(agents, nagents);
+void FiringRateModel_Cuda::update_all(AgentState *agents,
+                                      long nagents,
+                                      float *all_input,
+                                      float *all_output) {
 
-        float all_input[total_input_neurons_count];
-
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-
-            memcpy(all_input + input_offset[i],
-                   agent.neuronactivation,
-                   gpu->input_neurons_count * sizeof(float));
-            gpu->buffers.input_activation = d_all_input + input_offset[i];
-
-            gpu->buffers.output_activation = d_all_output + output_offset[i];
-        }
-
-        xcuda( cudaMemcpy(d_all_input,
-                          all_input,
-                          sizeof(float)*total_input_neurons_count,
-                          cudaMemcpyHostToDevice) );
-    }
+    xcuda( cudaMemcpy(d_all_input,
+                      all_input,
+                      sizeof_input,
+                      cudaMemcpyHostToDevice) );
 
     GpuState gpus[nagents];
     for(long i = 0; i < nagents; i++) {
@@ -360,22 +332,10 @@ void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
 
     ::update<<<nagents, Threads_Per_Block, sizeof_shared>>>(d_gpus);
 
-    {
-        float all_output[total_output_neurons_count];
-        xcuda( cudaMemcpy(all_output,
-                          d_all_output,
-                          sizeof(all_output),
-                          cudaMemcpyDeviceToHost) );
-
-        for(long i = 0; i < nagents; i++) {
-            AgentState &agent = agents[i];
-            GpuState *gpu = &agent.model->gpu;
-
-            memcpy(agent.neuronactivation + gpu->input_neurons_count,
-                   all_output + output_offset[i],
-                   (gpu->output_neurons_count) * sizeof(float));
-        }
-    }
+    xcuda( cudaMemcpy(all_output,
+                      d_all_output,
+                      sizeof_output,
+                      cudaMemcpyDeviceToHost) );
 
     for(long i = 0; i < nagents; i++) {
         GpuState *gpu = &agents[i].model->gpu;
