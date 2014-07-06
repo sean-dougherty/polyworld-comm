@@ -12,13 +12,6 @@ class Nerve
 		__NTYPES
 	};
 
-	enum ActivationBuffer
-	{
-		CURRENT = 0,
-		SWAP,
-		__NBUFFERS
-	};
-
 	const Type type;
 	const std::string name;
 
@@ -30,24 +23,20 @@ class Nerve
 		   int igroup );
 
  public:
-	float get( int ineuron = 0,
-			   ActivationBuffer buf = CURRENT );
-	void set( float activation,
-			  ActivationBuffer buf = CURRENT );
+	float get( int ineuron = 0 );
+	void set( float activation );
 	void set( int ineuron,
-			  float activation,
-			  ActivationBuffer buf = CURRENT );
+			  float activation );
 	int getIndex();
 	int getNeuronCount();
 
  public:
 	void config( int numneurons,
 				 int index );
-	void config( float **activations,
-				 float **activations_swap );
+	void config( float *activations );
 	
  private:
 	int numneurons;
-	float **activations[__NBUFFERS];
+	float *activations;
 	int index;
 };

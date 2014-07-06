@@ -232,8 +232,8 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
     }
     __syncthreads();
 
-    for(int i = tid; i < state.synapses_count; i += Threads_Per_Block) {
-        FiringRateModel_Cuda::Synapse synapse = state.buffers.synapses[i];
+    for(int i = tid, it = 0; i < state.synapses_count; i += Threads_Per_Block, it++) {
+        FiringRateModel_Cuda::Synapse synapse = synapses[it];
         short toneuron = state.buffers.partitions[synapse.partition].toneuron;
         float efficacy = state.buffers.efficacy[i];
 
@@ -371,7 +371,7 @@ void FiringRateModel_Cuda::update(AgentState *agents, long nagents) {
             AgentState &agent = agents[i];
             GpuState *gpu = &agent.model->gpu;
 
-            memcpy(agent.newneuronactivation,
+            memcpy(agent.neuronactivation,
                    all_inputoutput + inputoutput_offset[i],
                    (gpu->input_neurons_count + gpu->output_neurons_count) * sizeof(float));
         }

@@ -70,17 +70,6 @@ void FiringRateModel::update()
     }    
 
     {
-            agent* a;
-            objectxsortedlist::gXSortedObjects.reset();
-            while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
-                FiringRateModel *model = dynamic_cast<FiringRateModel *>(a->GetBrain()->_neuralnet);
-                float *swap = model->neuronactivation;
-                model->neuronactivation = model->newneuronactivation;
-                model->newneuronactivation = swap;
-            }
-    }
-
-    {
         agent* a;
         objectxsortedlist::gXSortedObjects.reset();
         while (objectxsortedlist::gXSortedObjects.nextObj(AGENTTYPE, (gobject**)&a)) {
@@ -135,6 +124,7 @@ void FiringRateModel::complete()
 
 void FiringRateModel::update( bool bprint )
 {
+    assert(false); // NEED TO ADAPT TO NEW SINGLE ACTIVATION BUFFER.
     debugcheck( "(firing-rate brain) on entry" );
 
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))

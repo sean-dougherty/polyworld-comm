@@ -60,7 +60,7 @@ class BaseNeuronModel : public NeuronModel
 		{
 			Nerve *nerve = *it;
 
-			nerve->config( &(this->neuronactivation), &(this->newneuronactivation) );
+			nerve->config( this->neuronactivation );
 		}		
 
 		init_derived( initial_activation );
