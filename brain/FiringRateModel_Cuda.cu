@@ -23,13 +23,8 @@ FiringRateModel_Cuda::FiringRateModel_Cuda() {
 }
 
 FiringRateModel_Cuda::~FiringRateModel_Cuda() {
-#define FREE(x) xcuda( cudaFree(gpu.buffers.x) );
-
-    FREE(neurons);
-    FREE(synapses);
-    FREE(partitions);
-    FREE(neuronactivation);
-    FREE(efficacy);
+    xcuda( cudaFreeHost(buffer) );
+    xcuda( cudaFree(d_buffer) );
 }
 
 void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
@@ -54,76 +49,86 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     int nsynapses_per_thread = (synapses_count - 1) / Threads_Per_Block + 1;
     assert(nsynapses_per_thread <= MAX_SYNAPSES_PER_THREAD);
 
-    Neuron gpu_neurons[neurons_count];
-    for(short i = 0; i < neurons_count; i++) {
-        gpu_neurons[i].bias = neurons[i].bias;
-        gpu_neurons[i].tau = neurons[i].tau;
-    }
-
     NeuronActivationPartition partitions[USHRT_MAX];
-    NeuronActivationPartition *currpartition = NULL;
+    size_t partitions_count = 0;
     Synapse gpu_synapses[synapses_count];
     float efficacy[synapses_count];
+    {
+        NeuronActivationPartition *currpartition = NULL;
 
-    for(long i = 0; i < synapses_count; i++) {
-        FiringRateModel__Synapse &synapse = synapses[i];
-        if( (i % Threads_Per_Block == 0) || (synapse.toneuron != currpartition->toneuron) ) {
-            if(currpartition)
-                currpartition++;
-            else
-                currpartition = partitions;
-            assert(currpartition - partitions < USHRT_MAX);
+        for(long i = 0; i < synapses_count; i++) {
+            FiringRateModel__Synapse &synapse = synapses[i];
+            if( (i % Threads_Per_Block == 0) || (synapse.toneuron != currpartition->toneuron) ) {
+                if(currpartition)
+                    currpartition++;
+                else
+                    currpartition = partitions;
+                assert(currpartition - partitions < USHRT_MAX);
 
-            currpartition->toneuron = synapse.toneuron;
-            currpartition->offset = i % Threads_Per_Block;
-            currpartition->len = 0;
+                currpartition->toneuron = synapse.toneuron;
+                currpartition->offset = i % Threads_Per_Block;
+                currpartition->len = 0;
+            }
+            currpartition->len++;
+
+            Synapse &gpu_synapse = gpu_synapses[i];
+            gpu_synapse.fromneuron = synapse.fromneuron;
+            gpu_synapse.partition = currpartition - partitions;
+            gpu_synapse.lrate = synapse.lrate;
+
+            efficacy[i] = synapse.efficacy;
         }
-        currpartition->len++;
 
-        Synapse &gpu_synapse = gpu_synapses[i];
-        gpu_synapse.fromneuron = synapse.fromneuron;
-        gpu_synapse.partition = currpartition - partitions;
-        gpu_synapse.lrate = synapse.lrate;
-
-        efficacy[i] = synapse.efficacy;
+        partitions_count = currpartition - partitions + 1;
+        gpu.partitions_count = partitions_count;
     }
 
-    size_t npartitions = currpartition - partitions + 1;
-    gpu.partitions_count = npartitions;
+    uint sizeof_neurons = neurons_count * sizeof(Neuron);
+    uint sizeof_synapses = synapses_count * sizeof(Synapse);
+    size_t sizeof_partitions = partitions_count * sizeof(NeuronActivationPartition);
+    size_t sizeof_activation = neurons_count * sizeof(float);
+    size_t sizeof_efficacy = synapses_count * sizeof(float);
 
-/*
-    for(long i = 0; i < synapses_count; i++) {
-        if( (i % Threads_Per_Block) == 0 ) {
-            printf("********\n");
+    size_t sizeof_buffer =
+        sizeof_neurons
+        + sizeof_synapses
+        + sizeof_partitions
+        + sizeof_activation
+        + sizeof_efficacy;
+
+    xcuda( cudaMallocHost((void **)&buffer, sizeof_buffer) );
+    xcuda( cudaMalloc((void **)&d_buffer, sizeof_buffer) );
+
+    {
+        uint offset = 0;
+        {
+            Neuron *gpu_neurons = (Neuron *)buffer + offset;
+            for(short i = 0; i < neurons_count; i++) {
+                gpu_neurons[i].bias = neurons[i].bias;
+                gpu_neurons[i].tau = neurons[i].tau;
+            }
         }
-        NeuronActivationPartition &p = partitions[partition_index[i]];
-        assert(p.toneuron == synapses[i].toneuron);
-        printf("%5ld %3d] %3d %3d %3d\n", i, synapses[i].toneuron, p.toneuron, p.offset, p.len);
+        gpu.buffers.neurons = (Neuron *)(d_buffer + offset);
+        offset += sizeof_neurons;
+
+        memcpy(buffer + offset, gpu_synapses, sizeof_synapses);
+        gpu.buffers.synapses = (Synapse *)(d_buffer + offset);
+        offset += sizeof_synapses;
+
+        memcpy(buffer + offset, partitions, sizeof_partitions);
+        gpu.buffers.partitions = (NeuronActivationPartition *)(d_buffer + offset);
+        offset += sizeof_partitions;
+
+        memcpy(buffer + offset, neuronactivation, sizeof_activation);
+        gpu.buffers.neuronactivation = (float *)(d_buffer + offset);
+        offset += sizeof_activation;
+
+        memcpy(buffer + offset, efficacy, sizeof_efficacy);
+        gpu.buffers.efficacy = (float *)(d_buffer + offset);
+        offset += sizeof_efficacy;
     }
-    for(size_t i = 0; i < npartitions; i++) {
-        NeuronActivationPartition &p = partitions[i];
-        printf("%4lu] to=%3d off=%4d len=%3d\n", i, p.toneuron, p.offset, p.len);
-    }
-*/
 
-    xcuda( cudaMalloc((void**)&gpu.buffers.neurons, sizeof(gpu_neurons)) );
-    xcuda( cudaMemcpy(gpu.buffers.neurons, gpu_neurons, sizeof(gpu_neurons), cudaMemcpyHostToDevice) );
-
-    xcuda( cudaMalloc((void**)&gpu.buffers.synapses, sizeof(gpu_synapses)) );
-    xcuda( cudaMemcpy(gpu.buffers.synapses, gpu_synapses, sizeof(gpu_synapses), cudaMemcpyHostToDevice) );
-
-    size_t sizeof_partitions = npartitions * sizeof(NeuronActivationPartition);
-    xcuda( cudaMalloc((void**)&gpu.buffers.partitions, sizeof_partitions) );
-    xcuda( cudaMemcpy(gpu.buffers.partitions, partitions, sizeof_partitions, cudaMemcpyHostToDevice) );
-
-    gpu.buffers.input_activation = NULL;
-
-    size_t sizeof_activation = sizeof(float) * neurons_count;
-    xcuda( cudaMalloc((void **)&gpu.buffers.neuronactivation, sizeof_activation) );
-    xcuda( cudaMemcpy(gpu.buffers.neuronactivation, neuronactivation, sizeof_activation, cudaMemcpyHostToDevice) );
-
-    xcuda( cudaMalloc((void**)&gpu.buffers.efficacy, sizeof(efficacy)) );
-    xcuda( cudaMemcpy(gpu.buffers.efficacy, efficacy, sizeof(efficacy), cudaMemcpyHostToDevice) );
+    xcuda( cudaMemcpy(d_buffer, buffer, sizeof_buffer, cudaMemcpyHostToDevice) );
 }
 
 __device__ void sum_partition(float *x, int i, int n, float *result) {

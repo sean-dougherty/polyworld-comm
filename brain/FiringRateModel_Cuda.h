@@ -39,6 +39,7 @@ struct FiringRateModel_Cuda {
         short toneuron;
         short offset;
         short len;
+        short __padding;
     };
 
     FiringRateModel_Cuda();
@@ -52,6 +53,9 @@ struct FiringRateModel_Cuda {
               float logistic_slope,
               float decay_rate,
               float max_weight);
+
+    unsigned char *d_buffer;
+    unsigned char *buffer;
 
     struct GpuState {
         short neurons_count;
