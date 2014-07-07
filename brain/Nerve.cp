@@ -1,6 +1,5 @@
 #include "Nerve.h"
 
-#include <assert.h>
 #include <string.h>
 
 using namespace std;
@@ -14,34 +13,6 @@ Nerve::Nerve( Type _type,
 , index(-1)
 {
     activations = nullptr;
-}
-
-float Nerve::get( int ineuron )
-{
-	if( numneurons == 0 )
-		return 0.0;
-
-	assert( (ineuron >= 0) && (ineuron < numneurons) && (index > -1) );
-	
-	return activations[index + ineuron];
-}
-
-void Nerve::set( float activation )
-{
-	if( numneurons == 0 )
-		return;
-
-	assert( numneurons == 1 );
-	
-	activations[index] = activation;
-}
-
-void Nerve::set( int ineuron,
-				 float activation )
-{
-	assert( (ineuron >= 0) && (ineuron < numneurons) && (index > -1) );
-
-	activations[index + ineuron] = activation;
 }
 
 int Nerve::getIndex()
