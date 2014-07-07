@@ -171,10 +171,11 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
         neuron = state.buffers.neurons[tid];        
     	if(tid < state.input_neurons_count) {
         	neuronactivation[tid] = state.buffers.input_activation[tid];
+            newneuronactivation[tid] = neuronactivation[tid];
     	} else {
 			neuronactivation[tid] = state.buffers.neuronactivation[tid];
+            newneuronactivation[tid] = neuron.bias;
 		}
-		newneuronactivation[tid] = neuron.bias;
     }
     __syncthreads();
 
@@ -217,7 +218,7 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
         __syncthreads();
     }
 
-    if(tid < state.neurons_count) {
+    if( (tid >= state.input_neurons_count) && (tid < state.neurons_count) ) {
         newneuronactivation[tid] =
             (1.0f - neuron.tau) * neuronactivation[tid]
             + neuron.tau * logistic( newneuronactivation[tid], state.logistic_slope );
