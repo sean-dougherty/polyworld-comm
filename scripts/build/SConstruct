@@ -1,5 +1,5 @@
 PERFORMANCE_PROFILER = False # temp hack. add command-line switch
-DISABLE_ASSERT = False
+DISABLE_ASSERT = True
 
 import os
 import sys

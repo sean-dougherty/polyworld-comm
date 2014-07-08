@@ -18,6 +18,7 @@ using namespace std;
 
 #if TRIALS
 
+#define MAX_GENERATIONS 5
 #define NDEMES 1
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
@@ -695,7 +696,7 @@ vector<agent *> TrialsState::create_generation() {
 
     sim->fScheduler.execMasterTask( sim,
                                     growAgents,
-                                    true );
+                                    false );
 
     return agents;
 }
@@ -911,9 +912,11 @@ void TrialsState::end_generation() {
         t->reset();
     }
 
-    if( generation_number == 0 ) {
-        sim->End("DEBUG BRAINS");
+#ifdef MAX_GENERATIONS
+    if( generation_number == MAX_GENERATIONS ) {
+        sim->End("MAX_GENERATIONS");
     }
+#endif
 
     if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
         FitStruct *immigrant = prev_generation.get(0);
