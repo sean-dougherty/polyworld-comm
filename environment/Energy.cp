@@ -24,8 +24,8 @@ EnergyPolarity::EnergyPolarity()
 
 EnergyPolarity::EnergyPolarity( proplib::Property &prop )
 {
-	assert( prop.getType() == proplib::Node::Array );
-	assert( (int)prop.elements().size() == globals::numEnergyTypes );
+	require( prop.getType() == proplib::Node::Array );
+	require( (int)prop.elements().size() == globals::numEnergyTypes );
 
 	for( int i = 0; i < globals::numEnergyTypes; i++ )
 		values[i] = (Polarity)(int)prop.get( i );
@@ -59,8 +59,8 @@ EnergyMultiplier::EnergyMultiplier( float *values )
 
 EnergyMultiplier::EnergyMultiplier( proplib::Property &prop )
 {
-	assert( prop.getType() == proplib::Node::Array );
-	assert( (int)prop.elements().size() == globals::numEnergyTypes );
+	require( prop.getType() == proplib::Node::Array );
+	require( (int)prop.elements().size() == globals::numEnergyTypes );
 
 	for( int i = 0; i < globals::numEnergyTypes; i++ )
 		values[i] = (float)prop.get( i );
@@ -98,8 +98,8 @@ Energy::Energy( float val )
 
 Energy::Energy( proplib::Property &prop )
 {
-	assert( prop.getType() == proplib::Node::Array );
-	assert( (int)prop.elements().size() == globals::numEnergyTypes );
+	require( prop.getType() == proplib::Node::Array );
+	require( (int)prop.elements().size() == globals::numEnergyTypes );
 
 	for( int i = 0; i < globals::numEnergyTypes; i++ )
 		values[i] = (float)prop.get( i );
@@ -325,6 +325,7 @@ ostream &operator<<( ostream &out, const Energy &e )
 
 void Energy::test()
 {
+#ifndef NDEBUG
 	globals::numEnergyTypes = 3;
 
 	{
@@ -419,4 +420,5 @@ void Energy::test()
 		assert( f.values[1] == 1 );
 		assert( f.values[2] == 2 );
 	}
+#endif
 }

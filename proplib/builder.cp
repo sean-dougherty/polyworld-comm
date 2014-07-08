@@ -151,8 +151,8 @@ DocumentLocation DocumentBuilder::createLocation( SyntaxNode *node )
 
 Identifier DocumentBuilder::createId( SyntaxNode *node )
 {
-	assert( node->type == SyntaxNode::Id );
-	assert( node->beginToken == node->endToken );
+	require( node->type == SyntaxNode::Id );
+	require( node->beginToken == node->endToken );
 
 	return Identifier( node->beginToken->text );
 }
@@ -162,7 +162,7 @@ void DocumentBuilder::buildDocument( SyntaxNode *node, ObjectProperty *rootConta
 	for( int i = 0; i < (int)node->children.size() - 1; i++ )
 	{
 		SyntaxNode *nodeProp = node->children[i];
-		assert( nodeProp->type == SyntaxNode::MetaProperty );
+		require( nodeProp->type == SyntaxNode::MetaProperty );
 
 		_doc->addMeta( buildMetaProperty(createLocation(nodeProp),
 										 createId(nodeProp->children[0]),
@@ -176,7 +176,7 @@ void DocumentBuilder::buildDocument( SyntaxNode *node, ObjectProperty *rootConta
 
 MetaProperty *DocumentBuilder::buildMetaProperty( DocumentLocation loc, Identifier id, SyntaxNode *nodeValue )
 {
-	assert( nodeValue->type == SyntaxNode::MetaPropertyValue );
+	require( nodeValue->type == SyntaxNode::MetaPropertyValue );
 
 	string value;
 	if( nodeValue->children.empty() )
@@ -189,8 +189,8 @@ MetaProperty *DocumentBuilder::buildMetaProperty( DocumentLocation loc, Identifi
 
 Property *DocumentBuilder::buildProperty( SyntaxNode *node )
 {
-	assert( node->children[0]->type == SyntaxNode::Id );
-	assert( node->children[1]->type == SyntaxNode::PropertyValue );
+	require( node->children[0]->type == SyntaxNode::Id );
+	require( node->children[1]->type == SyntaxNode::PropertyValue );
 
 	return buildProperty( createLocation(node),
 						  createId(node->children[0]),
@@ -201,7 +201,7 @@ Property *DocumentBuilder::buildProperty( DocumentLocation loc,
 										  Identifier id,
 										  SyntaxNode *nodeValue )
 {
-	assert( nodeValue->type == SyntaxNode::PropertyValue );
+	require( nodeValue->type == SyntaxNode::PropertyValue );
 
 	switch( nodeValue->children[0]->type )
 	{
@@ -214,7 +214,7 @@ Property *DocumentBuilder::buildProperty( DocumentLocation loc,
 	case SyntaxNode::Array:
 		return buildArrayProperty( loc, id, nodeValue );
 	default:
-		assert( false );
+		panic();
 		return NULL;
 	}
 }
@@ -223,7 +223,7 @@ Property *DocumentBuilder::buildConstScalarProperty( DocumentLocation loc,
 													 Identifier id,
 													 SyntaxNode *nodeValue )
 {
-	assert( nodeValue->children[0]->type == SyntaxNode::Expression );
+	require( nodeValue->children[0]->type == SyntaxNode::Expression );
 
 	return new ConstScalarProperty( loc,
 									id,
@@ -235,7 +235,7 @@ Property *DocumentBuilder::buildDynamicScalarProperty( DocumentLocation loc,
 													   SyntaxNode *nodeValue )
 {
 	SyntaxNode *nodeDyn = nodeValue->children[0];
-	assert( nodeDyn->type == SyntaxNode::Dyn );
+	require( nodeDyn->type == SyntaxNode::Dyn );
 
 	Expression *initExpr = buildExpression( nodeDyn->children[0] );
 	DynamicScalarProperty *prop = new DynamicScalarProperty( loc,
@@ -252,7 +252,7 @@ ObjectProperty *DocumentBuilder::buildObjectProperty( DocumentLocation loc,
 													  Identifier id,
 													  SyntaxNode *nodeValue )
 {
-	assert( nodeValue->type == SyntaxNode::PropertyValue );
+	require( nodeValue->type == SyntaxNode::PropertyValue );
 	ObjectProperty *obj = new ObjectProperty( loc, id );
 
 	return buildObjectProperty( obj, nodeValue->children[0] );
@@ -261,7 +261,7 @@ ObjectProperty *DocumentBuilder::buildObjectProperty( DocumentLocation loc,
 ObjectProperty *DocumentBuilder::buildObjectProperty( ObjectProperty *obj,
 													  SyntaxNode *nodeObject )
 {
-	assert( nodeObject->type == SyntaxNode::Object );
+	require( nodeObject->type == SyntaxNode::Object );
 
 	itfor( vector<SyntaxNode *>, nodeObject->children, it )
 	{
@@ -279,7 +279,7 @@ ObjectProperty *DocumentBuilder::buildObjectProperty( ObjectProperty *obj,
 			obj->addClass( buildClass(childNode) );
 			break;
 		default:
-			assert( false );
+			panic();
 			break;
 		}
 	}
@@ -289,7 +289,7 @@ ObjectProperty *DocumentBuilder::buildObjectProperty( ObjectProperty *obj,
 
 Property *DocumentBuilder::buildArrayProperty( DocumentLocation loc, Identifier id, SyntaxNode *nodeValue )
 {
-	assert( nodeValue->type == SyntaxNode::PropertyValue );
+	require( nodeValue->type == SyntaxNode::PropertyValue );
 
 	ArrayProperty *prop = new ArrayProperty( loc, id );
 
@@ -321,7 +321,7 @@ DynamicScalarAttribute *DocumentBuilder::buildDynamicScalarAttribute( SyntaxNode
 										   "update",
 										   buildExpression(node) );
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -331,7 +331,7 @@ Enum *DocumentBuilder::buildEnum( SyntaxNode *node )
 							createId(node->children[0]) );
 
 	SyntaxNode *nodeValues = node->children[1];
-	assert( nodeValues->type == SyntaxNode::EnumValues );
+	require( nodeValues->type == SyntaxNode::EnumValues );
 	
 	itfor( vector<SyntaxNode *>, nodeValues->children, it )
 	{
@@ -370,7 +370,7 @@ Expression *DocumentBuilder::buildExpression( SyntaxNode *node )
 			expression->elements.push_back( new MiscExpressionElement(nodeElement->beginToken) );
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 
@@ -384,7 +384,7 @@ SymbolPath *DocumentBuilder::buildSymbolPath( SyntaxNode *node )
 	itfor( vector<SyntaxNode *>, node->children, it )
 	{
 		SyntaxNode *nodeElement = *it;
-		assert( nodeElement->type == SyntaxNode::SymbolPathElement );
+		require( nodeElement->type == SyntaxNode::SymbolPathElement );
 
 		name->add( nodeElement->beginToken );
 	}

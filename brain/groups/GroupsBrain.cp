@@ -159,7 +159,7 @@ void GroupsBrain::initNeuralNet( float initial_activation )
 		}
 		break;
 	default:
-		assert(false);
+        panic();
 	}
 
 	_neuralnet->init( &_dims, initial_activation );
@@ -394,7 +394,7 @@ void GroupsBrain::grow()
 		neuronAttrs.firingRate = (FiringRateModel__NeuronAttrs *)alloca( sizeof(FiringRateModel__NeuronAttrs) );
 		break;
 	default:
-		assert(false);
+        panic();
 	}
 
 	// ---
@@ -415,7 +415,7 @@ void GroupsBrain::grow()
 		neuronAttrs.firingRate->bias = 0.0;
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 
     for (int i = 0, ineur = 0; i < config.numinputneurgroups; i++)
@@ -468,7 +468,7 @@ void GroupsBrain::grow()
 					cout << "  groupbias = " << neuronAttrs.firingRate->bias nlf;
 			#endif
 		default:
-			assert(false);
+			panic();
 		}
 
         for (int groupIndex_from = 0; groupIndex_from < _numgroups; groupIndex_from++)

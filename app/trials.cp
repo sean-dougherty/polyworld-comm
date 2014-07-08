@@ -125,7 +125,7 @@ struct Task {
             show_green(a);
             break;
         default:
-            assert(false);
+            panic();
         }
     }
 
@@ -150,7 +150,7 @@ struct Task {
             }
             break;
         default:
-            assert(false);
+            panic();
             break;
         }
     }
@@ -172,7 +172,7 @@ struct Task {
             assert(category == Break);
             return float(state.silence_count) / timesteps;
         default:
-            assert(false);
+            panic();
         }
     }
 
@@ -197,7 +197,7 @@ struct Task {
             coltypes.push_back(datalib::FLOAT);
             break;
         default:
-            assert(false);
+            panic();
         }
     }
 
@@ -214,7 +214,7 @@ struct Task {
             colvalues.push_back(metric(trial_number, agent_number, Metric::Break));
             break;
         default:
-            assert(false);
+            panic();
         }
     }
 
@@ -695,7 +695,7 @@ vector<agent *> TrialsState::create_generation() {
 
     sim->fScheduler.execMasterTask( sim,
                                     growAgents,
-                                    false );
+                                    true );
 
     return agents;
 }
@@ -911,7 +911,7 @@ void TrialsState::end_generation() {
         t->reset();
     }
 
-    if( generation_number == 5 ) {
+    if( generation_number == 0 ) {
         sim->End("DEBUG BRAINS");
     }
 

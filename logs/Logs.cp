@@ -169,7 +169,7 @@ void Logs::AgentPositionLog::init( TSimulation *sim, Document *doc )
 		else if( mode == "Approximate" )
 			_mode = Approximate;
 		else
-			assert( false );
+			panic();
 
 		initRecording( sim,
 					   AgentStateScope,
@@ -221,7 +221,7 @@ void Logs::AgentPositionLog::processEvent( const sim::AgentBirthEvent &e )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -244,7 +244,7 @@ void Logs::AgentPositionLog::processEvent( const AgentBodyUpdatedEvent &e )
 								  e.a->z() );
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -312,7 +312,7 @@ void Logs::BirthsDeathsLog::processEvent( const sim::AgentBirthEvent &birth )
 				 birth.a->Number() );
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -858,7 +858,7 @@ void Logs::CarryLog::processEvent( const CarryEvent &e )
 	case AGENTTYPE: objectType = "A"; break;
 	case FOODTYPE: objectType = "F"; break;
 	case BRICKTYPE: objectType = "B"; break;
-	default: assert(false);
+	default: panic();
 	}
 
 	getWriter()->addRow( getStep(),
@@ -1014,7 +1014,7 @@ void Logs::ContactLog::encode( const sim::AgentContactEndEvent::AgentInfo &info,
 
 #ifdef OF1
 		// implement
-		assert( false );
+		panic();
 #endif
 	}
 
@@ -1210,7 +1210,7 @@ void Logs::GenomeLog::init( TSimulation *sim, Document *doc )
         }
         else
         {
-            assert(false);
+            panic();
         }
 	}
 }
@@ -1483,7 +1483,7 @@ void Logs::SeparationLog::init( TSimulation *sim, Document *doc )
 						   | sim::Event_StepEnd );
 		}
 		else
-			assert(false);
+			panic();
 
 
 		createWriter( "run/genome/separations.txt" );

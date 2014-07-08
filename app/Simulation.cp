@@ -994,7 +994,7 @@ void TSimulation::InitAgents()
 			bool isSeed = false;
 
 			c = agent::getfreeagent(this, &fStage);
-			Q_ASSERT(c != NULL);
+			require(c != NULL);
 
 			fNumberCreated++;
 			fNumberCreatedRandom++;
@@ -1056,7 +1056,7 @@ void TSimulation::InitAgents()
 	}
 
 	// Handle global initial creations, if necessary
-	Q_ASSERT( fInitNumAgents <= fMaxNumAgents );
+	assert( fInitNumAgents <= fMaxNumAgents );
 
 	while( (int)objectxsortedlist::gXSortedObjects.getCount(AGENTTYPE) < fInitNumAgents )
 	{
@@ -1505,7 +1505,7 @@ void TSimulation::UpdateAgents()
 	// processed, so we can't do our stage compilation or parallelization
 	// optimizations
 
-    assert(Brain::config.neuronModel == Brain::Configuration::TAU);
+    require(Brain::config.neuronModel == Brain::Configuration::TAU);
 
     FiringRateModel::update();
 
@@ -1533,7 +1533,7 @@ void TSimulation::UpdateAgents()
 //---------------------------------------------------------------------------
 void TSimulation::UpdateAgents_StaticTimestepGeometry()
 {
-    assert(false);
+    panic();
 	if( fParallelBrains )
 	{
 		//************************************************************
@@ -1956,7 +1956,7 @@ void TSimulation::DeathAndStats( void )
 			fCurrentBrainStats.sheets.synapseCount[ type.from ][ type.to ].reset();
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 	fCurrentBrainStats.neuronCount.reset();
 	fCurrentBrainStats.synapseCount.reset();
@@ -1981,7 +1981,7 @@ void TSimulation::DeathAndStats( void )
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 		fCurrentBrainStats.neuronCount.add( c->GetBrain()->getNumNeurons() );
 		fCurrentBrainStats.synapseCount.add( c->GetBrain()->getNumSynapses() );
@@ -3802,7 +3802,7 @@ void TSimulation::Birth( agent* a,
 			// no-op
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 }
@@ -4039,7 +4039,7 @@ void TSimulation::analyzeBrain( agent *c )
 		// This should have been configured in response to the begin event.
 		const char *brainFunctionPath = c->brainAnalysisParms.functionPath.c_str();
 		// Fail if it's zero length.
-		assert( *brainFunctionPath );
+		require( *brainFunctionPath );
 
 		if( fComplexityType == "D" )	// special case the difference of complexities case
 		{
@@ -4147,7 +4147,7 @@ void TSimulation::RemoveFood( food *f )
 
 	int domain = f->domain();
 	assert( domain >= 0 && domain < fNumDomains );
-	fDomains[f->domain()].foodCount--;
+	fDomains[domain].foodCount--;
 
 	assert( f == objectxsortedlist::gXSortedObjects.getcurr()->e );
 	objectxsortedlist::gXSortedObjects.removeCurrentObject();   // get it out of the list
@@ -4283,7 +4283,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 			globals::stickyEdges = true;
 		}
 		else
-			assert( false );
+			panic();
 	}
 	globals::numEnergyTypes = doc.get( "NumEnergyTypes" );
     globals::numSoundFrequencies = doc.get( "NumSoundFrequencies" );
@@ -4360,7 +4360,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
         else if( mode == "MazeFood" )
             fFitnessMode = FM_MazeFood;
         else
-            assert(false);
+            panic();
     }
     fEatFitnessParameter = doc.get( "FitnessWeightEating" );
     fMateFitnessParameter = doc.get( "FitnessWeightMating" );
@@ -4424,7 +4424,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else if( fightMode == "Null" )
 			fFightMode = FM_NULL;
 		else
-			assert(false);
+			panic();
 	}
 	fGiveThreshold = doc.get( "GiveThreshold" );
 	fGiveFraction = doc.get( "GiveFraction" );
@@ -4606,7 +4606,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 			}
 			else
 			{
-				assert( false );
+				panic();
 			}
 
 			EnergyMultiplier eatMultiplier = propMetabolism.get( "EatMultiplier" );
@@ -4630,7 +4630,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else if( mode == "Random" )
 			Metabolism::selectionMode = Metabolism::Random;
 		else
-			assert( false );
+			panic();
 	}
 
 	// Process SoundPatches
@@ -4830,7 +4830,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 						else if( val == "E" )
 							shape = 1;
 						else
-							assert( false );
+							panic();
 					}
 					{
 						string val = propPatch.get( "Distribution" );
@@ -4841,7 +4841,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 						else if( val == "G" )
 							distribution = 2;
 						else
-							assert( false );
+							panic();
 					}
 					nhsize = propPatch.get( "NeighborhoodSize" );
 					removeFood = propPatch.get( "RemoveFood" );
@@ -4912,7 +4912,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 						else if( val == "E" )
 							shape = 1;
 						else
-							assert( false );
+							panic();
 					}
 					{
 						string val = propPatch.get( "Distribution" );
@@ -4923,7 +4923,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 						else if( val == "G" )
 							distribution = 2;
 						else
-							assert( false );
+							panic();
 					}
 					nhsize = propPatch.get( "NeighborhoodSize" );
 
@@ -5011,7 +5011,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		else if( prop == "L" )
 			fSmiteMode = 'L';
 		else
-			assert( false );
+			panic();
 	}
     fSmiteFrac = doc.get( "SmiteFrac" );
     fSmiteAgeFrac = doc.get( "SmiteAgeFrac" );
@@ -5045,7 +5045,7 @@ void TSimulation::processWorldFile( proplib::Document *docWorldFile )
 		: AbstractFile::TYPE_FILE;
 
 	fFogFunction = ((string)doc.get( "FogFunction" ))[0];
-	assert( glFogFunction() == fFogFunction );
+	require( glFogFunction() == fFogFunction );
 	// This value only does something if Fog Function is exponential
 	// Acceptable values are between 0 and 1 (inclusive)
 	fExpFogDensity = doc.get( "ExpFogDensity" );
@@ -5600,7 +5600,7 @@ void TSimulation::getStatusText( StatusText& statusText,
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	addStat( "CurSynapses", fCurrentBrainStats.synapseCount );
@@ -5755,7 +5755,7 @@ void TSimulation::SetNextLockstepEvent()
 	if( fgets( LockstepLine, sizeof(LockstepLine), fLockstepFile ) )			// get the next event, if the LOCKSTEP-BirthsDeaths.log still has entries in it.
 	{
 		fLockstepTimestep = atoi( strtok( LockstepLine, delimiters ) );		// token => timestep
-		assert( fLockstepTimestep > 0 );										// if we get a >= zero timestep something is definitely wrong.
+		require( fLockstepTimestep > 0 );										// if we get a >= zero timestep something is definitely wrong.
 
 		int currentpos;
 		int nexttimestep;

@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+#include "misc.h"
+
 using namespace std;
 
 
@@ -56,23 +58,7 @@ using namespace std;
 
 #define GENOME_CACHE_FILE_PATH "genomeCache.bin"
 
-// STL iterator for loop
-#define itfor(TYPE,CONT,IT)						\
-	for(TYPE::iterator							\
-			IT = (CONT).begin(),				\
-			IT##_end = (CONT).end();			\
-		IT != IT##_end;							\
-		++IT)
-
 #define err( msg... ) {fprintf(stderr, msg); exit(1);}
-
-// if condition is true, then print message and exit
-#define errif( condition, msg... )										\
-	if(condition) {														\
-		fprintf(stderr, "%s:%d Failed condition \"%s\"\n", __FILE__, __LINE__, #condition); \
-		fprintf(stderr, msg);											\
-		exit(1);														\
-	}
 
 #if PROMPT_STAGES
 #define STAGE(MESSAGE...) {printf(MESSAGE); printf("Press enter..."); getchar();}
@@ -823,7 +809,7 @@ void parse_clusters( const char *path, ParsedClusterVector &clusters ) {
 					}
 				}
 
-				assert( nmembers == (int)members.size() );
+				require( nmembers == (int)members.size() );
 				clusters.push_back( ParsedCluster(id, members) );
 			}
 		}

@@ -45,7 +45,7 @@ string AgentTracker::getStateTitle()
 			sprintf( buf, "%s%d:%ld", prefix, parms.fitness.rank, target->Number() );
 			break;
 		default:
-			assert(false);
+			panic();
 		}
 	}
 	else

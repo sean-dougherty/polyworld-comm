@@ -35,9 +35,9 @@ Periodic::Periodic( int period,
 , _onFraction( onFraction )
 , _phase( phase )
 {
-	assert( period >= 0 );
-	assert( onFraction >= 0 && onFraction <= 1 );
-	assert( phase >= 0 && phase <= 1 );
+	require( period >= 0 );
+	require( onFraction >= 0 && onFraction <= 1 );
+	require( phase >= 0 && phase <= 1 );
 }
 
 Periodic::~Periodic()
@@ -78,17 +78,17 @@ void FoodPatchTokenRing::add( FoodPatch &patch, int maxPopulation, int timeout, 
 {
 	if( maxPopulation != -1 )
 	{
-		assert( (_maxPopulation == -1) || (_maxPopulation == maxPopulation) );
+		require( (_maxPopulation == -1) || (_maxPopulation == maxPopulation) );
 		_maxPopulation = maxPopulation;
 	}
 	if( timeout != -1 )
 	{
-		assert( (_timeout == -1) || (_timeout == timeout) );
+		require( (_timeout == -1) || (_timeout == timeout) );
 		_timeout = timeout;
 	}
 	if( delay != -1 )
 	{
-		assert( (_delay == -1) || (_delay == delay) );
+		require( (_delay == -1) || (_delay == delay) );
 		_delay = delay;
 	}
 
@@ -106,8 +106,8 @@ bool FoodPatchTokenRing::update( FoodPatch &patch )
 	{
 		if( _step == 1 )
 		{
-			assert( (_maxPopulation > 0) || (_timeout > 0) );
-			assert( _members.size() > 1 );
+			require( (_maxPopulation > 0) || (_timeout > 0) );
+			require( _members.size() > 1 );
 		}
 
 		updateActive();

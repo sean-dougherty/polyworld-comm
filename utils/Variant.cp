@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "misc.h"
+
 
 Variant::Variant()
 {
@@ -72,7 +74,7 @@ Variant &Variant::operator = ( const Variant &variant )
 		sval = strdup( variant.sval );
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 
 	return *this;

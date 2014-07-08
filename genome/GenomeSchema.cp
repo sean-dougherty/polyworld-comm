@@ -32,7 +32,7 @@ void GenomeSchema::processWorldfile( proplib::Document &doc )
 		else if( layout == "None" )
 			GenomeSchema::config.layoutType = genome::GenomeLayout::None;
 		else
-			assert( false );
+			panic();
 	}
     GenomeSchema::config.minMutationRate = doc.get( "MinMutationRate" );
     GenomeSchema::config.maxMutationRate = doc.get( "MaxMutationRate" );

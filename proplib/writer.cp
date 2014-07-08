@@ -206,7 +206,7 @@ void DocumentWriter::writeProperty( Property *prop )
 			writeDynamic( dynamic_cast<DynamicScalarProperty *>(prop) );
 			break;
 		default:
-			assert( false );
+			panic();
 			break;
 		}
 		break;
@@ -217,7 +217,7 @@ void DocumentWriter::writeProperty( Property *prop )
 		writeObject( dynamic_cast<ObjectProperty *>(prop) );
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -302,6 +302,6 @@ void DocumentWriter::writeScalarNames( Property *prop, int depthStart )
 		_out << prop->getFullName( depthStart ) << endl;
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }

@@ -98,7 +98,7 @@ string Interpreter::ExpressionEvaluator::evaluate( Property *prop )
 						}
 						break;
 					default:
-						assert( false );
+						panic();
 					}
 				}
 				else
@@ -109,7 +109,7 @@ string Interpreter::ExpressionEvaluator::evaluate( Property *prop )
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 			break;
 		}
 	}
@@ -143,14 +143,14 @@ bool Interpreter::alive = false;
 
 void Interpreter::init()
 {
-	assert( !alive );
+	require( !alive );
 	Py_Initialize();
 	alive = true;
 }
 
 void Interpreter::dispose()
 {
-	assert( alive );
+	require( alive );
 	Py_Finalize();
 	alive = false;
 }
@@ -158,7 +158,7 @@ void Interpreter::dispose()
 bool Interpreter::eval( const std::string &expr,
 						char *result, size_t result_size )
 {
-	assert( alive );
+	require( alive );
 
 	char outputPath[128];
 	sprintf( outputPath, "/tmp/proplib.%d", getpid() );
@@ -180,7 +180,7 @@ bool Interpreter::eval( const std::string &expr,
 			 "  f.close()\n",
 			 outputPath,
 			 expr.c_str() );
-	assert( strlen(script) < sizeof(script) );
+	require( strlen(script) < sizeof(script) );
 
 	int rc = PyRun_SimpleString( script );
 	if( rc != 0 )

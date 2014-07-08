@@ -68,7 +68,7 @@ __Column::__Column( const char *name,
 		tname = "bool";
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	if( format )
@@ -90,7 +90,7 @@ __Column::__Column( const char *name,
 			this->format = pad ? "%-20d" : "%d";
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 }
@@ -115,7 +115,7 @@ DataLibWriter::DataLibWriter( const char *path,
 	if( ! f )
 	{
 		perror( path );
-		assert( f );
+		require( f );
 	}
 
 	table = NULL;
@@ -251,7 +251,7 @@ void DataLibWriter::addRow( Variant col0, ... )
 			TOVARIANT(int,bool);
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 
 #undef TOVARIANT
@@ -305,7 +305,7 @@ void DataLibWriter::addRow( Variant *colsdata )
 			TOBUF(bool);
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 
 #undef TOBUF
@@ -315,7 +315,7 @@ void DataLibWriter::addRow( Variant *colsdata )
 		{
 			*(b++) = '\t';
 		}
-		assert( size_t(b - buf) < sizeof(buf) );
+		require( size_t(b - buf) < sizeof(buf) );
 	}
 
 	if( !randomAccess )
@@ -323,7 +323,7 @@ void DataLibWriter::addRow( Variant *colsdata )
 		b--; // erase last tab
 	}
 	*(b++) = '\n';
-	assert( size_t(b - buf) <= sizeof(buf) );
+	require( size_t(b - buf) <= sizeof(buf) );
 
 	size_t nwrite = b - buf;
 
@@ -336,11 +336,11 @@ void DataLibWriter::addRow( Variant *colsdata )
 		}
 		else
 		{
-			assert( nwrite == table->rowlen );
+			require( nwrite == table->rowlen );
 		}
 	}
 	size_t n = fwrite( buf, 1, nwrite, f );
-	assert( n == nwrite );
+	require( n == nwrite );
 }
 
 // ------------------------------------------------------------
@@ -483,7 +483,7 @@ void DataLibWriter::colMetaData()
 DataLibReader::DataLibReader( const char *path )
 {
 	f = fopen( path, "r" );
-	assert( f );
+	require( f );
 
 	table = NULL;
 	this->path = path;
@@ -569,7 +569,7 @@ void DataLibReader::seekRow( int index )
 					  1,
 					  table->rowlen,
 					  f );
-	assert( n == table->rowlen );
+	require( n == table->rowlen );
 
 	// ---
 	// --- Parse the row
@@ -599,7 +599,7 @@ void DataLibReader::seekRow( int index )
 				break;
 			}
 			default:
-				assert(false);
+				panic();
 			}
 
 			it++;
@@ -653,22 +653,22 @@ void DataLibReader::parseHeader()
 	char buf[128];
 
 	size_t n = fread( buf, 1, sizeof(buf) - 1, f );
-	assert( n > 0 );
+	require( n > 0 );
 
 	buf[n] = '\0';
 
 	size_t len;
 
 	len = strlen( SIGNATURE );
-	assert( 0 == strncmp(buf, SIGNATURE, len) );
+	require( 0 == strncmp(buf, SIGNATURE, len) );
 
 	char *version = buf + len;
 	len = strlen( VERSION_STR );
-	assert( 0 == strncmp(version, VERSION_STR, len) );
+	require( 0 == strncmp(version, VERSION_STR, len) );
 
 	int iversion = atoi(version + len);
 
-	assert( (iversion >= VERSION_READ_MIN) && (iversion <= VERSION_READ) );
+	require( (iversion >= VERSION_READ_MIN) && (iversion <= VERSION_READ) );
 }
 
 // ------------------------------------------------------------
@@ -688,7 +688,7 @@ void DataLibReader::parseDigest()
 			   1,
 			   n,
 			   f );
-	assert( n > 0 );
+	require( n > 0 );
 	buf[n] = '\0';
 	for( size_t i = n - 1; i >= 0; i++ )
 	{
@@ -729,7 +729,7 @@ void DataLibReader::parseDigest()
 			   1,
 			   size,
 			   f );
-	assert( n == size );
+	require( n == size );
 	digest[size] = '\0';
 
 	// ---
@@ -836,7 +836,7 @@ void DataLibReader::parseTableHeader()
 			}
 			else
 			{
-				assert( false );
+				panic();
 			}
 		}
 	};

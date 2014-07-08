@@ -31,7 +31,7 @@ SpikingModel::~SpikingModel()
 
 void SpikingModel::init_derived( float initial_activation )
 {
-#define ALLOC(NAME, TYPE, N) if(NAME) free(NAME); NAME = (TYPE *)calloc(N, sizeof(TYPE)); assert(NAME);
+#define ALLOC(NAME, TYPE, N) if(NAME) free(NAME); NAME = (TYPE *)calloc(N, sizeof(TYPE)); require(NAME);
 
 	ALLOC( outputActivation, float, dims->numOutputNeurons );
 

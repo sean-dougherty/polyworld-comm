@@ -150,7 +150,7 @@ void Expression::write( ostream &out, bool leadingDecoration )
 		beginToken = dynamic_cast<MiscExpressionElement *>( elements.front() )->token;
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 
 	switch( elements.back()->type )
@@ -162,7 +162,7 @@ void Expression::write( ostream &out, bool leadingDecoration )
 		endToken = dynamic_cast<MiscExpressionElement *>( elements.back() )->token;
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 
 	out << Token::toString( beginToken, endToken, leadingDecoration );

@@ -88,7 +88,7 @@ void DocumentEditor::set( Property *prop, std::string valueString )
 
 void DocumentEditor::move( Property *prop, Property *newParent_, bool modifyOldParent )
 {
-	assert( !modifyOldParent ); // must be implemented
+	require( !modifyOldParent ); // must be implemented
 
 	__ContainerProperty *newParent = dynamic_cast<__ContainerProperty *>( newParent_ );
 	if( !newParent )
@@ -110,7 +110,7 @@ void DocumentEditor::removeChildren( Property *prop )
 
 void DocumentEditor::rename( Property *prop, const char *newName, bool modifyParent )
 {
-	assert( !modifyParent );
+	require( !modifyParent );
 	
 	prop->_id = newName;
 }

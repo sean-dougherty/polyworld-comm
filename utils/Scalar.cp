@@ -1,6 +1,7 @@
 #include "Scalar.h"
 
 #include <stdio.h>
+#include "misc.h"
 
 using namespace std;
 
@@ -57,7 +58,7 @@ Scalar::Scalar( const Scalar &scalar )
 		bval = scalar.bval;
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 }
 

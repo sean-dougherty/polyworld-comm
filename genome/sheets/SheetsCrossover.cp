@@ -69,14 +69,14 @@ void SheetsCrossover::Level::complete( 	genome::GenomeSchema *schema )
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 
 	sort( _points.begin(), _points.end() );
 
 	for( int i = 1; i < (int)_points.size(); i++ )
-		assert( _points[i - 1].end <= _points[i].start );
+		require( _points[i - 1].end <= _points[i].start );
 }
 
 int SheetsCrossover::Level::getEnd()

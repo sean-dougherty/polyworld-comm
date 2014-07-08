@@ -98,7 +98,7 @@ void agent::processWorldfile( proplib::Document &doc )
 		else if( encoding == "Squash" )
 			agent::config.yawEncoding = agent::YE_SQUASH;
 		else
-			assert( false );
+			panic();
 	}
     agent::config.enableYawOpposeThreshold = doc.get( "EnableYawOpposeThreshold" );
     agent::config.minYawOpposeThreshold = doc.get( "MinYawOpposeThreshold" );
@@ -392,9 +392,9 @@ void agent::dump(ostream& out)
     out << getTypeNumber() nl;
     out << fAge nl;
     out << fLastMate nl;
-    assert( false ); // out << fEnergy nl;
-    assert( false ); // out << fFoodEnergy nl;
-    assert( false ); // out << fMaxEnergy nl;
+    panic(); // out << fEnergy nl;
+    panic(); // out << fFoodEnergy nl;
+    panic(); // out << fMaxEnergy nl;
     out << fSpeed2Energy nl;
     out << fYaw2Energy nl;
     out << fSizeAdvantage nl;
@@ -406,7 +406,7 @@ void agent::dump(ostream& out)
 
     gobject::dump(out);
 
-    	assert( false ); //fGenome->dump(out); // must port this to AbstractFile
+    	panic(); //fGenome->dump(out); // must port this to AbstractFile
 
 		/* implement
     if (fBrain != NULL)
@@ -430,9 +430,9 @@ void agent::load(istream& in)
 	setTypeNumber( agentNumber );
     in >> fAge;
     in >> fLastMate;
-    assert( false ); // in >> fEnergy;
-    assert( false ); // in >> fFoodEnergy;
-    assert( false ); // in >> fMaxEnergy;
+    panic(); // in >> fEnergy;
+    panic(); // in >> fFoodEnergy;
+    panic(); // in >> fMaxEnergy;
     in >> fSpeed2Energy;
     in >> fYaw2Energy;
     in >> fSizeAdvantage;
@@ -444,7 +444,7 @@ void agent::load(istream& in)
 
     gobject::load(in);
 	
-    assert( false ); //fGenome->load(in); // must port this to AbstractFile
+    panic(); //fGenome->load(in); // must port this to AbstractFile
 	/* implement
     if (fBrain == NULL)
     {
@@ -477,7 +477,7 @@ void agent::setGenomeReady()
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -584,7 +584,7 @@ void agent::grow( long mateWait )
 		// no-op
 		break;
 	default:
-		assert(false);
+		panic();
 		break;
 	}
     
@@ -601,7 +601,7 @@ void agent::grow( long mateWait )
 		// no-op
 		break;
 	default:
-		assert(false);
+		panic();
 		break;
 	}
     
@@ -616,7 +616,7 @@ void agent::grow( long mateWait )
 		// no-op
 		break;
 	default:
-		assert(false);
+		panic();
 		break;
 	}
     
@@ -632,7 +632,7 @@ void agent::grow( long mateWait )
 		noseColor = 0.5;
 		break;
 	default:
-		assert(false);
+		panic();
 		break;
 	}
     fNoseColor[0] = fNoseColor[1] = fNoseColor[2] = noseColor;
@@ -725,7 +725,7 @@ void agent::eat( food* f,
 
 	#ifdef OF1
 		// this isn't right anymore... it's from before multi-nutrients.
-		assert( false );
+		panic();
 		mytotein += return_actuallyEat;
 	#endif
 
@@ -943,7 +943,7 @@ void agent::Die()
 
 	// Decrement total number of agents
 	agent::agentsliving--;	
-	Q_ASSERT(agent::agentsliving >= 0);
+	assert(agent::agentsliving >= 0);
 	
 	fSimulation->GetAgentPovRenderer()->remove( this );
 }
@@ -1074,7 +1074,7 @@ float agent::UpdateBody( float moveFitnessParam,
 						 agent* carrier )
 {
     debugcheck( "%lu", Number() );
-	Q_ASSERT( lxor( !BeingCarried(), carrier ) );
+	assert( lxor( !BeingCarried(), carrier ) );
 	
 	// In some simulations, we use a dynamic energy delta to shape difficulty.
 	if( !fMetabolism->energyDelta.isZero() )
@@ -1150,7 +1150,7 @@ float agent::UpdateBody( float moveFitnessParam,
             dyaw = 2.0 * outputNerves.yaw->get() - 1.0;
             break;
         default:
-            assert(false);
+            panic();
             break;
         }
         addyaw( dyaw * geneCache.maxSpeed * agent::config.yaw2DYaw );
@@ -1600,7 +1600,7 @@ void agent::AvoidCollisionDirectional( int direction, int solidObjects )
 				ot = OT_BRICK;
 				break;
 			default:
-				assert(false);
+				panic();
 				break;
 			}
 
@@ -1852,7 +1852,7 @@ float agent::NormalizedYaw()
 	case YE_SQUASH:
 		return clamp( ((2.0 * outputNerves.yaw->get() - 1.0) * geneCache.maxSpeed) / agent::config.maxmaxspeed, -1.0, 1.0 );
 	default:
-		assert(false);
+		panic();
 		return 0.0f;
 	}
 }
@@ -1883,7 +1883,7 @@ void agent::NumberToName()
 void agent::Heal( float healingRate, float minFoodEnergy)
 {
 	// etodo
-	assert( false );
+	panic();
 	/*
 	// if agent has some FoodEnergy to spare, and agent can receive some Energy.
 	if( ( fFoodEnergy > minFoodEnergy) && (fMaxEnergy > fEnergy) )		

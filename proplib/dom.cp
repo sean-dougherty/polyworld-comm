@@ -167,7 +167,7 @@ namespace proplib
 Node::Node( const Node &other )
 : _loc( DocumentLocation(NULL) )
 {
-	assert( false );
+	panic();
 }
 
 Node::Node( Type type, Subtype subtype, DocumentLocation loc )
@@ -340,7 +340,7 @@ Property::Property( const Property &other )
 : Node( other )
 , _id( -1 )
 {
-	assert( false );
+	panic();
 }
 
 Property::Property( Node::Type type, Node::Subtype subtype, DocumentLocation loc, Identifier id )
@@ -518,7 +518,7 @@ Property *Property::baseClone( Property *clone )
 __ScalarProperty::__ScalarProperty( const __ScalarProperty &other )
 : Property( other )
 {
-	assert( false );
+	panic();
 }
 
 __ScalarProperty::__ScalarProperty( Node::Subtype subtype, DocumentLocation loc, Identifier id )
@@ -631,7 +631,7 @@ bool __ScalarProperty::toBool()
 ConstScalarProperty::ConstScalarProperty( const ConstScalarProperty &other )
 : __ScalarProperty( other )
 {
-	assert( false );
+	panic();
 }
 
 ConstScalarProperty::ConstScalarProperty( DocumentLocation loc, Identifier id, Expression *expr )
@@ -679,7 +679,7 @@ RuntimeScalarProperty::~RuntimeScalarProperty()
 Property *RuntimeScalarProperty::clone( Identifier cloneId )
 {
 	// Clone runtime makes no sense.
-	assert( false );
+	panic();
 }
 
 string RuntimeScalarProperty::getEvaledString()
@@ -814,7 +814,7 @@ void __ContainerProperty::add( Property *prop )
 void __ContainerProperty::replace( Property *newProp )
 {
 	Property *oldProp = getp( newProp->getName() );
-	assert( oldProp != NULL );
+	require( oldProp != NULL );
 	delete oldProp;
 
 	_props[ newProp->getName() ] = newProp;
@@ -928,7 +928,7 @@ ObjectProperty::~ObjectProperty()
 
 void ObjectProperty::add( Property *prop )
 {
-	assert( !prop->getId().isIndex() );
+	require( !prop->getId().isIndex() );
 
 	__ContainerProperty::add( prop );
 }
@@ -1006,7 +1006,7 @@ ArrayProperty::~ArrayProperty()
 
 void ArrayProperty::add( Property *prop )
 {
-	assert( prop->getId().isIndex() );
+	require( prop->getId().isIndex() );
 
 	__ContainerProperty::add( prop );
 }

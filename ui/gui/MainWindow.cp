@@ -147,7 +147,7 @@ void MainWindow::createMonitorViews()
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 
 		if( view )

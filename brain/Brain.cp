@@ -53,7 +53,7 @@ void Brain::processWorldfile( proplib::Document &doc )
 		else if( val == "Sheets" )
 			Brain::config.architecture = Brain::Configuration::Sheets;
 		else
-			assert( false );
+            panic();
 	}
 	{
 		string val = doc.get( "NeuronModel" );
@@ -64,7 +64,7 @@ void Brain::processWorldfile( proplib::Document &doc )
 		else if( val == "S" )
 			Brain::config.neuronModel = Brain::Configuration::SPIKING;
 		else
-			assert( false );
+            panic();
 	}
 
     Brain::config.Spiking.enableGenes = doc.get( "EnableSpikingGenes" );

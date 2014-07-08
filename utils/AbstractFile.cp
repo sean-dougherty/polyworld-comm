@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include "misc.h"
+
 #define GZIP_EXT ".gz"
 
 AbstractFile *AbstractFile::open( ConcreteFileType type,
@@ -225,7 +227,7 @@ int AbstractFile::close()
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	if( abstractPath )
@@ -268,7 +270,7 @@ bool AbstractFile::isCapable( ConcreteFileCapability cap )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 	
 	return retval;
@@ -296,7 +298,7 @@ size_t AbstractFile::write( const void *ptr, size_t size, size_t nmemb )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 	
 	return rc;
@@ -313,7 +315,7 @@ int AbstractFile::printf( const char *format, ... )
 	va_start( argp, format );
 
 	rc = vsnprintf( stackbuf, BUFLEN, format, argp );
-	assert( rc < BUFLEN );
+	require( rc < BUFLEN );
 
 	va_end( argp );
 
@@ -347,7 +349,7 @@ int AbstractFile::flush( bool full )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return rc;
@@ -374,7 +376,7 @@ size_t AbstractFile::read( void *ptr, size_t size, size_t nmemb )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return rc;
@@ -425,7 +427,7 @@ char *AbstractFile::gets( char *s, int size )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return retval;
@@ -453,7 +455,7 @@ int AbstractFile::seek( offset_t offset,
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return rc;
@@ -476,7 +478,7 @@ AbstractFile::offset_t AbstractFile::tell()
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return rc;
@@ -506,7 +508,7 @@ void AbstractFile::init( ConcreteFileType type,
 			  {
 				system( "lsof -u `whoami` > /tmp/lsof.txt" );
 			  }
-				assert( file.fp );
+				require( file.fp );
 			}
 		}
 		break;
@@ -525,12 +527,12 @@ void AbstractFile::init( ConcreteFileType type,
 			  {
 				system( "lsof -u `whoami` > /tmp/lsof.txt" );
 			  }
-				assert( gzip.fp );
+				require( gzip.fp );
 			}
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 }
@@ -561,7 +563,7 @@ char *AbstractFile::createPath( ConcreteFileType type, const char *abstractPath 
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	return path;
@@ -569,8 +571,9 @@ char *AbstractFile::createPath( ConcreteFileType type, const char *abstractPath 
 
 void AbstractFile::test()
 {
+#ifndef NDEBUG
 #define CLEANUP() \
-	{int __rc = system( "rm -f file.out file.out.rename file.out.link gzip.out gzip.out.gz gzip.out.rename gzip.out.rename.zip gzip.out.link.gz" ); assert( __rc==0 );}
+	{int __rc = system( "rm -f file.out file.out.rename file.out.link gzip.out gzip.out.gz gzip.out.rename gzip.out.rename.zip gzip.out.link.gz" ); require( __rc==0 );}
 
 	CLEANUP();
 
@@ -1079,4 +1082,5 @@ void AbstractFile::test()
 	}
 
 	CLEANUP();
+#endif
 }

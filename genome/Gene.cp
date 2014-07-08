@@ -110,7 +110,7 @@ void Gene::init( const GeneType *_type,
 
 int Gene::getMutableSizeImpl()
 {
-	assert(false);
+	panic();
 	return -1;
 }
 
@@ -207,14 +207,14 @@ Scalar __InterpolatedGene::interpolate( double ratio )
 							int(smax) );
 			}
 		default:
-			assert( false );
+			panic();
 		}
 	}
 	case Scalar::FLOAT: {
 		return (float)interp( ratio, float(smin), float(smax) );
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 

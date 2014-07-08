@@ -362,9 +362,9 @@ void PwMovieReader::readHeader()
 		fseek( file, 0, SEEK_SET );
 		fread( &header, sizeof(header), 1, file );
 
-		assert( header.sizeofHeader == sizeof(header) );
-		assert( header.metaEntryCount > 0 );
-		assert( header.frameCount > 0 );
+		require( header.sizeofHeader == sizeof(header) );
+		require( header.metaEntryCount > 0 );
+		require( header.frameCount > 0 );
 
 		pmpdb( cout << "frame count = " << header.frameCount << endl );
 
@@ -387,7 +387,7 @@ void PwMovieReader::readHeader()
 				break;
 			}
 
-			assert( entry->header.type < PwMovieMetaEntry::__NTYPES );
+			require( entry->header.type < PwMovieMetaEntry::__NTYPES );
 			metaEntries[ entry->header.type ][ entry->header.frame ] = entry;
 		}
 	}

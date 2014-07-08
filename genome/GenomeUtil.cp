@@ -36,7 +36,7 @@ GenomeSchema *GenomeUtil::createSchema()
 		schema = new SheetsGenomeSchema();
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	schema->define();

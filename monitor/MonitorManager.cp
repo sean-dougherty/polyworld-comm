@@ -72,7 +72,7 @@ MonitorManager::MonitorManager( TSimulation *_simulation,
 		}
 		else
 		{
-			assert( false );
+			panic();
 		}
 
 		addAgentTracker( new AgentTracker(name, parms) );
@@ -242,7 +242,7 @@ MonitorManager::MonitorManager( TSimulation *_simulation,
 							else if( perspectiveName == "POV" )
 								perspective = CameraController::AgentTrackingParms::POV;
 							else
-								assert(false);
+								panic();
 
 							cameraController = new CameraController( renderer->getCamera() );
 
@@ -345,7 +345,7 @@ void MonitorManager::step()
 				tracker->setTarget( simulation->getCurrentFittest(parms.fitness.rank) );
 				break;
 			default:
-				assert( false );
+				panic();
 			}
 		}
 	}

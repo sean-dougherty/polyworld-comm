@@ -86,7 +86,7 @@ int GroupsGenome::getGroupCount( NeurGroupType type )
 			noninternal = _schema->getMaxGroupCount( NGT_OUTPUT );
 			break;
 		default:
-			assert(false);
+			panic();
 		}
 
 		return noninternal + get( INTERNAL );
@@ -113,10 +113,10 @@ int GroupsGenome::getNeuronCount( NeuronType type,
 			return get( EXCITATORY_COUNT,
 						group );
 		default:
-			assert(false);
+			panic();
 		}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -134,7 +134,7 @@ int GroupsGenome::getNeuronCount( int group )
 			+ getNeuronCount( EXCITATORY,
 							  group );
 	default:
-		assert(false);
+		panic();
 	}
 }
 

@@ -36,7 +36,7 @@ bool Token::isDecoration()
 
 string Token::getDecorationString()
 {
-	assert( !isDecoration() );
+	require( !isDecoration() );
 
 	stringstream out;
 
@@ -601,7 +601,7 @@ SyntaxNode *Parser::popNode( SyntaxNode::Type type, const char *typeName, Token 
 	ptrc( "end " << typeName << ", tok=" << end->text );
 
 	SyntaxNode *node = _syntaxNode;
-	assert( node->type == type );
+	require( node->type == type );
 
 	node->endToken = end;
 

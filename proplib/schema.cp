@@ -192,7 +192,7 @@ void SchemaDocument::normalizeObject( ObjectProperty &objectSchema, ObjectProper
 		if( childValue )
 			normalize( childSchema, *childValue );
 		else
-			assert( (bool)childSchema.get("optional") );
+			require( (bool)childSchema.get("optional") );
 	}
 }
 
@@ -532,7 +532,7 @@ void SchemaDocument::parseDefaults( Document *doc )
 		{
 			string value;
 			in >> value;
-			assert( !value.empty() );
+			require( !value.empty() );
 
 			char last = value[ value.length() - 1 ];
 			if( last == '.' )
@@ -549,7 +549,7 @@ void SchemaDocument::parseDefaults( Document *doc )
 				string prefix = value.substr( 0, numstr - value.c_str() );
 				
 				int num = atoi( numstr );
-				assert( num < 200 ); // sanity check.
+				require( num < 200 ); // sanity check.
 				for( ; num >= 0; num-- )
 				{
 					char buf[ 128 ];

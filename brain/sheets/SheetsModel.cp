@@ -87,7 +87,7 @@ const char *Sheet::getName( Type type )
 	case Input: return "Input";
 	case Output: return "Output";
 	case Internal: return "Internal";
-	default: assert( false );
+	default: panic();
 	}
 }
 
@@ -226,7 +226,7 @@ void Sheet::addReceptiveField( ReceptiveFieldRole role,
 		otherNeuronRole = To;
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	NeuronSubset currentNeurons = findNeurons( currentCenter, currentSize );
@@ -322,7 +322,7 @@ void Sheet::addReceptiveField( ReceptiveFieldRole role,
 				synapse = createSynapse( currentNeuron, otherNeuron );
 				break;
 			default:
-				assert( false );
+				panic();
 			}
 
 			if( synapse )
@@ -553,7 +553,7 @@ Sheet *SheetsModel::createSheet( string name,
 		_internalSheets.push_back( sheet );
 		break;
 	default:
-		assert( false );
+		panic();
 		break;
 	}
 
@@ -581,7 +581,7 @@ const SheetVector &SheetsModel::getSheets( Sheet::Type type )
 	case Sheet::Input: return _inputSheets;
 	case Sheet::Output: return _outputSheets;
 	case Sheet::Internal: return _internalSheets;
-	default: assert( false );
+	default: panic();
 	}
 }
 

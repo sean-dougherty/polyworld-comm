@@ -157,7 +157,7 @@ int main( int argc, char** argv )
 		delete term;
 	}
 	else
-		assert( false );
+		panic();
 
 	delete simulationController;
 	delete simulation;

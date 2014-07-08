@@ -36,7 +36,7 @@ GenomeLayout *GenomeLayout::create( GenomeSchema *schema,
 		createNeurGroup( layout, dynamic_cast<GroupsGenomeSchema *>(schema) );
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	layout->validate();

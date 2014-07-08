@@ -141,7 +141,7 @@ int GeneSchema::getMutableSize()
 		return _cache.mutableSize;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 

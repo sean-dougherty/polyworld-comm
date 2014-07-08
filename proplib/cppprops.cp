@@ -45,7 +45,7 @@ const char *CppProperties::PropertyMetadata::toString()
 		sprintf( __toStringBuf, "%s", *((bool *)value) ? "True" : "False" );
 		break;
 	default:
-		assert( false );
+		panic();
 		break;
 	}
 
@@ -402,7 +402,7 @@ string CppProperties::generateInitFunctionBody( DynamicScalarProperty *prop,
 								text = getMetadataLValue( sym.prop, infoMap );
 								break;
 							default:
-								assert( false );
+								panic();
 							}
 						}
 						else
@@ -433,7 +433,7 @@ string CppProperties::generateInitFunctionBody( DynamicScalarProperty *prop,
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 
@@ -658,7 +658,7 @@ string CppProperties::generateUpdateFunctionBody( DynamicScalarProperty *prop,
 									text = getMetadataLValue( sym.prop, infoMap );
 									break;
 								default:
-									assert( false );
+									panic();
 								}
 							}
 							else
@@ -694,7 +694,7 @@ string CppProperties::generateUpdateFunctionBody( DynamicScalarProperty *prop,
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 	}
 

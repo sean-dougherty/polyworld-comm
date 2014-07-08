@@ -39,7 +39,7 @@ void SheetsGenomeSchema::processWorldfile( proplib::Document &doc )
 		else if( val == "Neuron" )
 			SheetsGenomeSchema::config.neuronAttrEncoding = SheetsGenomeSchema::Configuration::PerNeuronAttr;
 		else
-			assert( false );
+			panic();
 	}
 
 	{
@@ -47,7 +47,7 @@ void SheetsGenomeSchema::processWorldfile( proplib::Document &doc )
 		if( val == "Field" )
 			SheetsGenomeSchema::config.synapseAttrEncoding = SheetsGenomeSchema::Configuration::FieldSynapseAttr;
 		else
-			assert( false );
+			panic();
 	}
 
 	{
@@ -61,7 +61,7 @@ void SheetsGenomeSchema::processWorldfile( proplib::Document &doc )
 			SheetsGenomeSchema::config.maxExplicitVectorSize = sheets.get( "MaxExplicitVectorSize" );
 		}
 		else
-			assert( false );
+			panic();
 	}
 
 	SheetsGenomeSchema::config.enableReceptiveFieldCurrentRegion = sheets.get( "EnableReceptiveFieldCurrentRegion" );
@@ -367,7 +367,7 @@ void SheetsGenomeSchema::define()
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -415,7 +415,7 @@ Neuron::Attributes::Type SheetsGenomeSchema::getNeuronType( SynapseType synapseT
 		case II:
 			return Neuron::Attributes::I;
 		default:
-			assert( false );
+			panic();
 			break;
 		}
 		break;
@@ -429,12 +429,12 @@ Neuron::Attributes::Type SheetsGenomeSchema::getNeuronType( SynapseType synapseT
 		case II:
 			return Neuron::Attributes::I;
 		default:
-			assert( false );
+			panic();
 			break;
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -528,7 +528,7 @@ void SheetsGenomeSchema::defineNeuronAttrs( ContainerGene *attrs )
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -579,7 +579,7 @@ void SheetsGenomeSchema::defineReceptiveFieldVector( ContainerGene *sheets,
 		vectorSizeName = "TargetReceptiveFieldsCount";
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	IntMinMax synapseType( 0, __NumSynapseTypes - 1 );
@@ -759,7 +759,7 @@ void SheetsGenomeSchema::createSheet( SheetsModel *model, SheetsGenome *g, Conta
 					: Neuron::Attributes::I;
 				break;
 			default:
-				assert( false );
+				panic();
 			}
 		};
 
@@ -797,7 +797,7 @@ void SheetsGenomeSchema::createSheet( SheetsModel *model, SheetsGenome *g, Conta
 	}
 	else
 	{
-		assert( false );
+		panic();
 	}
 
 	// ---
@@ -839,7 +839,7 @@ Neuron::Attributes SheetsGenomeSchema::decodeNeuronAttrs( SheetsGenome *g,
 		}
 		break;
 	default:
-		assert( false );
+		panic();
 	}			
 
 	return attrs;
@@ -875,7 +875,7 @@ void SheetsGenomeSchema::createReceptiveFields( SheetsModel *model, SheetsGenome
 					nfields = g->get( sheetGene->gene(string(vectorName) + "Count") );
 					break;
 				default:
-					assert( false );
+					panic();
 				}
 
 				for( int i = 0; i < nfields; i++ )
@@ -953,7 +953,7 @@ void SheetsGenomeSchema::createReceptiveField( SheetsModel *model,
 	}
 	else
 	{
-		assert( false );
+		panic();
 	}
 
 	sheet->addReceptiveField( role,

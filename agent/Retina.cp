@@ -114,7 +114,7 @@ void Retina::sensor_dump_anatomical( AbstractFile *f )
 void Retina::updateBuffer( short x, short y,
 						   short width, short height )
 {
-    assert(false);
+    panic();
 	// The POV window must be the current GL context,
 	// when agent::UpdateVision is called, for both the
 	// DrawAgentPOV() call above and the glReadPixels()

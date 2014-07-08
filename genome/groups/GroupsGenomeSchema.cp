@@ -382,11 +382,11 @@ int GroupsGenomeSchema::getPhysicalCount()
 				return cache.physicalCount = n;
 		}
 
-		assert(false); // fell through!
+		panic(); // fell through!
 		return -1;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -415,7 +415,7 @@ int GroupsGenomeSchema::getMaxGroupCount( NeurGroupType group )
 		return cache.groupCount[group] = n;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -446,7 +446,7 @@ int GroupsGenomeSchema::getFirstGroup( Gene *_gene )
 		return gene->first_group = group;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -476,13 +476,13 @@ int GroupsGenomeSchema::getFirstGroup( NeurGroupType group )
 			n = getMaxGroupCount( NGT_INPUT ) + getMaxGroupCount( NGT_OUTPUT );
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 
 		return cache.groupStart[group] = n;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -503,7 +503,7 @@ NeurGroupGene *GroupsGenomeSchema::getGroupGene( int group )
 		gene = _type2genes[GroupsGeneType::NEURGROUP->id].back();
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 
 	return GroupsGeneType::to_NeurGroup(gene);
@@ -534,7 +534,7 @@ int GroupsGenomeSchema::getMaxNeuronCount( NeurGroupType group )
 		return cache.neuronCount[group] = n;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -606,7 +606,7 @@ int GroupsGenomeSchema::getMaxSynapseCount()
 			- internal;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 

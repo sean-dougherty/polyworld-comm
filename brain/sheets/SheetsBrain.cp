@@ -117,7 +117,7 @@ void SheetsBrain::grow( SheetsGenome *genome, SheetsModel *model )
 				// no-op
 				break;
 			default:
-				assert( false );
+                panic();
 			}
 
 			sheetNeuronCount[ neuron->sheet->getId() ]++;
@@ -166,7 +166,7 @@ void SheetsBrain::grow( SheetsGenome *genome, SheetsModel *model )
 			}
 			break;
 		default:
-			assert(false);
+            panic();
 		}
 
 		_neuralnet->init( &_dims, 0.0f );

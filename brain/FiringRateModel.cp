@@ -125,7 +125,7 @@ void FiringRateModel::update()
 FiringRateModel::FiringRateModel( NervousSystem *cns )
 : BaseNeuronModel<Neuron, NeuronAttrs, Synapse>( cns )
 {
-    assert(Brain::config.neuronModel == Brain::Configuration::TAU);
+    require(Brain::config.neuronModel == Brain::Configuration::TAU);
     changed = true;
 }
 
@@ -168,7 +168,7 @@ void FiringRateModel::complete()
 
 void FiringRateModel::update( bool bprint )
 {
-    assert(false); // NEED TO ADAPT TO NEW SINGLE ACTIVATION BUFFER.
+    require(false); // NEED TO ADAPT TO NEW SINGLE ACTIVATION BUFFER.
     debugcheck( "(firing-rate brain) on entry" );
 
     if ((neuron == NULL) || (synapse == NULL) || (neuronactivation == NULL))

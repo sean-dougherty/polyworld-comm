@@ -59,7 +59,7 @@ RandomNumberGenerator::RandomNumberGenerator( Type type )
 		state = NULL;
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -88,7 +88,7 @@ void RandomNumberGenerator::seed( long x )
 		srand48( x );
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 }
 
@@ -107,7 +107,7 @@ double RandomNumberGenerator::drand()
 	case GLOBAL:
 		return drand48();
 	default:
-		assert( false );
+		panic();
 	}
 }
 

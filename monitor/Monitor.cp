@@ -196,7 +196,7 @@ PopulationMonitor::PopulationMonitor( TSimulation *_sim )
 		};
 	const int ncolors = sizeof(colors) / (3*sizeof(float));
 	int npops = (sim->GetNumDomains() < 2) ? 1 : (sim->GetNumDomains() + 1);
-	assert( ncolors >= npops );
+	require( ncolors >= npops );
 
 	for( int i = 0; i < npops; i++ )
 		defineCurve(0, sim->GetMaxAgents(),

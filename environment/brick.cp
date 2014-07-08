@@ -80,7 +80,7 @@ void brick::load(istream& in)
 	
     in >> x >> y >> z;
 	
-	assert( false ); // need to store color
+	panic(); // need to store color
     //initBrick( x, y, z );
 }
 

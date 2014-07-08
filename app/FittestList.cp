@@ -128,7 +128,7 @@ void FittestList::dump( ostream &out )
 		out << _elements[i]->fitness << endl;
 		out << _elements[i]->complexity << endl;
 		
-		assert( false );
+		panic();
 		/* PORT TO AbstractFile
 		if( _storeGenome )
 			_elements[i]->dump(out);

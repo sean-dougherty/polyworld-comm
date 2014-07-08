@@ -81,7 +81,7 @@ void Logger::initRecording( TSimulation *sim, StateScope scope, sim::EventType e
 		_agentScope.slotHandle = AgentAttachedData::createSlot();
 		break;
 	default:
-		assert( false );
+		panic();
 	}
 
 	Logs::registerEvents( this, events );

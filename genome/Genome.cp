@@ -495,7 +495,7 @@ void Genome::print( long lobit, long hibit )
 void Genome::getCrossoverPoints( long *crossoverPoints, long numCrossPoints )
 {
 	// Derived class must either override crossover() or implement this function.
-	assert( false );
+	panic();
 }
 
 void Genome::alloc()

@@ -127,7 +127,7 @@ void gstage::Compile()
 	}
 
 	GLuint displayList = glGenLists( 1 );
-	assert( displayList );
+	require( displayList );
 
 	glNewList( displayList, GL_COMPILE );
 	{

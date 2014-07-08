@@ -51,7 +51,7 @@ NeurGroupGene::NeurGroupGene( NeurGroupType group_type_ )
 		// okay
 		break;
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -70,7 +70,7 @@ bool NeurGroupGene::isMember( NeurGroupType group_type_ )
 	case NGT_INTERNAL:
 		return (group_type_ == NGT_ANY) || (group_type_ == NGT_NONINPUT);
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -114,7 +114,7 @@ int MutableNeurGroupGene::getMaxGroupCount()
 		return getMax();
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -132,7 +132,7 @@ int MutableNeurGroupGene::getMaxNeuronCount()
 		return ngroups * (numineur + numeneur);
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 
@@ -156,7 +156,7 @@ std::string MutableNeurGroupGene::getTitle( int group )
 		return buf;
 	}
 	default:
-		assert(false);
+		panic();
 	}
 }
 

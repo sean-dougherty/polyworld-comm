@@ -34,7 +34,7 @@ void CameraController::step()
 		setAgentTrackingTarget();
 		break;
 	default:
-		assert(false);
+		panic();
 		break;
 	}
 }
@@ -92,7 +92,7 @@ void CameraController::setAgentTrackingTarget()
 			}
 			break;
 		default:
-			assert( false );
+			panic();
 		}
 				
 	}

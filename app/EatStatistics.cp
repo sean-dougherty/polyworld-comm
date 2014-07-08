@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 
+#include "misc.h"
 #include "simconst.h"
 
 using namespace std;
@@ -125,7 +126,7 @@ const float *EatStatistics::GetProperty( const string &name )
 	}
 	else
 	{
-		assert( false );
+		panic();
 		return NULL;
 	}
 }
