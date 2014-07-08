@@ -497,10 +497,10 @@ NeurGroupGene *GroupsGenomeSchema::getGroupGene( int group )
 	{
 	case NGT_INPUT:
 	case NGT_OUTPUT:
-		gene = _type2genes[GroupsGeneType::NEURGROUP][group];
+		gene = _type2genes[GroupsGeneType::NEURGROUP->id][group];
 		break;
 	case NGT_INTERNAL:
-		gene = _type2genes[GroupsGeneType::NEURGROUP].back();
+		gene = _type2genes[GroupsGeneType::NEURGROUP->id].back();
 		break;
 	default:
 		assert(false);

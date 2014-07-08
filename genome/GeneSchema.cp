@@ -46,7 +46,10 @@ Gene *GeneSchema::add( Gene *gene )
 	assert( get(gene->name) == NULL );
 
 	_name2gene[gene->name] = gene;
-	_type2genes[gene->type].push_back( gene );
+    if(_type2genes.size() <= gene->type->id) {
+        _type2genes.resize(gene->type->id + 1);
+    }
+	_type2genes[gene->type->id].push_back( gene );
 	_genes.push_back( gene );
 
 	return gene;
@@ -73,7 +76,7 @@ Gene *GeneSchema::get( const char *name )
 //-------------------------------------------------------------------------------------------
 Gene *GeneSchema::get( const GeneType *type )
 {
-	GeneVector &_genes = _type2genes[type];
+	GeneVector &_genes = _type2genes[type->id];
 
 	assert( _genes.size() == 1 );
 
@@ -85,7 +88,7 @@ Gene *GeneSchema::get( const GeneType *type )
 //-------------------------------------------------------------------------------------------
 const GeneVector &GeneSchema::getAll( const GeneType *type )
 {
-	return _type2genes[type];
+	return _type2genes[type->id];
 }
 
 //-------------------------------------------------------------------------------------------
@@ -101,7 +104,7 @@ const GeneVector &GeneSchema::getAll()
 //-------------------------------------------------------------------------------------------
 int GeneSchema::getGeneCount( const GeneType *type )
 {
-	return _type2genes[type].size();
+	return _type2genes[type->id].size();
 }
 
 //-------------------------------------------------------------------------------------------

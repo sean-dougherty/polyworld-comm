@@ -55,7 +55,7 @@ namespace genome
 		int _offset;
 
 		GeneMap _name2gene;
-		GeneTypeMap _type2genes;
+		GeneTypeLookup _type2genes;
 		GeneVector _genes;
 
 		struct Cache

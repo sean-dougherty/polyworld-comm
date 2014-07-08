@@ -25,7 +25,7 @@ namespace genome
 	typedef std::vector<class Gene *> GeneVector;
 	typedef std::map<std::string, class Gene *> GeneMap;
 	typedef std::list<class Gene *> GeneList;
-	typedef std::map<const class GeneType *, GeneVector> GeneTypeMap;
+	typedef std::vector<GeneVector> GeneTypeLookup;
 
 	// ================================================================================
 	// ===
@@ -34,9 +34,16 @@ namespace genome
 	// ================================================================================
 	class GeneType
 	{
+    private:
+        static size_t id_counter;
+
 	public:
 		static const GeneType *SCALAR;
 		static const GeneType *CONTAINER;
+
+        const size_t id;
+
+        GeneType();
 
 #define CAST_TO(TYPE)											\
 		static class TYPE##Gene *to_##TYPE(class Gene *gene);

@@ -15,8 +15,15 @@ using namespace std;
 // === CLASS GeneType
 // ===
 // ================================================================================
+size_t GeneType::id_counter = 0;
+
 const GeneType *GeneType::SCALAR = new GeneType();
 const GeneType *GeneType::CONTAINER = new GeneType();
+
+GeneType::GeneType()
+: id(id_counter++)
+{
+}
 
 #define CAST_TO(TYPE)											\
 	TYPE##Gene *GeneType::to_##TYPE( Gene *gene_ )				\
