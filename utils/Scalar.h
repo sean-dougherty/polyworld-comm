@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <iostream>
 
 struct Scalar
@@ -50,3 +51,34 @@ bool operator <= ( const Scalar &scalar, long i );
 bool operator == ( const Scalar &scalar, double i );
 bool operator == ( double i, const Scalar &scalar );
 std::ostream &operator << ( std::ostream &, const Scalar & );
+
+inline Scalar::operator int () const
+{
+	assert( type == INT );
+
+	return ival;
+}
+
+inline Scalar::operator long () const
+{
+	return (int)*this;
+}
+
+inline Scalar::operator float () const
+{
+	assert( type == FLOAT );
+
+	return fval;
+}
+
+inline Scalar::operator double () const
+{
+	return (float)*this;
+}
+
+inline Scalar::operator bool () const
+{
+	assert( type == BOOL );
+
+	return bval;
+}

@@ -1,6 +1,5 @@
 #include "Scalar.h"
 
-#include <assert.h>
 #include <stdio.h>
 
 using namespace std;
@@ -83,37 +82,6 @@ string Scalar::str() const
 	}
 
 	return buf;
-}
-
-Scalar::operator int () const
-{
-	assert( type == INT );
-
-	return ival;
-}
-
-Scalar::operator long () const
-{
-	return (int)*this;
-}
-
-Scalar::operator float () const
-{
-	assert( type == FLOAT );
-
-	return fval;
-}
-
-Scalar::operator double () const
-{
-	return (float)*this;
-}
-
-Scalar::operator bool () const
-{
-	assert( type == BOOL );
-
-	return bval;
 }
 
 int operator + ( const Scalar &scalar, int i )
