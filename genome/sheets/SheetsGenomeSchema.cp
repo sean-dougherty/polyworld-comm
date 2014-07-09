@@ -608,7 +608,7 @@ void SheetsGenomeSchema::defineReceptiveField( ContainerGene *currentSheet,
 											   Sheet::ReceptiveFieldRole role,
 											   IntMinMax synapseType )
 {
-	const char *fieldArrayName;
+	const char *fieldArrayName = nullptr;
 	switch( role )
 	{
 	case Sheet::Target:
@@ -617,6 +617,8 @@ void SheetsGenomeSchema::defineReceptiveField( ContainerGene *currentSheet,
 	case Sheet::Source:
 		fieldArrayName = "SourceReceptiveFields";
 		break;
+    default:
+        panic();
 	}
 	ContainerGene *fieldArray = GeneType::to_Container( currentSheet->gene(fieldArrayName) );
 	if( !fieldArray )
