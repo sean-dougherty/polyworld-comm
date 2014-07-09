@@ -77,7 +77,7 @@ void Genome::updateSum( unsigned long *sum, unsigned long *sum2 )
 	{
 		for( int i = 0; i < nbytes; i++ )
 		{
-			int layoutOffset = layout->getMutableDataOffset_nocheck( i );
+			int layoutOffset = layout->getMutableDataOffset( i );
 			unsigned long raw = (unsigned long)mutable_data[layoutOffset];
 
 			raw = binofgray[raw];
@@ -90,7 +90,7 @@ void Genome::updateSum( unsigned long *sum, unsigned long *sum2 )
 	{
 		for( int i = 0; i < nbytes; i++ )
 		{
-			int layoutOffset = layout->getMutableDataOffset_nocheck( i );
+			int layoutOffset = layout->getMutableDataOffset( i );
 			unsigned long raw = (unsigned long)mutable_data[layoutOffset];
 
 			sum[i] += raw;
