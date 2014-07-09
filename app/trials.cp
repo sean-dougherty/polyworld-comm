@@ -18,8 +18,9 @@ using namespace std;
 
 #if TRIALS
 
-#define MAX_GENERATIONS 5
-#define NDEMES 1
+#define MAX_GENERATIONS 1000
+#define MAX_FITNESS 1.0f
+#define NDEMES 9
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
@@ -915,6 +916,14 @@ void TrialsState::end_generation() {
 #ifdef MAX_GENERATIONS
     if( generation_number == MAX_GENERATIONS ) {
         sim->End("MAX_GENERATIONS");
+    }
+#endif
+
+#ifdef MAX_FITNESS
+    if(elites.size() > 0) {
+        if( elites.get(0)->fitness >= MAX_FITNESS ) {
+            sim->End("MAX_FITNESS");
+        }
     }
 #endif
 
