@@ -283,4 +283,22 @@ namespace genome
 		class GeneSchema *_containerSchema;
 	};
 
+	//===========================================================================
+	// inlines
+	//===========================================================================
+#define CAST_TO(TYPE)											\
+	inline TYPE##Gene *GeneType::to_##TYPE( Gene *gene_ )       \
+	{															\
+		TYPE##Gene *gene = dynamic_cast<TYPE##Gene *>( gene_ );	\
+		assert( gene ); /* catch cast failure */				\
+		return gene;											\
+	}
+	CAST_TO(NonVector);
+	CAST_TO(ImmutableScalar);
+	CAST_TO(MutableScalar);
+	CAST_TO(ImmutableInterpolated);
+	CAST_TO(__Interpolated);
+	CAST_TO(Container);
+#undef CAST_TO
+
 } // namespace genome

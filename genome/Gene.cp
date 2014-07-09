@@ -25,22 +25,6 @@ GeneType::GeneType()
 {
 }
 
-#define CAST_TO(TYPE)											\
-	TYPE##Gene *GeneType::to_##TYPE( Gene *gene_ )				\
-	{															\
-		if( !gene_ ) return NULL;								\
-		TYPE##Gene *gene = dynamic_cast<TYPE##Gene *>( gene_ );	\
-		assert( gene ); /* catch cast failure */				\
-		return gene;											\
-	}
-	CAST_TO(NonVector);
-	CAST_TO(ImmutableScalar);
-	CAST_TO(MutableScalar);
-	CAST_TO(ImmutableInterpolated);
-	CAST_TO(__Interpolated);
-	CAST_TO(Container);
-#undef CAST_TO
-
 // ================================================================================
 // ===
 // === CLASS Gene
