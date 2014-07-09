@@ -157,6 +157,8 @@ __InterpolatedGene::__InterpolatedGene( const GeneType *_type,
 		  _name );
 
 	assert( smin.type == smax.type );
+
+    updateCache();
 }
 
 const Scalar &__InterpolatedGene::getMin()
@@ -171,10 +173,27 @@ const Scalar &__InterpolatedGene::getMax()
 
 void __InterpolatedGene::setInterpolationPower( double power )
 {
-	interpolationPower = power;
+    if(power != interpolationPower)
+    {
+        interpolationPower = power;
+        updateCache();
+    }
 }
 
-Scalar __InterpolatedGene::interpolate( unsigned char raw )
+Scalar __InterpolatedGene::interpolate( double ratio )
+{
+    return __interpolate(ratio);
+}
+
+void __InterpolatedGene::updateCache()
+{
+    for(unsigned short i = 0; i < 256; i++)
+    {
+        cache[i] = __interpolate((unsigned char)i);
+    }
+}
+
+Scalar __InterpolatedGene::__interpolate( unsigned char raw )
 {
 	static const float OneOver255 = 1. / 255.;
 
@@ -186,7 +205,7 @@ Scalar __InterpolatedGene::interpolate( unsigned char raw )
 	return interpolate( ratio );
 }
 
-Scalar __InterpolatedGene::interpolate( double ratio )
+Scalar __InterpolatedGene::__interpolate( double ratio )
 {
 	switch(smin.type)
 	{

@@ -127,7 +127,8 @@ namespace genome
 	// ================================================================================
 	class __InterpolatedGene : virtual Gene
 	{
-		PROPLIB_CPP_PROPERTIES
+        // dynamic properties no longer supported due to cached interpolation
+		//PROPLIB_CPP_PROPERTIES
 
 	public:
 		enum Rounding
@@ -151,18 +152,27 @@ namespace genome
 
 		void setInterpolationPower( double interpolationPower );
 
+		void printRanges( FILE *file, const std::string &prefix );
+
 		Scalar interpolate( unsigned char raw );
 		Scalar interpolate( double ratio );
 
-		void printRanges( FILE *file, const std::string &prefix );
-
 	private:
+        void updateCache();
+		Scalar __interpolate( unsigned char raw );
+		Scalar __interpolate( double ratio );
+
 		Scalar smin;
 		Scalar smax;
 		Rounding rounding;
 		double interpolationPower;
+        Scalar cache[256];
 	};
 
+    inline Scalar __InterpolatedGene::interpolate( unsigned char raw )
+    {
+        return cache[raw];
+    }
 
 	// ================================================================================
 	// ===
