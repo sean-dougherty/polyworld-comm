@@ -92,6 +92,26 @@ namespace genome
 //===========================================================================
 // inlines
 //===========================================================================
+inline Scalar Genome::get( Gene *gene )
+{
+	return GeneType::to_NonVector( gene )->get( this );
+}
+
+inline Gene *Genome::gene( const char *name )
+{
+	return schema->get( name );
+}
+
+inline Scalar Genome::get( const char *name )
+{
+	return get( gene(name) );
+}
+
+inline unsigned int Genome::get_raw_uint( long byte )
+{
+	return (unsigned int)get_raw( byte );
+}
+
 inline unsigned char Genome::get_raw( int offset )
 {
 	assert( offset >= 0 && offset < nbytes );

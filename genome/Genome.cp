@@ -48,26 +48,6 @@ Genome::~Genome()
 	delete [] mutable_data ;
 }
 
-Gene *Genome::gene( const char *name )
-{
-	return schema->get( name );
-}
-
-Scalar Genome::get( const char *name )
-{
-	return get( gene(name) );
-}
-
-Scalar Genome::get( Gene *gene )
-{
-	return GeneType::to_NonVector( gene )->get( this );
-}
-
-unsigned int Genome::get_raw_uint( long byte )
-{
-	return (unsigned int)get_raw( byte );
-}
-
 void Genome::updateSum( unsigned long *sum, unsigned long *sum2 )
 {
 	// This function is more verbose than necessary because we're optimizing

@@ -1,5 +1,6 @@
-PERFORMANCE_PROFILER = False # temp hack. add command-line switch
+PERFORMANCE_PROFILER = False
 DISABLE_ASSERT = True
+OPTIMIZE = True
 
 import os
 import sys
@@ -165,8 +166,10 @@ def env_create():
 	if os.popen('uname').readlines()[0].strip() == 'Darwin':
 		env['CXX'] = '/usr/local/bin/g++'
 		env['CC'] = '/usr/local/bin/g++'
-	#cpp_flags = ['-g', '-Wall', '-O2' ]
 	cpp_flags = ['-g', '-Wall', '-Wno-format-security', '-std=gnu++0x' ]
+
+	if OPTIMIZE:
+		cpp_flags += ['-O2']
 
 	if PERFORMANCE_PROFILER:
 		# use the gnu gprof

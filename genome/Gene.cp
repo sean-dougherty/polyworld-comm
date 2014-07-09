@@ -164,11 +164,6 @@ void __InterpolatedGene::setInterpolationPower( double power )
     }
 }
 
-inline Scalar __InterpolatedGene::interpolate( unsigned char raw )
-{
-    return cache[raw];
-}
-
 Scalar __InterpolatedGene::interpolate( double ratio )
 {
     return __interpolate(ratio);
