@@ -169,11 +169,6 @@ namespace genome
         Scalar cache[256];
 	};
 
-    inline Scalar __InterpolatedGene::interpolate( unsigned char raw )
-    {
-        return cache[raw];
-    }
-
 	// ================================================================================
 	// ===
 	// === CLASS NonVectorGene
