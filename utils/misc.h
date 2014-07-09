@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include "pwassert.h"
+
 #define nl <<"\n"
 #define pnl <<")\n"
 #define qnl <<"\"\n"
@@ -128,9 +130,5 @@ std::vector<std::string> split( const std::string& str, const std::string& delim
 
 #define SYS(STMT) {int rc = STMT; if(rc == -1) perror(#STMT);}
 #define SYSTEM(cmd) {int rc = system(cmd); if(rc != 0) {fprintf(stderr, "Failed executing command '%s'\n", cmd); exit(1);}}
-
-#define errif( STMT, MSG... ) if( STMT ) { fprintf(stderr, "[%s:%d] '%s' ", __FILE__, __LINE__, #STMT); fprintf(stderr, MSG); fprintf(stderr, "\n"); exit(1); }
-#define require( STMT ) if( !(STMT) ) { fprintf(stderr, "ASSERTION ERROR! [%s:%d] '%s'\n", __FILE__, __LINE__, #STMT); exit(1); }
-#define panic() { fprintf(stderr, "PANIC! [%s:%d]\n", __FILE__, __LINE__); exit(1); }
 
 #define WARN_ONCE(msg) {static bool __warned = false; if(!__warned) {fprintf(stderr, "%s\n", msg); __warned = true;}}

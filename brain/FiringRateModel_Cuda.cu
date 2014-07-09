@@ -1,4 +1,8 @@
+#define DEVICE_CODE
+
 #include "FiringRateModel_Cuda.h"
+
+#include "pwassert.h"
 
 #include <assert.h>
 #include <cuda.h>
@@ -14,17 +18,15 @@
         cudaError_t err = stmt;                                         \
         if (err != cudaSuccess) {                                       \
             std::cerr << __FILE__ << ":" << __LINE__ << ": Failed to run " << #stmt << ". Reason: " << cudaGetErrorString(err) << std::endl; \
-            assert(false);                                                    \
+            exit(1);                                                    \
         }                                                               \
     }
 
 FiringRateModel_Cuda::FiringRateModel_Cuda() {
-    memset(&gpu.buffers, 0, sizeof(gpu.buffers));
 }
 
 FiringRateModel_Cuda::~FiringRateModel_Cuda() {
-    xcuda( cudaFreeHost(buffer) );
-    xcuda( cudaFree(d_buffer) );
+    delete [] buffer;
 }
 
 void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
@@ -36,7 +38,7 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
                                 float decay_rate,
                                 float max_weight) {
 
-    assert(neurons_count < MAX_NEURONS);
+    require(neurons_count < MAX_NEURONS);
 
     gpu.neurons_count = neurons_count;
     gpu.input_neurons_count = input_neurons_count;
@@ -47,7 +49,7 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     gpu.max_weight = max_weight;
 
     int nsynapses_per_thread = (synapses_count - 1) / Threads_Per_Block + 1;
-    assert(nsynapses_per_thread <= MAX_SYNAPSES_PER_THREAD);
+    require(nsynapses_per_thread <= MAX_SYNAPSES_PER_THREAD);
 
     NeuronActivationPartition partitions[USHRT_MAX];
     size_t partitions_count = 0;
@@ -89,46 +91,42 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     size_t sizeof_activation = neurons_count * sizeof(float);
     size_t sizeof_efficacy = synapses_count * sizeof(float);
 
-    size_t sizeof_buffer =
+    sizeof_buffer =
         sizeof_neurons
         + sizeof_synapses
         + sizeof_partitions
         + sizeof_activation
         + sizeof_efficacy;
 
-    xcuda( cudaMallocHost((void **)&buffer, sizeof_buffer) );
-    xcuda( cudaMalloc((void **)&d_buffer, sizeof_buffer) );
-
+    buffer = new unsigned char[sizeof_buffer];
     {
         uint offset = 0;
         {
-            Neuron *gpu_neurons = (Neuron *)buffer + offset;
+            Neuron *gpu_neurons = (Neuron *)(buffer + offset);
             for(short i = 0; i < neurons_count; i++) {
                 gpu_neurons[i].bias = neurons[i].bias;
                 gpu_neurons[i].tau = neurons[i].tau;
             }
         }
-        gpu.buffers.neurons = (Neuron *)(d_buffer + offset);
+        gpu.offsets.neurons = offset;
         offset += sizeof_neurons;
 
         memcpy(buffer + offset, gpu_synapses, sizeof_synapses);
-        gpu.buffers.synapses = (Synapse *)(d_buffer + offset);
+        gpu.offsets.synapses = offset;
         offset += sizeof_synapses;
 
         memcpy(buffer + offset, partitions, sizeof_partitions);
-        gpu.buffers.partitions = (NeuronActivationPartition *)(d_buffer + offset);
+        gpu.offsets.partitions = offset;
         offset += sizeof_partitions;
 
         memcpy(buffer + offset, neuronactivation, sizeof_activation);
-        gpu.buffers.neuronactivation = (float *)(d_buffer + offset);
+        gpu.offsets.activations = offset;
         offset += sizeof_activation;
 
         memcpy(buffer + offset, efficacy, sizeof_efficacy);
-        gpu.buffers.efficacy = (float *)(d_buffer + offset);
+        gpu.offsets.efficacies = offset;
         offset += sizeof_efficacy;
     }
-
-    xcuda( cudaMemcpy(d_buffer, buffer, sizeof_buffer, cudaMemcpyHostToDevice) );
 }
 
 __device__ void sum_partition(float *x, int i, int n, float *result) {
@@ -173,12 +171,12 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
 
     FiringRateModel_Cuda::Neuron neuron;
     if(tid < state.neurons_count) {
-        neuron = state.buffers.neurons[tid];        
+        neuron = state.neurons()[tid];        
     	if(tid < state.input_neurons_count) {
         	neuronactivation[tid] = state.buffers.input_activation[tid];
             newneuronactivation[tid] = neuronactivation[tid];
     	} else {
-			neuronactivation[tid] = state.buffers.neuronactivation[tid];
+			neuronactivation[tid] = state.activations()[tid];
             newneuronactivation[tid] = neuron.bias;
 		}
     }
@@ -190,8 +188,8 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
 
     for(int i = tid, it = 0; it < nits; i += Threads_Per_Block, it++) {
         if(i < state.synapses_count) {
-            synapses[it] = state.buffers.synapses[i];
-            efficacies[it] = state.buffers.efficacy[i];
+            synapses[it] = state.synapses()[i];
+            efficacies[it] = state.efficacies()[i];
             partial_activation[tid] = efficacies[it] * neuronactivation[synapses[it].fromneuron];
         }
         __syncthreads();
@@ -202,7 +200,7 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
         float *result;
         
         if(i < state.synapses_count) {
-            FiringRateModel_Cuda::NeuronActivationPartition p = state.buffers.partitions[synapses[it].partition];
+            FiringRateModel_Cuda::NeuronActivationPartition p = state.partitions()[synapses[it].partition];
 
             partition_x = partial_activation + p.offset;
             partition_i = tid - p.offset;
@@ -232,7 +230,7 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
 
     for(int i = tid, it = 0; i < state.synapses_count; i += Threads_Per_Block, it++) {
         FiringRateModel_Cuda::Synapse synapse = synapses[it];
-        short toneuron = state.buffers.partitions[synapse.partition].toneuron;
+        short toneuron = state.partitions()[synapse.partition].toneuron;
         float efficacy = efficacies[it];
 
         efficacy += synapse.lrate
@@ -256,11 +254,11 @@ __global__ void update(FiringRateModel_Cuda::GpuState *states) {
                 efficacy = min(-1.e-10f, efficacy);
         }
 
-        state.buffers.efficacy[i] = efficacy;
+        state.efficacies()[i] = efficacy;
     }
 
     if(tid < state.neurons_count) {
-        state.buffers.neuronactivation[tid] = newneuronactivation[tid];
+        state.activations()[tid] = newneuronactivation[tid];
 
         if( (tid >= state.input_neurons_count)
             && (tid < state.input_neurons_count + state.output_neurons_count) ) {
@@ -274,6 +272,8 @@ typedef FiringRateModel_Cuda::GpuState GpuState;
 
 static GpuState *gpus = NULL;
 static GpuState *d_gpus = NULL;
+static unsigned char *buffers = NULL;
+static unsigned char *d_buffers = NULL;
 static uint sizeof_shared = 0;
 static float *d_all_input = NULL;
 static uint sizeof_input = 0;
@@ -290,9 +290,11 @@ void FiringRateModel_Cuda::alloc_update_buffers(AgentState *agents,
                                                 float **all_output) {
     if(d_all_input) {
         xcuda( cudaFreeHost(gpus) );
+        xcuda( cudaFreeHost(buffers) );
         xcuda( cudaFreeHost(*all_input) );
         xcuda( cudaFreeHost(*all_output) );
         xcuda( cudaFree(d_gpus) );
+        xcuda( cudaFree(d_buffers) );
         xcuda( cudaFree(d_all_input) );
         xcuda( cudaFree(d_all_output) );
     }
@@ -301,33 +303,46 @@ void FiringRateModel_Cuda::alloc_update_buffers(AgentState *agents,
     sizeof_output = noutput * sizeof(float);
     uint sizeof_gpus = nagents * sizeof(GpuState);
 
+    uint sizeof_buffers = 0;
     sizeof_shared = 0;
     for(long i = 0; i < nagents; i++) {
         AgentState &agent = agents[i];
         GpuState *gpu = &agent.model->gpu;
+
         uint sizeof_agent = uint((2 * gpu->neurons_count + Threads_Per_Block) * sizeof(float));
         sizeof_shared = max(sizeof_shared, sizeof_agent);
+
+        sizeof_buffers += agent.model->sizeof_buffer;
     }
 
+    xcuda( cudaMallocHost((void **)&gpus, sizeof_gpus) );
+    xcuda( cudaMallocHost((void **)&buffers, sizeof_buffers) );
     xcuda( cudaMallocHost(all_input, sizeof_input) );
     xcuda( cudaMallocHost(all_output, sizeof_output) );
-    xcuda( cudaMallocHost((void **)&gpus, sizeof_gpus) );
 
-    xcuda( cudaMalloc((void**)&d_gpus, sizeof(GpuState) * nagents) );
+    xcuda( cudaMalloc((void**)&d_gpus, sizeof_gpus) );
+    xcuda( cudaMalloc((void**)&d_buffers, sizeof_buffers) );
     xcuda( cudaMalloc((void**)&d_all_input, sizeof_input) );
     xcuda( cudaMalloc((void**)&d_all_output, sizeof_output) );
 
+    uint buffers_offset = 0;
     for(long i = 0; i < nagents; i++) {
         AgentState &agent = agents[i];
-        GpuState *gpu = &agent.model->gpu;
+        FiringRateModel_Cuda *model = agent.model;
+        GpuState *gpu = &model->gpu;
+
+        gpu->buffers.__main = d_buffers + buffers_offset;
+        memcpy(buffers + buffers_offset, model->buffer, model->sizeof_buffer);
+        buffers_offset += model->sizeof_buffer;
+
         gpu->buffers.input_activation = d_all_input + input_offset[i];
         gpu->buffers.output_activation = d_all_output + output_offset[i];
+
+        gpus[i] = *gpu;
     }
 
-    for(long i = 0; i < nagents; i++) {
-        gpus[i] = agents[i].model->gpu;
-    }
     xcuda( cudaMemcpy(d_gpus, gpus, sizeof_gpus, cudaMemcpyHostToDevice) );
+    xcuda( cudaMemcpy(d_buffers, buffers, sizeof_buffers, cudaMemcpyHostToDevice) );
 }
 
 void FiringRateModel_Cuda::update_all(AgentState *agents,

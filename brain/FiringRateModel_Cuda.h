@@ -54,8 +54,8 @@ struct FiringRateModel_Cuda {
               float decay_rate,
               float max_weight);
 
-    unsigned char *d_buffer;
     unsigned char *buffer;
+    size_t sizeof_buffer;
 
     struct GpuState {
         short neurons_count;
@@ -68,14 +68,40 @@ struct FiringRateModel_Cuda {
         float max_weight;
 
         struct {
-            Neuron *neurons;
-            Synapse *synapses;
-            NeuronActivationPartition *partitions;
-            
+            uint neurons;
+            uint synapses;
+            uint partitions;
+            uint activations;
+            uint efficacies;
+        } offsets;
+
+        struct {
+            unsigned char *__main;
+
             float *input_activation;
             float *output_activation;
-            float *neuronactivation;
-            float *efficacy;
         } buffers;
+
+#ifdef DEVICE_CODE
+        inline __device__ Neuron *neurons() {
+            return (Neuron *)(buffers.__main + offsets.neurons);
+        }
+
+        inline __device__ Synapse *synapses() {
+            return (Synapse *)(buffers.__main + offsets.synapses);
+        }
+
+        inline __device__ NeuronActivationPartition *partitions() {
+            return (NeuronActivationPartition *)(buffers.__main + offsets.partitions);
+        }
+
+        inline __device__ float *activations() {
+            return (float *)(buffers.__main + offsets.activations);
+        }
+
+        inline __device__ float *efficacies() {
+            return (float *)(buffers.__main + offsets.efficacies);
+        }
+#endif
     } gpu;
 };
