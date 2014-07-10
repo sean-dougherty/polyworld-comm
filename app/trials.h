@@ -22,6 +22,8 @@ struct Test
 {
     virtual ~Test() {}
 
+    virtual void init(size_t ntrials, size_t nagents) = 0;
+
     virtual long get_trial_timestep_count() = 0;
 
     virtual void timestep_input(int trial_number,
@@ -32,11 +34,6 @@ struct Test
                                  long test_timestep,
                                  agent *a,
                                  int freq) = 0;
-
-    virtual void log_performance(long agent_number,
-                                 const char *path_dir) = 0;
-
-    virtual void reset() = 0;
 };
 
 struct Deme {

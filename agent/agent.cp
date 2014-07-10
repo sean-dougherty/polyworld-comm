@@ -58,6 +58,8 @@ long agent::unfreezeStep = 0;
 bool		agent::gClassInited;
 unsigned long	agent::agentsEver;
 long		agent::agentsliving;
+vector<size_t> agent::available_indexes;
+size_t agent::next_index = 0;
 gpolyobj*	agent::agentobj;
 
 agent::Configuration agent::config;
@@ -270,6 +272,8 @@ agent::~agent()
     delete fCustomFitness.segmentVisited;
 
 	AgentAttachedData::dispose( this );
+
+    available_indexes.push_back(index);
 }
 
 
@@ -320,6 +324,15 @@ agent* agent::getfreeagent(TSimulation* simulation, gstage* stage)
     agent::agentsliving++;
     
     // Set number to total creatures that have ever lived (note this is 1-based)
+    if( !available_indexes.empty() )
+    {
+        c->index = available_indexes.back();
+        available_indexes.pop_back();
+    }
+    else
+    {
+        c->index = next_index++;
+    }
     c->setTypeNumber( ++agent::agentsEver );
 	c->fCns->getRNG()->seedIfLocal( agent::agentsEver );
 

@@ -98,13 +98,41 @@ struct Task {
     TaskCategory category;
     Sound sound;
     long timesteps;
+    size_t ntrials;
+    size_t nagents;
 
     struct AgentTrialState {
-        long silence_count = 0;
-        long correspondence_count = 0;
-        long respond_count = 0;
+        long silence_count;
+        long correspondence_count;
+        long respond_count;
     };
+    AgentTrialState *agent_trial_states;
+
+    inline AgentTrialState &get_state(int trial_number, agent *a) {
+        return agent_trial_states[trial_number*nagents + a->Index()];
+    }
+
     map<long, AgentTrialState> agent_trial_state[NTRIALS];
+
+    void init() {
+        ntrials = 0;
+        nagents = 0;
+        agent_trial_states = nullptr;
+    }
+
+    void init(size_t ntrials_, size_t nagents_) {
+        if( !agent_trial_states
+            || (nagents_ > nagents)
+            || (ntrials_ > ntrials) ) {
+
+            delete [] agent_trial_states;
+            agent_trial_states = new AgentTrialState[nagents_ * ntrials_];
+        }
+        ntrials = ntrials_;
+        nagents = nagents_;
+
+        memset(agent_trial_states, 0, nagents * ntrials * sizeof(AgentTrialState));
+    }
 
     void timestep_input(agent *a, int freq) {
         //
@@ -135,7 +163,7 @@ struct Task {
     void timestep_output(int trial_number,
                          agent *a,
                          int freq) {
-        AgentTrialState &state = agent_trial_state[trial_number][a->Number()];
+        AgentTrialState &state = get_state(trial_number, a);
 
         switch(category) {
         case Delay:
@@ -158,8 +186,8 @@ struct Task {
         }
     }
 
-    float metric(int trial_number, long agent_number, Metric m) {
-        AgentTrialState &state = agent_trial_state[trial_number][agent_number];
+    float metric(int trial_number, agent *a, Metric m) {
+        AgentTrialState &state = get_state(trial_number, a);
 
         switch(m) {
         case Metric::Delay:
@@ -176,54 +204,6 @@ struct Task {
             return float(state.silence_count) / timesteps;
         default:
             panic();
-        }
-    }
-
-    void create_log_schema(string prefix,
-                           vector<string> &colnames,
-                           vector<datalib::Type> &coltypes) {
-        
-
-        switch(category) {
-        case Delay:
-            colnames.push_back(prefix+"Delay");
-            coltypes.push_back(datalib::FLOAT);
-            break;
-        case Speak:
-            colnames.push_back(prefix+"Respond");
-            coltypes.push_back(datalib::FLOAT);
-            colnames.push_back(prefix+"Correspondence");
-            coltypes.push_back(datalib::FLOAT);
-            break;
-        case Break:
-            colnames.push_back(prefix+"Break");
-            coltypes.push_back(datalib::FLOAT);
-            break;
-        default:
-            panic();
-        }
-    }
-
-    void log_trial(int trial_number, long agent_number, vector<Variant> &colvalues) {
-        switch(category) {
-        case Delay:
-            colvalues.push_back(metric(trial_number, agent_number, Metric::Delay));
-            break;
-        case Speak:
-            colvalues.push_back(metric(trial_number, agent_number, Metric::Respond));
-            colvalues.push_back(metric(trial_number, agent_number, Metric::Correspondence));
-            break;
-        case Break:
-            colvalues.push_back(metric(trial_number, agent_number, Metric::Break));
-            break;
-        default:
-            panic();
-        }
-    }
-
-    void reset() {
-        for(int i = 0; i < NTRIALS; i++) {
-            agent_trial_state[i].clear();
         }
     }
 };
@@ -245,6 +225,7 @@ ScoredTest(const char *name_,
         long end = 0;
 
         for(auto &t: tasks) {
+            t.init();
             end += t.timesteps;
             task_ends.push_back(end);
         }
@@ -267,6 +248,12 @@ ScoredTest(const char *name_,
     }
 
     virtual ~ScoredTest() {
+    }
+
+    virtual void init(size_t ntrials, size_t nagents) {
+        for(Task &t: tasks) {
+            t.init(ntrials, nagents);
+        }
     }
 
     virtual long get_trial_timestep_count() {
@@ -299,59 +286,6 @@ ScoredTest(const char *name_,
         }
     }
 
-    virtual void log_performance(long agent_number,
-                                 const char *path_dir) {
-        vector<string> colnames;
-        vector<datalib::Type> coltypes;
-
-        colnames.push_back("Trial");
-        coltypes.push_back(datalib::INT);
-
-        colnames.push_back("Freq");
-        coltypes.push_back(datalib::INT);
-
-        int prefix = 0;
-        for(Task &t: tasks) {
-            char prefix_str[32];
-            sprintf(prefix_str, "%d.", prefix);
-            t.create_log_schema(prefix_str, colnames, coltypes);
-            prefix++;
-        }
-
-        {
-            char path[512];
-            sprintf(path, "%s/%s-trial-metrics.log", path_dir, name);        
-            DataLibWriter *writer = new DataLibWriter( path, true, true );
-            vector<Variant> colvalues;
-
-            char tableName[32];
-            sprintf(tableName, "Agent%ld", agent_number);
-            writer->beginTable(tableName, colnames, coltypes);
-
-            for(int trial = 0; trial < NTRIALS; trial++) {
-                colvalues.clear();
-                colvalues.push_back(trial);
-                colvalues.push_back(trials->freq_sequence[trial]);
-
-                for(Task &t: tasks) {
-                    t.log_trial(trial, agent_number, colvalues);
-                }
-
-                writer->addRow(&colvalues.front());
-            }
-
-            writer->endTable();
-
-            delete writer;
-        }
-    }
-
-    virtual void reset() {
-        for(Task &t: tasks) {
-            t.reset();
-        }
-    }
-
     float metric(agent *a, Metric m) {
         vector<int> &metric_tasks = tasks_by_metric[int(m)];
         if(metric_tasks.empty())
@@ -363,7 +297,7 @@ ScoredTest(const char *name_,
             Task &t = tasks[i];
             float tsum = 0.0f;
             for(int i = 0; i < NTRIALS; i++) {
-                tsum += t.metric(i, a->Number(), m);
+                tsum += t.metric(i, a, m);
             }
             sum += tsum;
         }
@@ -723,8 +657,10 @@ void TrialsState::timestep_begin() {
         //db("test timestep: " << test_timestep);
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
-        for(agent *a: generation_agents) {
-            test->timestep_input(trial_number, test_timestep, a, freq);
+
+#pragma omp parallel for
+        for(size_t i = 0; i < generation_agents.size(); i++) {
+            test->timestep_input(trial_number, test_timestep, generation_agents[i], freq);
         }
     }
 }
@@ -738,8 +674,10 @@ void TrialsState::timestep_end() {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
         int freq = freq_sequence[trial_number];
         auto test = tests[test_number];
-        for(agent *a: generation_agents) {
-            test->timestep_output(trial_number, test_timestep, a, freq);
+
+#pragma omp parallel for
+        for(size_t i = 0; i < generation_agents.size(); i++) {
+            test->timestep_output(trial_number, test_timestep, generation_agents[i], freq);
         }
     }
 }
@@ -782,6 +720,10 @@ void TrialsState::new_generation() {
         brain_time = 0.0;
     }
     prev_start = start;
+
+    for(Test *t: tests) {
+        t->init(NTRIALS, sim->fMaxNumAgents);
+    }
 
     generation_number++;
     generation_agents = create_generation();
@@ -843,10 +785,6 @@ void TrialsState::log_elite(FitStruct *fs) {
                  1,
                  [fs] (int i) { return fs; });
     log_genome( fs );
-
-    for(Test *t: tests) {
-        t->log_performance(fs->agentID, path_dir);
-    }
 }
 
 void TrialsState::end_generation() {
@@ -894,10 +832,6 @@ void TrialsState::end_generation() {
     }
 
     objectxsortedlist::gXSortedObjects.clear();
-
-    for(Test *t: tests) {
-        t->reset();
-    }
 
 #ifdef MAX_GENERATIONS
     if( generation_number == MAX_GENERATIONS ) {

@@ -228,6 +228,7 @@ public:
 	float LastEatDistance();
     std::shared_ptr<genome::Genome> Genes();
 	NervousSystem* GetNervousSystem();
+    size_t Index();
     long Number();
 	float CurrentHeuristicFitness();
 	float ProjectedHeuristicFitness();
@@ -240,7 +241,6 @@ public:
     short Domain();
     void Domain(short id);
     bool Alive() const;
-    long Index() const;
 	LifeSpan* GetLifeSpan();
 	bool GetDeathByPatch();
 	void SetDeathByPatch();
@@ -279,9 +279,12 @@ protected:
 	static bool gClassInited;
     static unsigned long agentsEver;
     static long agentsliving;
+    static std::vector<size_t> available_indexes;
+    static size_t next_index;
     static gpolyobj* agentobj;
     static agent** pc;
 
+    size_t index;
     bool fAlive;
     long fAge;
     long fLastMate;
@@ -413,6 +416,7 @@ inline long agent::LastEat() { return fLastEat; }
 inline float agent::LastEatDistance() { return dist( fPosition[0], fPosition[2], fLastEatPosition[0], fLastEatPosition[2] ); }
 inline shared_ptr<genome::Genome> agent::Genes() { return fGenome; }
 inline NervousSystem* agent::GetNervousSystem() { return fCns; }
+inline size_t agent::Index() { return index; }
 inline long agent::Number() { return getTypeNumber(); }
 // replace both occurences of 0.8 with actual estimate of fraction of lifespan agent will live
 inline float agent::CurrentHeuristicFitness() { return fHeuristicFitness; }
