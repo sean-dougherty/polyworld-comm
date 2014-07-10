@@ -335,6 +335,7 @@ agent* agent::getfreeagent(TSimulation* simulation, gstage* stage)
     }
     c->setTypeNumber( ++agent::agentsEver );
 	c->fCns->getRNG()->seedIfLocal( agent::agentsEver );
+	c->fGenome->getRNG()->seedIfLocal( agent::agentsEver );
 
 	simulation->GetAgentPovRenderer()->add( c );
 		

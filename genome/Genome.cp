@@ -7,6 +7,7 @@
 #include "AbstractFile.h"
 #include "GenomeLayout.h"
 #include "misc.h"
+#include "RandomNumberGenerator.h"
 
 
 #ifdef __ALTIVEC__
@@ -34,6 +35,8 @@ Genome::Genome( GenomeSchema *schema,
 	this->schema = schema;
 	this->layout = layout;
 
+	rng = RandomNumberGenerator::create( RandomNumberGenerator::GENOME );
+
 	MISC_BIAS = gene("MiscBias");
 	MISC_INVIS_SLOPE = gene("MiscInvisSlope");
 	gray = GenomeSchema::config.grayCoding;
@@ -46,6 +49,12 @@ Genome::Genome( GenomeSchema *schema,
 Genome::~Genome()
 {
 	delete [] mutable_data ;
+    RandomNumberGenerator::dispose( rng );
+}
+
+RandomNumberGenerator *Genome::getRNG()
+{
+    return rng;
 }
 
 void Genome::updateSum( unsigned long *sum, unsigned long *sum2 )
@@ -98,7 +107,7 @@ void Genome::randomize( float bitonprob )
     {
         for (long bit = 0; bit < 8; bit++)
         {
-            if (randpw() < bitonprob)
+            if (rng->drand() < bitonprob)
                 mutable_data[byte] |= char(1 << (7-bit));
             else
                 mutable_data[byte] &= char(255 ^ (1 << (7-bit)));
@@ -108,7 +117,7 @@ void Genome::randomize( float bitonprob )
 
 void Genome::randomize()
 {
-	randomize( GeneType::to_ImmutableInterpolated(gene("BitProbability"))->interpolate(randpw()) );
+	randomize( GeneType::to_ImmutableInterpolated(gene("BitProbability"))->interpolate(rng->drand()) );
 }
 
 void Genome::mutate()
@@ -119,7 +128,7 @@ void Genome::mutate()
     {
         for (long bit = 0; bit < 8; bit++)
         {
-            if (randpw() < rate)
+            if (rng->drand() < rate)
                 mutable_data[byte] ^= char(1 << (7-bit));
         }
     }
@@ -133,14 +142,14 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
 
     // Randomly select number of crossover points from chosen genome
     long numCrossPoints;
-    if (randpw() < 0.5)
+    if (rng->drand() < 0.5)
         numCrossPoints = g1->get( "CrossoverPointCount" );
     else
 		numCrossPoints = g2->get( "CrossoverPointCount" );
 
 	if( numCrossPoints == 0 )
 	{
-		Genome *gTemplate = (randpw() < 0.5) ? g1 : g2;
+		Genome *gTemplate = (rng->drand() < 0.5) ? g1 : g2;
 
 		copyFrom( gTemplate );
 		if( mutate )
@@ -172,7 +181,7 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
 	float mrate = 0.0;
     if (mutate)
     {
-        if (randpw() < 0.5)
+        if (rng->drand() < 0.5)
             mrate = g1->get( "MutationRate" );
         else
             mrate = g2->get( "MutationRate" );
@@ -181,7 +190,7 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
     long begbyte = 0;
     long endbyte = -1;
     long bit;
-    bool first = (randpw() < 0.5);
+    bool first = (rng->drand() < 0.5);
     const Genome* g;
     
 	// now do crossover using the ordered pts
@@ -221,7 +230,7 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
                 mutable_data[j] = g->mutable_data[j];    // copy from the appropriate genome
                 for (bit = 0; bit < 8; bit++)
                 {
-                    if (randpw() < mrate)
+                    if (rng->drand() < mrate)
                         mutable_data[j] ^= char(1 << (7-bit));	// this goes left to right, corresponding more directly to little-endian machines, but leave it alone (at least for now)
                 }
             }
@@ -259,7 +268,7 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
         {
             for (bit = 0; bit < 8; bit++)
             {
-                if (randpw() < mrate)
+                if (rng->drand() < mrate)
                     mutable_data[endbyte] ^= char(1 << (7 - bit));	// this goes left to right, corresponding more directly to little-endian machines, but leave it alone (at least for now)
             }
         }

@@ -13,7 +13,8 @@ class RandomNumberGenerator
 	// ---
 	enum Role
 	{
-		NERVOUS_SYSTEM = 0,
+        GENOME = 0,
+		NERVOUS_SYSTEM,
 		TOPOLOGICAL_DISTORTION,
 		INIT_WEIGHT,
 		__NROLES

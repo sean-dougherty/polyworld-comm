@@ -12,6 +12,7 @@
 class AbstractFile;
 class Brain;
 class NervousSystem;
+class RandomNumberGenerator;
 
 namespace genome
 {
@@ -29,6 +30,8 @@ namespace genome
 		Genome( GenomeSchema *schema,
 				GenomeLayout *layout );
 		virtual ~Genome();
+
+        RandomNumberGenerator *getRNG();
 
 		virtual Brain *createBrain( NervousSystem *cns ) = 0;
 
@@ -83,6 +86,7 @@ namespace genome
 	private:
 		void alloc();
 
+        RandomNumberGenerator *rng;
 		GenomeSchema *schema;
 		GenomeLayout *layout;
 		bool gray;

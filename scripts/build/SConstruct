@@ -1,6 +1,6 @@
 PERFORMANCE_PROFILER = False
-DISABLE_ASSERT = False
-OPTIMIZE = False
+DISABLE_ASSERT = True
+OPTIMIZE = True
 
 import os
 import sys

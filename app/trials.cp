@@ -4,6 +4,7 @@
 #include "PathDistance.h"
 #include "Retina.h"
 #include "trials.h"
+#include "RandomNumberGenerator.h"
 #include "Simulation.h"
 #include "SoundPatch.h"
 #include "timer.h"
@@ -25,6 +26,7 @@ using namespace std;
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
+#define SERIAL_GENOME false
 
 #define GENERATION_LOG_FREQUENCY 20
 
@@ -500,9 +502,16 @@ vector<agent *> Deme::create_generation(long generation_number_) {
 }
 
 void Deme::init_generation0_genomes(vector<agent *> &agents) {
+#if SERIAL_GENOME
     for(agent *a: agents) {
         a->Genes()->randomize();
     }
+#else
+#pragma omp parallel for
+    for(size_t i = 0; i < agents.size(); i++) {
+        agents[i]->Genes()->randomize();
+    }
+#endif
 }
 
 void Deme::init_generation_genomes(vector<agent *> &next_generation) {
@@ -529,6 +538,7 @@ void Deme::init_generation_genomes(vector<agent *> &next_generation) {
                                                                 rng);
     assert(parents.size() == nchildren);
 
+#if SERIAL_GENOME
     for(size_t i = 0; i < nchildren; i++) {
         pair<size_t, size_t> p = parents[i];
         
@@ -536,6 +546,16 @@ void Deme::init_generation_genomes(vector<agent *> &next_generation) {
                                                get_parent(p.second),
                                                true);
     }
+#else
+#pragma omp parallel for
+    for(size_t i = 0; i < nchildren; i++) {
+        pair<size_t, size_t> p = parents[i];
+        
+        next_generation[i]->Genes()->crossover(get_parent(p.first),
+                                               get_parent(p.second),
+                                               true);
+    }
+#endif
 }
 
 void Deme::end_generation() {
@@ -570,6 +590,11 @@ TrialsState::TrialsState(TSimulation *sim_)
     , prev_generation( NDEMES, true )
 {
     sim = sim_;
+
+#if !SERIAL_GENOME
+    RandomNumberGenerator::set( RandomNumberGenerator::GENOME,
+                                RandomNumberGenerator::LOCAL );
+#endif
 
     normalize_test_weights();
 
