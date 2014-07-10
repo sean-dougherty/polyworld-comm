@@ -19,6 +19,7 @@ using namespace std;
 #if TRIALS
 
 #define MAX_GENERATIONS 1000
+#define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
 #define NDEMES 9
 #define MIGRATION_PERIOD 5
@@ -880,9 +881,7 @@ void TrialsState::end_generation() {
     }
 
     db("  Generation fitness = " << prev_generation.get(0)->fitness);
-    if(elites.size() > 0) {
-        db("      Global fitness = " << elites.get(0)->fitness);
-    }
+    db("      Global fitness = " << elites.get(0)->fitness);
 
     if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
         char path_dir[512];
@@ -920,10 +919,8 @@ void TrialsState::end_generation() {
 #endif
 
 #ifdef MAX_FITNESS
-    if(elites.size() > 0) {
-        if( elites.get(0)->fitness >= MAX_FITNESS ) {
-            sim->End("MAX_FITNESS");
-        }
+    if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
+        sim->End("MAX_FITNESS");
     }
 #endif
 
