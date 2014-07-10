@@ -2,6 +2,7 @@
 #include "GenomeUtil.h"
 #include "Logs.h"
 #include "PathDistance.h"
+#include "pwmpi.h"
 #include "Retina.h"
 #include "trials.h"
 #include "RandomNumberGenerator.h"
@@ -26,7 +27,7 @@ using namespace std;
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
-#define SERIAL_GENOME false
+#define SERIAL_GENOME true
 
 #define GENERATION_LOG_FREQUENCY 20
 
@@ -591,6 +592,8 @@ TrialsState::TrialsState(TSimulation *sim_)
 {
     sim = sim_;
 
+    pwmpi::init();
+
 #if !SERIAL_GENOME
     RandomNumberGenerator::set( RandomNumberGenerator::GENOME,
                                 RandomNumberGenerator::LOCAL );
@@ -731,12 +734,38 @@ void TrialsState::new_test() {
     new_trial();
 }
 
-void TrialsState::new_generation() {
+bool TrialsState::new_generation() {
     static double prev_start = 0.0;
     double start = seconds();
 
     if(generation_number != -1) {
+        pwmpi::gpu_unlock();
+
         end_generation();
+
+#ifdef MAX_GENERATIONS
+        if( generation_number == MAX_GENERATIONS ) {
+            sim->End("MAX_GENERATIONS");
+            return false;
+        }
+#endif
+
+#ifdef MAX_FITNESS
+        if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
+            sim->End("MAX_FITNESS");
+            return false;
+        }
+#endif
+
+        if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
+            FitStruct *immigrant = prev_generation.get(0);
+            db("PERFORMING MIGRATION (" << immigrant->agentID << " " << immigrant->fitness << ")");
+
+            for(Deme *deme: demes) {
+                deme->accept_immigrant( immigrant );
+            }
+        }
+
         cout << "time to execute previous generation = " << start - prev_start << endl;
         extern double brain_time;
         static vector<double> brain_times;
@@ -751,6 +780,7 @@ void TrialsState::new_generation() {
     }
 
     generation_number++;
+    
     generation_agents = create_generation();
 
     cout << "time to make new generation = " << seconds() - start << endl;
@@ -765,6 +795,10 @@ void TrialsState::new_generation() {
 
     test_number = -1;
     new_test();
+
+    pwmpi::gpu_lock();
+
+    return true;
 }
 
 void log_fitness(const string &path,
@@ -857,27 +891,6 @@ void TrialsState::end_generation() {
     }
 
     objectxsortedlist::gXSortedObjects.clear();
-
-#ifdef MAX_GENERATIONS
-    if( generation_number == MAX_GENERATIONS ) {
-        sim->End("MAX_GENERATIONS");
-    }
-#endif
-
-#ifdef MAX_FITNESS
-    if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
-        sim->End("MAX_FITNESS");
-    }
-#endif
-
-    if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
-        FitStruct *immigrant = prev_generation.get(0);
-        db("PERFORMING MIGRATION (" << immigrant->agentID << " " << immigrant->fitness << ")");
-
-        for(Deme *deme: demes) {
-            deme->accept_immigrant( immigrant );
-        }
-    }
 }
 
 template<typename T>

@@ -88,7 +88,7 @@ struct TrialsState
 
     void new_test();
     void new_trial();
-    void new_generation();
+    bool new_generation();
     void end_generation();
 
     void log_elite(FitStruct *fs);
