@@ -18,10 +18,10 @@ using namespace std;
 
 #if TRIALS
 
-#define MAX_GENERATIONS 1000
+#define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
-#define NDEMES 9
+#define NDEMES 4
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
@@ -556,7 +556,6 @@ vector<agent *> Deme::create_generation(long generation_number_) {
     if(generation_number == 0) {
         init_generation0_genomes(generation_agents);
     } else {
-        default_random_engine rng(generation_number);
         init_generation_genomes(generation_agents);
     }
     for(agent *a: generation_agents) {
@@ -632,6 +631,7 @@ void Deme::accept_immigrant(FitStruct *fs) {
 
 TrialsState::TrialsState(TSimulation *sim_)
     : sim( sim_ )
+    , agents_per_deme( sim->fMaxNumAgents / NDEMES )
     , elites( 1, true )
     , prev_generation( NDEMES, true )
 {
@@ -648,7 +648,7 @@ TrialsState::TrialsState(TSimulation *sim_)
     for(size_t i = 0; i < NDEMES; i++) {
         demes.push_back( new Deme(sim,
                                   i,
-                                  sim->fMaxNumAgents / NDEMES,
+                                  agents_per_deme,
                                   sim->fNumberFittest / NDEMES) );
     }
 }
@@ -660,45 +660,32 @@ vector<agent *> TrialsState::create_generation() {
     db("CREATING NEW GENERATION");
 
     vector<agent *> agents;
-    for(Deme *deme: demes) {
-        for(agent *a: deme->create_generation(generation_number)) {
+    agents.resize(NDEMES * agents_per_deme);
+
+    for(int i = 0; i < NDEMES; i++) {
+        Deme *deme = demes[i];
+        vector<agent *> deme_agents = deme->create_generation(generation_number);
+        assert(deme_agents.size() == size_t(agents_per_deme));
+
+        for(long j = 0; j < agents_per_deme; j++) {
+            agent *a = deme_agents[j];
+
             a->setx(0.0f);
             a->sety(0.0f);
             a->setz(0.0f);
 
-            agents.push_back(a);
-            objectxsortedlist::gXSortedObjects.add(a);
+            agents[i*agents_per_deme + j] = a;
         }
     }
 
-    class GrowAgents : public ITask {
-    public:
-        vector<agent *> &agents;
+    for(agent *a: agents) {
+        objectxsortedlist::gXSortedObjects.add(a);
+    }
 
-        GrowAgents(vector<agent *> &agents_) : agents(agents_) {}
-
-        virtual void task_exec( TSimulation *sim ) {
-            class GrowAgent : public ITask {
-            public:
-                agent *a;
-                GrowAgent( agent *a ) {
-                    this->a = a;
-                }
-
-                virtual void task_exec( TSimulation *sim ) {
-                    a->grow( sim->fMateWait );
-                }
-            };
-
-            for(agent *a: agents) {
-                sim->fScheduler.postParallel(new GrowAgent(a));
-            }
-        }
-    } growAgents(agents);
-
-    sim->fScheduler.execMasterTask( sim,
-                                    growAgents,
-                                    false );
+#pragma omp parallel for
+    for(size_t i = 0; i < agents.size(); i++) {
+        agents[i]->grow( sim->fMateWait );
+    }
 
     return agents;
 }

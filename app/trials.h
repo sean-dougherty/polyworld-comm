@@ -75,6 +75,7 @@ struct TrialsState
 
     std::vector<Test *> tests;
 
+    long agents_per_deme;
     std::vector<Deme *> demes;
     std::vector<agent *> generation_agents;
     FittestList elites;
