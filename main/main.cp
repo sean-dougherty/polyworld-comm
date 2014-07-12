@@ -11,8 +11,10 @@
 #include <QApplication>
 
 // Local
+#include "FiringRateModel_Cuda.h"
 #include "MainWindow.h"
 #include "Monitor.h"
+#include "pwmpi.h"
 #include "Simulation.h"
 #include "SimulationController.h"
 #include "TerminalUI.h"
@@ -64,6 +66,11 @@ int main( int argc, char** argv )
     unit_tests();
     exit(0);
 #endif
+
+    pwmpi::init(&argc, &argv);
+    if(!pwmpi::is_master()) {
+        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
+    }
 
 	const char *worldfilePath = NULL;
 	string ui = "term";

@@ -6,7 +6,7 @@ import os
 import sys
 
 from scons_util import exclude, find, init_env, relocate_paths, export_dynamic
-from scons_util import import_OpenGL, import_OpenMP, import_GSL, import_Qt, import_zlib, import_pthread, import_dlsym, import_python, import_cuda
+from scons_util import import_OpenGL, import_OpenMP, import_GSL, import_Qt, import_zlib, import_pthread, import_rt, import_dlsym, import_python, import_cuda
 
 SRCDIRS = ['src/' + x
 		   for x in ['agent',
@@ -161,7 +161,7 @@ def env_create():
 	envs = {}
 
 
-	env = env_common = init_env(Environment())
+	env = env_common = init_env(Environment(CXX='mpic++'))
 	env.Append( CPPSUFFIXES = ['.cp'] )
 	if os.popen('uname').readlines()[0].strip() == 'Darwin':
 		env['CXX'] = '/usr/local/bin/g++'
@@ -196,6 +196,7 @@ def env_create():
 
 	import_OpenMP(env)
 	import_pthread(env)
+	import_rt(env)
 	import_dlsym(env)
 	import_GSL(env)
 

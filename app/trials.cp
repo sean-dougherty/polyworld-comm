@@ -592,8 +592,6 @@ TrialsState::TrialsState(TSimulation *sim_)
 {
     sim = sim_;
 
-    pwmpi::init();
-
 #if !SERIAL_GENOME
     RandomNumberGenerator::set( RandomNumberGenerator::GENOME,
                                 RandomNumberGenerator::LOCAL );
