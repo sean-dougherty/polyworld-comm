@@ -65,6 +65,7 @@
 #include "SoundPatch.h"
 #include "trials.h"
 #include "PwMovieUtils.h"
+#include "pwmpi.h"
 #include "complexity.h"
 
 #include "objectxsortedlist.h"
@@ -77,9 +78,6 @@
 using namespace genome;
 using namespace std;
 
-
-// Define directory mode mask the same, except you need execute privileges to use as a directory (go fig)
-#define	PwDirMode ( S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )
 
 struct SheetSynapseType { sheets::Sheet::Type from, to; };
 static vector<SheetSynapseType> SheetSynapseTypes =
@@ -250,49 +248,36 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 
     srand(1);
 
-	proplib::Interpreter::init();
+    proplib::Document *worldfile;
+    proplib::SchemaDocument *schema;
+    {
+        pwmpi::bld_lock();
 
-	// ---
-	// --- Create the run directory
-	// ---
-	{
-		char s[256];
-		char t[256];
+        proplib::Interpreter::init();
 
-		// First save the old directory, if it exists
-		sprintf( s, "run" );
-		sprintf( t, "run_%ld", time(NULL) );
-		(void) rename( s, t );
+        // ---
+        // --- Process the Worldfile
+        // ---
+        {
+            proplib::DocumentBuilder builder;
+            schema = builder.buildSchemaDocument( Resources::get_pw_path("./etc/worldfile.wfs") );
+            worldfile = builder.buildWorldfileDocument( schema, worldfilePath );
 
-		if( mkdir("run", PwDirMode) )
-		{
-			eprintf( "Error making run directory (%d)\n", errno );
-			exit( 1 );
-		}
-	}
+            {
+                ofstream out( "converted.wf" );
+                proplib::DocumentWriter writer( out );
+                writer.write( worldfile );
+            }
 
-	// ---
-	// --- Process the Worldfile
-	// ---
-	proplib::SchemaDocument *schema;
-	proplib::Document *worldfile;
-	{
-		proplib::DocumentBuilder builder;
-		schema = builder.buildSchemaDocument( "./etc/worldfile.wfs" );
-		worldfile = builder.buildWorldfileDocument( schema, worldfilePath );
+            schema->apply( worldfile );
+        }
+        processWorldFile( worldfile );
+        agent::processWorldfile( *worldfile );
+        GenomeSchema::processWorldfile( *worldfile );
+        Brain::processWorldfile( *worldfile );
 
-		{
-			ofstream out( "run/converted.wf" );
-			proplib::DocumentWriter writer( out );
-			writer.write( worldfile );
-		}
-
-		schema->apply( worldfile );
-	}
-	processWorldFile( worldfile );
-	agent::processWorldfile( *worldfile );
-	GenomeSchema::processWorldfile( *worldfile );
-	Brain::processWorldfile( *worldfile );
+        pwmpi::bld_unlock();
+    }
 
     // Use 0.001f fudge factor so that voice frequency index < numSoundFrequences (see Voice())
     fVoiceFrequencyRange = 0.001f + (1.0f - fVoiceThreshold) / globals::numSoundFrequencies;
@@ -321,7 +306,9 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	// ---
 	// --- Init Cpp Properties
 	// ---
+    pwmpi::bld_lock();
 	InitCppProperties( worldfile );
+    pwmpi::bld_unlock();
 
 
 	 // Following is part of one way to speed up the graphics
@@ -366,8 +353,13 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 			exit(1);
 		}
 
-		SYSTEM( "cp LOCKSTEP-BirthsDeaths.log run/" );		// copy the LOCKSTEP file into the run/ directory.
-		SetNextLockstepEvent();								// setup for the first timestep in which Birth/Death events occurred.
+        {
+            string log = Resources::get_user_path("LOCKSTEP-BirthsDeaths.log");
+            char cmd[1024];
+            sprintf(cmd, "cp %s .", log.c_str());
+            SYSTEM( cmd );		// copy the LOCKSTEP file into the run/ directory.
+            SetNextLockstepEvent();								// setup for the first timestep in which Birth/Death events occurred.
+        }
 
 	}
 
@@ -476,11 +468,11 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
 	// --- Save worldfile data to run/ and dispose documents
 	// ---
 	{
-		SYSTEM( ("cp " + worldfile->getPath() + " run/original.wf").c_str() );
-		SYSTEM( ("cp " + schema->getPath() + " run/original.wfs").c_str() );
+		SYSTEM( ("cp " + worldfile->getPath() + " original.wf").c_str() );
+		SYSTEM( ("cp " + schema->getPath() + " original.wfs").c_str() );
 
 		{
-			ofstream out( "run/normalized.wf" );
+			ofstream out( "normalized.wf" );
 			proplib::DocumentWriter writer( out );
 			writer.write( worldfile );
 		}
@@ -514,7 +506,7 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
         objectxsortedlist::gXSortedObjects.nextObj( FOODTYPE, (gobject**) &f );
         float dist = PathDistance::distance(globals::worldsize / 2.0f, globals::worldsize / -2.0f, f->x(), f->z());
         
-        ofstream fout("run/fooddist.txt");
+        ofstream fout("fooddist.txt");
         fout << dist << endl;
 
         objectxsortedlist::gXSortedObjects.setcurr( saveCurr );
@@ -606,7 +598,7 @@ TSimulation::~TSimulation()
 	printf( "Simulation stopped after step %ld\n", fStep );
 
 	{
-		ofstream fout( "run/endStep.txt" );
+		ofstream fout( "endStep.txt" );
 		fout << (fStep - agent::unfreezeStep) << endl;
 		fout.close();
 	}
@@ -864,7 +856,7 @@ void TSimulation::Step()
 void TSimulation::End( const string &reason )
 {
 	{
-		ofstream fout( "run/endReason.txt" );
+		ofstream fout( "endReason.txt" );
 		fout << reason << endl;
 		fout.close();
 	}
@@ -896,7 +888,6 @@ void TSimulation::InitCppProperties( proplib::Document *docWorldFile )
 {
 	proplib::CppProperties::UpdateContext *context = new proplib::CppProperties::UpdateContext( this );
 	proplib::CppProperties::init( docWorldFile, context );
-
 }
 
 //---------------------------------------------------------------------------
@@ -929,8 +920,10 @@ void TSimulation::InitFittest()
 //---------------------------------------------------------------------------
 void TSimulation::InitGround()
 {
-	Resources::loadPolygons( &fGround, "ground" );
-
+    {
+        string path = Resources::get_polygons_path("ground");
+        path.c_str() >> fGround;
+    }
     fGround.sety(-fGroundClearance);
     fGround.setscale(globals::worldsize);
     fGround.setcolor(fGroundColor);
@@ -1236,15 +1229,18 @@ void TSimulation::SeedGenomeFromFile( long agentNumber,
 
 void TSimulation::ReadSeedFilePaths()
 {
-	ifstream in("genomeSeeds.txt");
+    string path = Resources::get_user_path("genomeSeeds.txt");
+
+	ifstream in(path.c_str());
 
 	if( in.fail() )
 	{
-		cerr << "Could not open genomeSeeds.txt" << endl;
+		cerr << "Could not open " << path << endl;
 		exit( 1 );
 	}
 
-	SYSTEM( "mkdir -p run/genome ; cp genomeSeeds.txt run/genome" );
+    string cmd = string("mkdir -p ./genome; cp ") + path + " ./genome";
+	SYSTEM( cmd.c_str() );
 
 	char buf[1024 * 4];
 	while( !in.eof() )
@@ -4222,7 +4218,7 @@ float TSimulation::AgentFitness( agent* c )
             {
                 fprintf( stderr, "********** complexity being calculated when it should already be known **********\n" );
                 char filename[256];
-                sprintf( filename, "run/brain/function/brainFunction_%ld.txt", c->Number() );
+                sprintf( filename, "brain/function/brainFunction_%ld.txt", c->Number() );
                 if( fComplexityType == "D" )	// difference between I and P complexity being used for fitness
                 {
                     float pComplexity = CalcComplexity_brainfunction( filename, "P" );

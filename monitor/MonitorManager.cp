@@ -25,7 +25,7 @@ MonitorManager::MonitorManager( TSimulation *_simulation,
 	: simulation( _simulation )
 {
 	proplib::DocumentBuilder builder;
-	proplib::SchemaDocument *pschema = builder.buildSchemaDocument( "./etc/monitors.mfs" );
+	proplib::SchemaDocument *pschema = builder.buildSchemaDocument( Resources::get_pw_path("./etc/monitors.mfs") );
 	proplib::Document *pdoc = builder.buildDocument( monitorPath );
 	pschema->apply( pdoc );
 	proplib::Document &doc = *pdoc;
@@ -265,7 +265,7 @@ MonitorManager::MonitorManager( TSimulation *_simulation,
 			// --- Movie Settings
 			// ---
 			bool recordMovie = propScene.get( "Movie" ).get( "Record" );
-			string moviePath = string("run/") + (string)propScene.get( "Movie" ).get( "Path" );
+			string moviePath = (string)propScene.get( "Movie" ).get( "Path" );
 			int sampleFrequency = propScene.get( "Movie" ).get( "SampleFrequency" );
 			int sampleDuration = propScene.get( "Movie" ).get( "SampleDuration" );
 

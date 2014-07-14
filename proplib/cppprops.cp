@@ -13,6 +13,7 @@
 #include "interpreter.h"
 #include "misc.h"
 #include "parser.h"
+#include "Resources.h"
 
 using namespace proplib;
 using namespace std;
@@ -69,11 +70,14 @@ void CppProperties::init( Document *doc, UpdateContext *context )
 	_context = context;
 
 	generateLibrarySource();
+    string libpath = Resources::get_pw_path(LibCppprops);
+    {
+        string cmd = "cd " + Resources::get_pw_path("./") + "; scons -f scripts/build/SConstruct " + libpath + " 1>/dev/null";
+        SYSTEM( cmd.c_str() );
+    }
 
-	SYSTEM( "scons -f scripts/build/SConstruct " LibCppprops " 1>/dev/null" );
-
-	void *libHandle = dlopen( LibCppprops, RTLD_LAZY );
-	errif( !libHandle, "Failed opening " LibCppprops );
+	void *libHandle = dlopen( libpath.c_str(), RTLD_LAZY );
+	errif( !libHandle, ("Failed opening " + libpath).c_str() );
 
 	typedef void (*LibraryInit)( UpdateContext *context );
 	LibraryInit init = (LibraryInit)dlsym( libHandle, "__clink__CppProperties_Init" );
@@ -124,8 +128,9 @@ void CppProperties::generateLibrarySource()
 		}
 	}
 
-	SYSTEM( "mkdir -p $(dirname " SrcCppprops ")" );
-	ofstream out( SrcCppprops );
+    string srcpath = Resources::get_pw_path(SrcCppprops);
+	SYSTEM( ("mkdir -p $(dirname " + srcpath + ")").c_str() );
+	ofstream out( srcpath );
 
 	l( "// This file is machine-generated. See " << __FILE__ );
 	l( "" );

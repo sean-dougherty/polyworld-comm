@@ -181,6 +181,9 @@ void makeDirs( const string &path )
 
 void makeParentDir( const string &path )
 {
+    if(path.find('/') == string::npos)
+        return;
+
 	makeDirs( dirname(path) );
 }
 

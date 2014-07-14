@@ -1,6 +1,6 @@
 PERFORMANCE_PROFILER = False
-DISABLE_ASSERT = True
-OPTIMIZE = True
+DISABLE_ASSERT = False
+OPTIMIZE = False
 
 import os
 import sys
@@ -112,7 +112,7 @@ def build_proputil(env):
 	sources += find( 'src/proplib',
 					 name = '*.cp',
 					 ignore = ['state.cp'] )
-	sources += ['src/utils/misc.cp']
+	sources += ['src/utils/misc.cp', 'src/utils/Resources.cp']
 
 	env.VariantDir(blddir, 'src', False)
 

@@ -290,7 +290,10 @@ void agent::agentinit()
     agent::gClassInited = true;
     agent::agentsliving = 0;
     agent::agentobj = new gpolyobj();
-	Resources::loadPolygons( agent::agentobj, "agent" );
+    {
+        string path = Resources::get_polygons_path("agent");
+        path.c_str() >> *agent::agentobj;
+    }
 	agent::agentobj->SetName("agentobj");
 }
 

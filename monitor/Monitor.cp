@@ -302,7 +302,7 @@ void StatusTextMonitor::step( long timestep )
 		{
 			char statusFileName[256];
 		
-			sprintf( statusFileName, "run/stats/stat.%ld", timestep );
+			sprintf( statusFileName, "stats/stat.%ld", timestep );
 			makeParentDir( statusFileName );
 
 			FILE *statusFile = fopen( statusFileName, "w" );

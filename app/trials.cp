@@ -23,7 +23,7 @@ using namespace std;
 #define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
-#define NDEMES 4
+#define NDEMES 1
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
@@ -822,7 +822,7 @@ void log_fitness(const string &path,
 void log_genome(FitStruct *fs) {
     char path[512];
 
-    sprintf( path, "run/genome/Fittest/genome_%ld.txt", fs->agentID );
+    sprintf( path, "genome/Fittest/genome_%ld.txt", fs->agentID );
     if( !AbstractFile::exists(path) ) {
         makeParentDir(path);
 
@@ -834,7 +834,7 @@ void log_genome(FitStruct *fs) {
 
 void TrialsState::log_elite(FitStruct *fs) {
     char path_dir[512];
-    sprintf(path_dir, "run/elites/%ld", fs->agentID);
+    sprintf(path_dir, "elites/%ld", fs->agentID);
 
     makeDirs( path_dir );
 
@@ -867,7 +867,7 @@ void TrialsState::end_generation() {
 
     if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
         char path_dir[512];
-        sprintf(path_dir, "run/generations/%ld", generation_number);
+        sprintf(path_dir, "generations/%ld", generation_number);
         makeDirs(path_dir);
 
         if(elites.size() > 0) {

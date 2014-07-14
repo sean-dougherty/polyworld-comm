@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 
 // STL
 #include <string>
@@ -15,6 +16,7 @@
 #include "MainWindow.h"
 #include "Monitor.h"
 #include "pwmpi.h"
+#include "Resources.h"
 #include "Simulation.h"
 #include "SimulationController.h"
 #include "TerminalUI.h"
@@ -37,7 +39,7 @@ using namespace std;
 //===========================================================================
 void usage( const char* format, ... )
 {
-	printf( "Usage:  Polyworld [--ui gui|term] worldfile\n" );
+	printf( "Usage:  Polyworld [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
 	
 	if( format )
 	{
@@ -67,69 +69,59 @@ int main( int argc, char** argv )
     exit(0);
 #endif
 
-    pwmpi::init(&argc, &argv);
-    if(!pwmpi::is_master()) {
-        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
-    }
+    Resources::init();
 
-	const char *worldfilePath = NULL;
+    int nargs = 0;
+	string worldfilePath;
 	string ui = "term";
+    string rundir = "run";
+	string monitorPath;
 	
-	for( int argi = 1; argi < argc; argi++ )
-	{
+	for( int argi = 1; argi < argc; argi++ ) {
 		string arg = argv[argi];
 
-		if( arg[0] == '-' )	// it's a flagged argument
-		{
-			if( arg == "--ui" )
-			{
+		if( arg[0] == '-' ) {
+			if( arg == "--ui" ) {
 				if( ++argi >= argc )
 					usage( "Missing --ui arg" );
 			
 				ui = argv[argi];
 				if( (ui != "gui") && (ui != "term") )
 					usage( "Invalid --ui arg (%s)", argv[argi] );
-			}
-			else
+            } else if( arg == "--mf" ) {
+				if( ++argi >= argc )
+					usage( "Missing --mf arg" );
+			
+				monitorPath = Resources::get_user_path(argv[argi]);
+			} else if( arg == "-o" ) {
+				if( ++argi >= argc )
+					usage( "Missing -o arg" );
+				rundir = argv[argi];
+            } else {
 				usage( "Unknown argument: %s", argv[argi] );
+            }
+		} else {
+            nargs++;
+            worldfilePath = Resources::get_user_path(argv[argi]);
 		}
-		else
-		{
-			if( worldfilePath == NULL )
-				worldfilePath = argv[argi];
-			else
-				usage( "Only one worldfile path allowed, at least two specified (%s, %s)", worldfilePath, argv[argi] );
-		}
-	}
-	
-	if( ! worldfilePath )
-	{
-		usage( "A valid path to a worldfile must be specified" );
 	}
 
-	string monitorPath;
-	{
-		if( exists("./" + ui + ".mf") )
-			monitorPath = "./" + ui + ".mf";
-		else
-			monitorPath = "./etc/" + ui + ".mf";
+    if(nargs != 1) {
+        usage( "Expecting one worldfile as argument" );
+    }
+
+    if(monitorPath.empty()) {
+        monitorPath = Resources::get_user_path("./" + ui + ".mf");
+		if( !exists(monitorPath) )
+			monitorPath = Resources::get_pw_path("./etc/" + ui + ".mf");
 	}
 
-	// Make sure we're in an appropriate working directory
-#if __linux__
-	{
-		char exe[1024];
-		int rc = readlink( "/proc/self/exe", exe, sizeof(exe) );
-		exe[rc] = 0;
-		char *lastslash = strrchr( exe, '/' );
-		*lastslash = 0;
-		if( 0 != strcmp(exe, getenv("PWD")) )
-		{
-			fprintf( stderr, "Must execute from directory containing binary: %s. PWD=%s\n", exe, getenv("PWD") );
-			exit( 1 );
-		}
-	}
-#endif
+    //pwmpi::init(&argc, &argv);
+    if(pwmpi::is_mpi_mode() && !pwmpi::is_master()) {
+        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
+    }
+
+    cout << "wf=" << worldfilePath << ", mf=" << monitorPath << endl;
 
 	QApplication app(argc, argv);
 
@@ -143,6 +135,27 @@ int main( int argc, char** argv )
 	QCoreApplication::setOrganizationDomain( "indiana.edu" );
 	QCoreApplication::setApplicationName( "polyworld" );
 
+	// ---
+	// --- Create the run directory and cd into it
+	// ---
+	{
+		char rundir_saved[1024];
+
+		// First save the old directory, if it exists
+		sprintf( rundir_saved, "%s_%ld", rundir.c_str(), time(NULL) );
+		(void) rename( rundir.c_str(), rundir_saved );
+
+// Define directory mode mask the same, except you need execute privileges to use as a directory (go fig)
+#define	PwDirMode ( S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )
+
+		if( mkdir(rundir.c_str(), PwDirMode) )
+		{
+			eprintf( "Error making run directory %s (%d)\n", rundir.c_str(), errno );
+			exit( 1 );
+		}
+
+        require( 0 == chdir(rundir.c_str()) );
+	}
 
 	TSimulation *simulation = new TSimulation( worldfilePath, monitorPath );
 	SimulationController *simulationController = new SimulationController( simulation );

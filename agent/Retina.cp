@@ -129,27 +129,6 @@ void Retina::updateBuffer( short x, short y,
 				 buf);
 
 	debugcheck( "after glReadPixels" );
-
-#if 0
-	static FILE* pixelFile = NULL;
-	if( pixelFile == NULL )
-	{
-		pixelFile = fopen( "run/pixels.txt", "w");
-		if( !pixelFile )
-		{
-			fprintf( stderr, "Unable to open pixels.txt\n" );
-			exit( 1 );
-		}
-		fprintf( pixelFile, "retina pixels:\n" );
-	}
-	
-	for( int i = 0; i < width; i++ )
-	{
-		for( int j = 0; j < 4; j++ )
-			fprintf( pixelFile, "%02x", buf[i*4 + j] );
-	}
-	fprintf( pixelFile, "\n" );
-#endif
 }
 
 const unsigned char *Retina::getBuffer()
