@@ -6,6 +6,7 @@ namespace pwmpi {
 
     bool is_mpi_mode();
     bool is_master();
+    int rank();
 
     void bld_lock();
     void bld_unlock();

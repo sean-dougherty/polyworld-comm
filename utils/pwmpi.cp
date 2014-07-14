@@ -134,6 +134,10 @@ bool is_master() {
     return world_rank == 0;
 }
 
+int rank() {
+    return world_rank;
+}
+
 void bld_lock() {
     if(mpi_mode) {
         require( 0 == sem_wait(&shared_memory->bld_sem) );

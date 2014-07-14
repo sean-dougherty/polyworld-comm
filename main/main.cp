@@ -39,7 +39,7 @@ using namespace std;
 //===========================================================================
 void usage( const char* format, ... )
 {
-	printf( "Usage:  Polyworld [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
+	printf( "Usage:  Polyworld [--mpi] [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
 	
 	if( format )
 	{
@@ -76,6 +76,7 @@ int main( int argc, char** argv )
 	string ui = "term";
     string rundir = "run";
 	string monitorPath;
+    bool mpi = false;
 	
 	for( int argi = 1; argi < argc; argi++ ) {
 		string arg = argv[argi];
@@ -97,6 +98,8 @@ int main( int argc, char** argv )
 				if( ++argi >= argc )
 					usage( "Missing -o arg" );
 				rundir = argv[argi];
+            } else if( arg == "--mpi" ) {
+                mpi = true;
             } else {
 				usage( "Unknown argument: %s", argv[argi] );
             }
@@ -116,12 +119,17 @@ int main( int argc, char** argv )
 			monitorPath = Resources::get_pw_path("./etc/" + ui + ".mf");
 	}
 
-    //pwmpi::init(&argc, &argv);
-    if(pwmpi::is_mpi_mode() && !pwmpi::is_master()) {
-        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
+    if(mpi) {
+        pwmpi::init(&argc, &argv);
+        if(!pwmpi::is_master()) {
+            FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
+        }
+        {
+            char path[1024];
+            sprintf(path, "%s_rank%d", rundir.c_str(), pwmpi::rank());
+            rundir = path;
+        }
     }
-
-    cout << "wf=" << worldfilePath << ", mf=" << monitorPath << endl;
 
 	QApplication app(argc, argv);
 
@@ -145,10 +153,7 @@ int main( int argc, char** argv )
 		sprintf( rundir_saved, "%s_%ld", rundir.c_str(), time(NULL) );
 		(void) rename( rundir.c_str(), rundir_saved );
 
-// Define directory mode mask the same, except you need execute privileges to use as a directory (go fig)
-#define	PwDirMode ( S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )
-
-		if( mkdir(rundir.c_str(), PwDirMode) )
+		if( mkdir(rundir.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) )
 		{
 			eprintf( "Error making run directory %s (%d)\n", rundir.c_str(), errno );
 			exit( 1 );
