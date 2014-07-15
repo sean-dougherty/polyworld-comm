@@ -22,10 +22,6 @@
         }                                                               \
     }
 
-void FiringRateModel_Cuda::config(int gpu_index) {
-    xcuda( cudaSetDevice(gpu_index) );
-}
-
 FiringRateModel_Cuda::FiringRateModel_Cuda() {
 }
 

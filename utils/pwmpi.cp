@@ -2,6 +2,7 @@
 
 #include "pwassert.h"
 
+#include <cuda_runtime_api.h>
 #include <fcntl.h>
 #include <mpi.h>
 #include <semaphore.h>
@@ -15,6 +16,9 @@
 #include <vector>
 
 using namespace std;
+
+static void find_gpus();
+static void acquire_gpu();
 
 static bool mpi_mode = false;
 
@@ -36,6 +40,7 @@ struct shared_memory_t {
 
     size_t ngpus;
     struct gpu_state_t {
+        int cuda_index;
         sem_t sem;
         size_t process_slots_available;
     } gpu_state[MAX_GPUS];
@@ -88,31 +93,13 @@ void init(int *argc, char ***argv) {
 
         require( 0 == sem_init(&shared_memory->bld_sem, 1, 1) );
 
-        shared_memory->ngpus = 1;
-        for(size_t i = 0; i < shared_memory->ngpus; i++) {
-            shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
-
-            require( 0 == sem_init(&gpu.sem, 1, 1) );
-
-            gpu.process_slots_available = 2;
-        }
+        find_gpus();
     }
 
     require( (shared_memory->nranks + 1) < MAX_NODE_RANKS );
     shared_memory->ranks[shared_memory->nranks++] = world_rank;
 
-    for(size_t i = 0; i < shared_memory->ngpus; i++) {
-        shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
-        
-        if(gpu.process_slots_available > 0) {
-            gpu.process_slots_available--;
-            gpu_index = (int)i;
-            break;
-        }
-    }
-    require( gpu_index > -1 );
-
-    require( 0 == sem_post(sem) );
+    acquire_gpu();
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -148,14 +135,6 @@ void bld_unlock() {
     }
 }
 
-int get_gpu_index() {
-    if(mpi_mode) {
-        return gpu_index;
-    } else {
-        return 0;
-    }
-}
-
 void gpu_lock() {
     if(mpi_mode) {
         printf("waiting on gpu sempahore..."); fflush(stdout);
@@ -172,4 +151,36 @@ void gpu_unlock() {
     }
 }
 
+}
+
+static void find_gpus() {
+    int ngpus;
+    require( cudaSuccess == cudaGetDeviceCount(&ngpus) );
+    require( ngpus <= MAX_GPUS );
+
+    shared_memory->ngpus = ngpus;
+    for(size_t i = 0; i < shared_memory->ngpus; i++) {
+        shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
+
+        require( 0 == sem_init(&gpu.sem, 1, 1) );
+
+        gpu.cuda_index = (int)i;
+        gpu.process_slots_available = 2;
+    }
+}
+
+static void acquire_gpu() {
+    for(size_t i = 0; i < shared_memory->ngpus; i++) {
+        shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
+        
+        if(gpu.process_slots_available > 0) {
+            gpu.process_slots_available--;
+            gpu_index = (int)i;
+            break;
+        }
+    }
+    require( gpu_index > -1 );
+    require( 0 == sem_post(sem) );
+
+    require( cudaSuccess == cudaSetDevice(shared_memory->gpu_state[gpu_index].cuda_index) );
 }

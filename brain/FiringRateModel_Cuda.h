@@ -4,8 +4,6 @@
 
 struct FiringRateModel_Cuda {
 
-    static void config(int gpu_index);
-
     struct AgentState {
         class agent *a;
         FiringRateModel_Cuda *model;

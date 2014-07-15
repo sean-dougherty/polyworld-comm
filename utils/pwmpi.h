@@ -11,7 +11,6 @@ namespace pwmpi {
     void bld_lock();
     void bld_unlock();
 
-    int get_gpu_index();
     void gpu_lock();
     void gpu_unlock();
 }

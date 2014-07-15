@@ -12,7 +12,6 @@
 #include <QApplication>
 
 // Local
-#include "FiringRateModel_Cuda.h"
 #include "MainWindow.h"
 #include "Monitor.h"
 #include "pwmpi.h"
@@ -121,7 +120,6 @@ int main( int argc, char** argv )
 
     if(mpi) {
         pwmpi::init(&argc, &argv);
-        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
         {
             char path[1024];
             sprintf(path, "%s_rank%d", rundir.c_str(), pwmpi::rank());
