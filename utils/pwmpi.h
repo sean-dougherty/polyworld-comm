@@ -18,10 +18,10 @@ namespace pwmpi {
 
     class Worker {
     public:
-        void update_fittest(int generation,
-                            float fitness,
-                            unsigned char *genome,
-                            int genome_len);
+        void send_fittest(int generation,
+                          float fitness,
+                          unsigned char *genome,
+                          int genome_len);
 
         bool recv_fittest(int generation,
                           float *fitness,
@@ -39,14 +39,19 @@ namespace pwmpi {
         int recv_buffer_len = 0;
     };
 
-    namespace master {
-        void send_fittest(int generation,
-                          float fitness,
+    class Master {
+    private:
+        void send_fittest(float fitness,
                           unsigned char *genome,
                           int genome_len);
 
         bool recv_fittest(float *fitness,
                           unsigned char *genome,
                           int genome_len);
+
+    private:
+        MPI_Request *send_requests = nullptr;
+        unsigned char *send_buffer = nullptr;
+        int send_buffer_len = 0;
     };
 }

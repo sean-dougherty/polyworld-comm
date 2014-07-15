@@ -154,7 +154,6 @@ namespace pwmpi {
     }
 
     struct Message_Fittest {
-        int generation;
         float fitness;
         int genome_len;
 
@@ -176,27 +175,24 @@ namespace pwmpi {
         static void create(unsigned char **buffer,
                            int *buffer_len,
                            int genome_len,
-                           int generation,
                            float fitness,
                            unsigned char *genome) {
             alloc(buffer, buffer_len, genome_len);
 
             Message_Fittest *header = (Message_Fittest *)*buffer;
-            header->generation = generation;
             header->fitness = fitness;
             header->genome_len = genome_len;
         
             unsigned char *payload = (unsigned char *)(header + 1);
             memcpy(payload, genome, genome_len);
         }
-
     };
 
 
-    void Worker::update_fittest(int generation,
-                                float fitness,
-                                unsigned char *genome,
-                                int genome_len) {
+    void Worker::send_fittest(int generation,
+                              float fitness,
+                              unsigned char *genome,
+                              int genome_len) {
 
         if(send_request != MPI_REQUEST_NULL) {
             int complete;
@@ -205,13 +201,15 @@ namespace pwmpi {
                 return;
         }
 
-        if( 1 + generation - max(last_generation_sent, last_generation_received) >= MIGRATION_PERIOD ) {
+        if( last_generation_received < last_generation_sent )
+            return;
+
+        if( 1 + generation - last_generation_received >= MIGRATION_PERIOD ) {
             last_generation_sent = generation;
 
             Message_Fittest::create(&send_buffer,
                                     &send_buffer_len,
                                     genome_len,
-                                    generation,
                                     fitness,
                                     genome);
 
@@ -260,6 +258,38 @@ namespace pwmpi {
                   &recv_request);
 
         return received;
+    }
+
+    void Master::send_fittest(float fitness,
+                              unsigned char *genome,
+                              int genome_len) {
+        if(send_requests) {
+            for(int i = 0; i < world_size; i++) {
+                MPI_Wait(send_requests + i, MPI_STATUS_IGNORE);
+            }
+        } else {
+            send_requests = new MPI_Request[world_size];
+        }
+
+        Message_Fittest::alloc(&send_buffer,
+                               &send_buffer_len,
+                               genome_len);
+
+        for(int i = 0; i < world_size; i++) {
+            MPI_Isend(send_buffer,
+                      send_buffer_len,
+                      MPI_CHAR,
+                      i,
+                      Tag_Master_Send_Fittest,
+                      MPI_COMM_WORLD,
+                      send_requests + i);
+        }
+    }
+
+    bool Master::recv_fittest(float *fitness,
+                              unsigned char *genome,
+                              int genome_len) {
+        
     }
 }
 
