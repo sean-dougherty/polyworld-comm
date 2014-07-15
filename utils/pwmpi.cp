@@ -20,8 +20,8 @@ static bool mpi_mode = false;
 
 static sem_t *sem = nullptr;
 static int gpu_index = -1;
-static int world_rank;
-static int world_size;
+static int world_rank = -1;
+static int world_size = -1;
 
 const int Tag_Init = 0;
 const int Tag_Node_Ranks = 1;
@@ -98,21 +98,19 @@ void init(int *argc, char ***argv) {
         }
     }
 
-    if(!is_master()) {
-        require( (shared_memory->nranks + 1) < MAX_NODE_RANKS );
-        shared_memory->ranks[shared_memory->nranks++] = world_rank;
+    require( (shared_memory->nranks + 1) < MAX_NODE_RANKS );
+    shared_memory->ranks[shared_memory->nranks++] = world_rank;
 
-        for(size_t i = 0; i < shared_memory->ngpus; i++) {
-            shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
+    for(size_t i = 0; i < shared_memory->ngpus; i++) {
+        shared_memory_t::gpu_state_t &gpu = shared_memory->gpu_state[i];
         
-            if(gpu.process_slots_available > 0) {
-                gpu.process_slots_available--;
-                gpu_index = (int)i;
-                break;
-            }
+        if(gpu.process_slots_available > 0) {
+            gpu.process_slots_available--;
+            gpu_index = (int)i;
+            break;
         }
-        require( gpu_index > -1 );
     }
+    require( gpu_index > -1 );
 
     require( 0 == sem_post(sem) );
 
@@ -151,7 +149,11 @@ void bld_unlock() {
 }
 
 int get_gpu_index() {
-    return gpu_index;
+    if(mpi_mode) {
+        return gpu_index;
+    } else {
+        return 0;
+    }
 }
 
 void gpu_lock() {

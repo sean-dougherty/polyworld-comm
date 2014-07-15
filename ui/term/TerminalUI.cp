@@ -8,6 +8,7 @@
 #include "Monitor.h"
 #include "MonitorManager.h"
 #include "Prompt.h"
+#include "pwmpi.h"
 #include "Simulation.h"
 #include "SimulationController.h"
 
@@ -28,7 +29,10 @@ TerminalUI::TerminalUI( SimulationController *_simulationController )
 {
 	connectMonitors();
 
-	prompt = new Prompt();
+    if(pwmpi::is_mpi_mode())
+        prompt = nullptr;
+    else
+        prompt = new Prompt();
 
 	connect( simulationController, SIGNAL(step()),
 			 this, SLOT(step()) );
@@ -41,6 +45,7 @@ TerminalUI::~TerminalUI()
 {
 	if( gui )
 		delete gui;
+    delete prompt;
 }
 
 //---------------------------------------------------------------------------
@@ -66,38 +71,40 @@ void TerminalUI::connectMonitors()
 //---------------------------------------------------------------------------
 void TerminalUI::step()
 {
-	char *_cmd = prompt->getUserInput();
-	if( _cmd )
-	{
-		string cmd = _cmd;
-		free( _cmd );
+    if(prompt) {
+        char *_cmd = prompt->getUserInput();
+        if( _cmd )
+        {
+            string cmd = _cmd;
+            free( _cmd );
 
-		if( cmd == "end" )
-		{
-			simulationController->end();
-		}
-		else if( cmd == "gui" )
-		{
-			if( gui == NULL )
-			{
-				gui = new MainWindow( simulationController, false );
-				connect( gui, SIGNAL(closing()),
-						 this, SLOT(guiClosing()) );
-				cout << "GUI shown. You may need to raise the window." << endl;
-			}
-		}
-		else
-		{
-			if( cmd != "help" )
-			{
-				cerr << "Invalid command." << endl;
-			}
+            if( cmd == "end" )
+            {
+                simulationController->end();
+            }
+            else if( cmd == "gui" )
+            {
+                if( gui == NULL )
+                {
+                    gui = new MainWindow( simulationController, false );
+                    connect( gui, SIGNAL(closing()),
+                             this, SLOT(guiClosing()) );
+                    cout << "GUI shown. You may need to raise the window." << endl;
+                }
+            }
+            else
+            {
+                if( cmd != "help" )
+                {
+                    cerr << "Invalid command." << endl;
+                }
 
-			cerr << "help - Show this message." << endl;
-			cerr << "end - End simulation." << endl;
-			cerr << "gui - Show GUI." << endl;
-		}
-	}
+                cerr << "help - Show this message." << endl;
+                cerr << "end - End simulation." << endl;
+                cerr << "gui - Show GUI." << endl;
+            }
+        }
+    }
 }
 
 //---------------------------------------------------------------------------

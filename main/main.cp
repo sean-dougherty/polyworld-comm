@@ -121,9 +121,7 @@ int main( int argc, char** argv )
 
     if(mpi) {
         pwmpi::init(&argc, &argv);
-        if(!pwmpi::is_master()) {
-            FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
-        }
+        FiringRateModel_Cuda::config(pwmpi::get_gpu_index());
         {
             char path[1024];
             sprintf(path, "%s_rank%d", rundir.c_str(), pwmpi::rank());
@@ -186,6 +184,8 @@ int main( int argc, char** argv )
 
 	delete simulationController;
 	delete simulation;
+
+    pwmpi::finalize();
 
 	return exitval;
 }
