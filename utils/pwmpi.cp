@@ -206,6 +206,7 @@ namespace pwmpi {
                               unsigned char *genome,
                               int genome_len) {
 
+        // If we're still waiting for the master to receive our previous message, do nothing.
         if(send_request != MPI_REQUEST_NULL) {
             int complete;
             MPI_Test(&send_request, &complete, MPI_STATUS_IGNORE);
@@ -213,9 +214,12 @@ namespace pwmpi {
                 return;
         }
 
+        // If we haven't received an update from the master since our last send, do nothing.
         if( last_generation_received < last_generation_sent )
             return;
 
+        // If enough generations have passed since our last update from the master,
+        // proceed to send our fittest.
         if( 1 + generation - last_generation_received >= MIGRATION_PERIOD ) {
             last_generation_sent = generation;
 
@@ -241,18 +245,22 @@ namespace pwmpi {
                               int genome_len) {
         bool received = false;
 
+        // If we've got an outstanding receive, try to complete processing it.
         if(recv_request != MPI_REQUEST_NULL) {
             int complete;
             MPI_Test(&recv_request, &complete, MPI_STATUS_IGNORE);
-            if(!complete)
+            if(!complete) {
                 return false;
-
-            received = true;
+            } else {
+                received = true;
+            }
             last_generation_received = generation;
 
             require( Message_Fittest::get_genome_len(recv_buffer) == genome_len );
             *fitness = Message_Fittest::get_fitness(recv_buffer);
             memcpy(genome, Message_Fittest::get_genome(recv_buffer), genome_len);
+
+        // If there's no pending receive, then this is our first time.
         } else if(recv_buffer == nullptr) {
             Message_Fittest::alloc(&recv_buffer,
                                    &recv_buffer_len,
@@ -291,6 +299,7 @@ namespace pwmpi {
                               unsigned char *genome,
                               int genome_len) {
         if(send_requests) {
+            // These are all complete now. We just need to clean up the MPI resources.
             for(int i = 0; i < world_size; i++) {
                 MPI_Wait(send_requests + i, MPI_STATUS_IGNORE);
             }
@@ -298,10 +307,16 @@ namespace pwmpi {
             send_requests = new MPI_Request[world_size];
         }
 
-        Message_Fittest::alloc(&send_buffer,
-                               &send_buffer_len,
-                               genome_len);
+        // We only need to create one send buffer, which we send to everyone.
+        Message_Fittest::create(&send_buffer,
+                                &send_buffer_len,
+                                genome_len,
+                                fitness,
+                                genome);
 
+        // Send to everyone via point-to-point. We can't do a broadcast
+        // because optimal use of GPU requires processes executing out of
+        // sync.
         for(int i = 0; i < world_size; i++) {
             MPI_Isend(send_buffer,
                       send_buffer_len,
@@ -373,6 +388,8 @@ namespace pwmpi {
                           MPI_COMM_WORLD,
                           recv_requests + i);
             }
+
+            pending_recvs_count = world_size;
         }
 
         return received_all;
