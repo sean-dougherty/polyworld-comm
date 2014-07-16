@@ -164,9 +164,7 @@ namespace pwmpi {
         static void alloc(unsigned char **buffer,
                           int *buffer_len,
                           int genome_len) {
-            if(*buffer) {
-                return;
-            }
+            assert(*buffer == nullptr);
             int message_size = get_message_size(genome_len);
             *buffer_len = message_size;
             *buffer = (unsigned char *)malloc(message_size);
@@ -177,7 +175,8 @@ namespace pwmpi {
                            int genome_len,
                            float fitness,
                            unsigned char *genome) {
-            alloc(buffer, buffer_len, genome_len);
+            if(*buffer == nullptr)
+                alloc(buffer, buffer_len, genome_len);
 
             Message_Fittest *header = (Message_Fittest *)*buffer;
             header->fitness = fitness;
@@ -185,6 +184,19 @@ namespace pwmpi {
         
             unsigned char *payload = (unsigned char *)(header + 1);
             memcpy(payload, genome, genome_len);
+        }
+
+        static int get_genome_len(unsigned char *buffer) {
+            return ((Message_Fittest *)buffer)->genome_len;
+        }
+
+        static float get_fitness(unsigned char *buffer) {
+            return ((Message_Fittest *)buffer)->fitness;
+        }
+
+        static unsigned char *get_genome(unsigned char *buffer) {
+            Message_Fittest *header = (Message_Fittest *)buffer;
+            return (unsigned char *)(header + 1);
         }
     };
 
@@ -238,16 +250,14 @@ namespace pwmpi {
             received = true;
             last_generation_received = generation;
 
-            Message_Fittest *header = (Message_Fittest *)recv_buffer;
-            require(header->genome_len == genome_len);
-            *fitness = header->fitness;
-            unsigned char *payload = (unsigned char *)(header + 1);
-            memcpy(genome, payload, genome_len);
+            require( Message_Fittest::get_genome_len(recv_buffer) == genome_len );
+            *fitness = Message_Fittest::get_fitness(recv_buffer);
+            memcpy(genome, Message_Fittest::get_genome(recv_buffer), genome_len);
+        } else if(recv_buffer == nullptr) {
+            Message_Fittest::alloc(&recv_buffer,
+                                   &recv_buffer_len,
+                                   genome_len);
         }
-
-        Message_Fittest::alloc(&recv_buffer,
-                               &recv_buffer_len,
-                               genome_len);
 
         MPI_Irecv(recv_buffer,
                   recv_buffer_len,
@@ -258,6 +268,23 @@ namespace pwmpi {
                   &recv_request);
 
         return received;
+    }
+
+    bool Master::update_fittest(float *fitness,
+                                unsigned char *genome,
+                                int genome_len) {
+        if(recv_fittest(fitness,
+                        genome,
+                        genome_len)) {
+
+            send_fittest(*fitness,
+                         genome,
+                         genome_len);
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void Master::send_fittest(float fitness,
@@ -289,7 +316,66 @@ namespace pwmpi {
     bool Master::recv_fittest(float *fitness,
                               unsigned char *genome,
                               int genome_len) {
-        
+        bool received_all = false;
+
+        if(recv_requests == nullptr) {
+            recv_requests = new MPI_Request[world_size]();
+            recv_buffers = new unsigned char *[world_size]();
+            recv_buffer_lens = new int[world_size]();
+
+            for(int i = 0; i < world_size; i++) {
+                Message_Fittest::alloc(recv_buffers + i,
+                                       recv_buffer_lens + i,
+                                       genome_len);
+            }
+        }
+
+        if(pending_recvs_count > 0) {
+            int n = pending_recvs_count;
+            int i_remaining = 0;
+            for(int i = 0; i < n; i++) {
+                int complete;
+                MPI_Test(recv_requests + i, &complete, MPI_STATUS_IGNORE);
+                if(!complete) {
+                    recv_requests[i_remaining++] = recv_requests[i];
+                } else {
+                    pending_recvs_count--;
+                }
+            }
+
+            if(pending_recvs_count == 0) {
+                received_all = true;
+                
+                float max_fitness = Message_Fittest::get_fitness(recv_buffers[0]);
+                int i_max_fitness = 0;
+                for(int i = 1; i < world_size; i++) {
+                    float fitness = Message_Fittest::get_fitness(recv_buffers[i]);
+                    if(fitness > max_fitness) {
+                        max_fitness = fitness;
+                        i_max_fitness = i;
+                    }
+                }
+
+                *fitness = max_fitness;
+                memcpy(genome,
+                       Message_Fittest::get_genome(recv_buffers[i_max_fitness]),
+                       genome_len);
+            }
+        }
+
+        if(pending_recvs_count == 0) {
+            for(int i = 0; i < world_size; i++) {
+                MPI_Irecv(recv_buffers[i],
+                          recv_buffer_lens[i],
+                          MPI_CHAR,
+                          0,
+                          Tag_Worker_Send_Fittest,
+                          MPI_COMM_WORLD,
+                          recv_requests + i);
+            }
+        }
+
+        return received_all;
     }
 }
 

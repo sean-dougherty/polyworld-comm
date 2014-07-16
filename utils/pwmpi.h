@@ -40,6 +40,11 @@ namespace pwmpi {
     };
 
     class Master {
+    public:
+        bool update_fittest(float *fitness,
+                            unsigned char *genome,
+                            int genome_len);
+
     private:
         void send_fittest(float fitness,
                           unsigned char *genome,
@@ -53,5 +58,10 @@ namespace pwmpi {
         MPI_Request *send_requests = nullptr;
         unsigned char *send_buffer = nullptr;
         int send_buffer_len = 0;
+
+        MPI_Request *recv_requests = nullptr;
+        int pending_recvs_count = 0;
+        unsigned char **recv_buffers = nullptr;
+        int *recv_buffer_lens = 0;
     };
 }
