@@ -66,7 +66,7 @@ namespace genome
 		void print();
 		void print( long lobit, long hibit );
 
-	protected:
+        //protected: todo, restore protected. made public for development of mpi stuff.
 		friend class Gene;
 		friend class MutableScalarGene;
 		friend class MutableNeurGroupGene;

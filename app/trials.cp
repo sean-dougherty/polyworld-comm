@@ -572,6 +572,14 @@ void Deme::end_generation() {
         }
     }
 
+    {
+        FitStruct *fs = get_fittest();
+        pwmpi::worker->send_fittest(generation_number,
+                                    fs->fitness,
+                                    fs->genes->mutable_data,
+                                    fs->genes->nbytes);
+    }
+
     generation_agents.clear();
 }
 

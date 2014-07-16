@@ -38,6 +38,7 @@ namespace pwmpi {
         unsigned char *recv_buffer = nullptr;
         int recv_buffer_len = 0;
     };
+    extern Worker *worker;
 
     class Master {
     public:
@@ -64,4 +65,5 @@ namespace pwmpi {
         unsigned char **recv_buffers = nullptr;
         int *recv_buffer_lens = 0;
     };
+    extern Master *master;
 }

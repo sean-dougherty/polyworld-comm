@@ -20,6 +20,13 @@ using namespace std;
 static void find_gpus();
 static void acquire_gpu();
 
+#define dbr(x...) {                                 \
+        char _buf[2048];                            \
+        sprintf(_buf, x);                           \
+        printf("[r%2d]: %s\n", world_rank, _buf);   \
+        fflush(stdout);                             \
+    }
+
 static bool mpi_mode = false;
 
 static sem_t *sem = nullptr;
@@ -30,7 +37,7 @@ static int world_size = -1;
 const int Tag_Worker_Send_Fittest = 0;
 const int Tag_Master_Send_Fittest = 1;
 
-#define MIGRATION_PERIOD 5
+#define MIGRATION_PERIOD 2
 
 #define MAX_NODE_RANKS 1024
 #define MAX_GPUS 5
@@ -54,6 +61,9 @@ struct shared_memory_t {
 
 namespace pwmpi {
 
+    Worker *worker = nullptr;
+    Master *master = nullptr;
+
     void init(int *argc, char ***argv) {
         mpi_mode = true;
 
@@ -61,7 +71,7 @@ namespace pwmpi {
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-        printf("rank=%d, size=%d\n", world_rank, world_size);
+        dbr("initializing mpi...");
     
         sem_unlink("/pwmpi");
         shm_unlink("/pwmpi");
@@ -107,6 +117,8 @@ namespace pwmpi {
 
         sem_unlink("/pwmpi");
         shm_unlink("/pwmpi");
+
+        worker = new Worker();
     }
 
     void finalize() {
@@ -210,18 +222,26 @@ namespace pwmpi {
         if(send_request != MPI_REQUEST_NULL) {
             int complete;
             MPI_Test(&send_request, &complete, MPI_STATUS_IGNORE);
-            if(!complete)
+            if(!complete) {
+                dbr("Previous send_fittest still pending. curr gen=%d, send gen=%d",
+                    generation, last_generation_sent);
                 return;
+            }
         }
 
         // If we haven't received an update from the master since our last send, do nothing.
-        if( last_generation_received < last_generation_sent )
+        if( last_generation_received < last_generation_sent ) {
+            dbr("Haven't received fittest since last send. last_received=%d, last_sent=%d",
+                last_generation_received, last_generation_sent);
             return;
+        }
 
         // If enough generations have passed since our last update from the master,
         // proceed to send our fittest.
         if( 1 + generation - last_generation_received >= MIGRATION_PERIOD ) {
             last_generation_sent = generation;
+
+            dbr("Sending fittest. gen=%d", generation);
 
             Message_Fittest::create(&send_buffer,
                                     &send_buffer_len,
@@ -236,6 +256,9 @@ namespace pwmpi {
                       Tag_Worker_Send_Fittest,
                       MPI_COMM_WORLD,
                       &send_request);
+        } else {
+            dbr("Too few generations elapsed for send_fittest. last_received=%d, curr=%d",
+                last_generation_received, generation);
         }
     }
 
@@ -410,6 +433,8 @@ static void find_gpus() {
         gpu.cuda_index = (int)i;
         gpu.process_slots_available = 2;
     }
+
+    dbr("found %d gpus", ngpus);
 }
 
 static void acquire_gpu() {
@@ -422,6 +447,9 @@ static void acquire_gpu() {
             break;
         }
     }
+
+    dbr("acquired gpu %d", gpu_index);
+
     require( gpu_index > -1 );
     require( 0 == sem_post(sem) );
 
