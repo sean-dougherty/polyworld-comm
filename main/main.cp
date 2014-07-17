@@ -38,7 +38,7 @@ using namespace std;
 //===========================================================================
 void usage( const char* format, ... )
 {
-	printf( "Usage:  Polyworld [--mpi] [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
+	printf( "Usage:  Polyworld [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
 	
 	if( format )
 	{
@@ -75,7 +75,6 @@ int main( int argc, char** argv )
 	string ui = "term";
     string rundir = "run";
 	string monitorPath;
-    bool mpi = false;
 	
 	for( int argi = 1; argi < argc; argi++ ) {
 		string arg = argv[argi];
@@ -97,8 +96,6 @@ int main( int argc, char** argv )
 				if( ++argi >= argc )
 					usage( "Missing -o arg" );
 				rundir = argv[argi];
-            } else if( arg == "--mpi" ) {
-                mpi = true;
             } else {
 				usage( "Unknown argument: %s", argv[argi] );
             }
@@ -118,13 +115,11 @@ int main( int argc, char** argv )
 			monitorPath = Resources::get_pw_path("./etc/" + ui + ".mf");
 	}
 
-    if(mpi) {
-        pwmpi::init(&argc, &argv);
-        {
-            char path[1024];
-            sprintf(path, "%s_rank%d", rundir.c_str(), pwmpi::rank());
-            rundir = path;
-        }
+    pwmpi::init(&argc, &argv);
+    if( pwmpi::size() > 1) {
+        char path[1024];
+        sprintf(path, "%s_rank%d", rundir.c_str(), pwmpi::rank());
+        rundir = path;
     }
 
 	QApplication app(argc, argv);

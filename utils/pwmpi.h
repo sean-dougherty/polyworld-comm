@@ -6,9 +6,9 @@ namespace pwmpi {
     void init(int *argc, char ***argv);
     void finalize();
 
-    bool is_mpi_mode();
     bool is_master();
     int rank();
+    int size();
 
     void bld_lock();
     void bld_unlock();
@@ -19,12 +19,14 @@ namespace pwmpi {
     class Worker {
     public:
         void send_fittest(int generation,
+                          long agent_id,
                           float fitness,
                           unsigned char *genome,
                           int genome_len);
 
         bool recv_fittest(int generation,
-                          float *fitness,
+                          long &agent_id,
+                          float &fitness,
                           unsigned char *genome,
                           int genome_len);
     private:
@@ -42,16 +44,16 @@ namespace pwmpi {
 
     class Master {
     public:
-        bool update_fittest(float *fitness,
-                            unsigned char *genome,
-                            int genome_len);
+        void update_fittest(int genome_len);
 
     private:
-        void send_fittest(float fitness,
+        void send_fittest(long agent_id,
+                          float fitness,
                           unsigned char *genome,
                           int genome_len);
 
-        bool recv_fittest(float *fitness,
+        bool recv_fittest(long &agent_id,
+                          float &fitness,
                           unsigned char *genome,
                           int genome_len);
 

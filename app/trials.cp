@@ -572,14 +572,6 @@ void Deme::end_generation() {
         }
     }
 
-    {
-        FitStruct *fs = get_fittest();
-        pwmpi::worker->send_fittest(generation_number,
-                                    fs->fitness,
-                                    fs->genes->mutable_data,
-                                    fs->genes->nbytes);
-    }
-
     generation_agents.clear();
 }
 
@@ -596,7 +588,8 @@ TrialsState::TrialsState(TSimulation *sim_)
     : sim( sim_ )
     , agents_per_deme( sim->fMaxNumAgents / NDEMES )
     , elites( 1, true )
-    , prev_generation( NDEMES, true )
+    , prev_generation( NDEMES + 1, true )
+    , genome_len( GenomeUtil::schema->getMutableSize() )
 {
     sim = sim_;
 
@@ -740,6 +733,18 @@ void TrialsState::new_test() {
     new_trial();
 }
 
+static FitStruct create_fit(long agent_id,
+                            float fitness,
+                            unsigned char *genome_data,
+                            int genome_len) {
+    FitStruct fs;
+    fs.genes = GenomeUtil::createGenome();
+    fs.agentID = agent_id;
+    fs.fitness = fitness;
+    memcpy(fs.genes->mutable_data, genome_data, genome_len);
+    return fs;
+}
+
 bool TrialsState::new_generation() {
     static double prev_start = 0.0;
     double start = seconds();
@@ -749,27 +754,20 @@ bool TrialsState::new_generation() {
 
         end_generation();
 
+        if(pwmpi::is_master()) {
 #ifdef MAX_GENERATIONS
-        if( generation_number == MAX_GENERATIONS ) {
-            sim->End("MAX_GENERATIONS");
-            return false;
-        }
+            if( generation_number == MAX_GENERATIONS ) {
+                sim->End("MAX_GENERATIONS");
+                return false;
+            }
 #endif
 
 #ifdef MAX_FITNESS
-        if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
-            sim->End("MAX_FITNESS");
-            return false;
-        }
-#endif
-
-        if( ((generation_number + 1) % MIGRATION_PERIOD) == 0) {
-            FitStruct *immigrant = prev_generation.get(0);
-            db("PERFORMING MIGRATION (" << immigrant->agentID << " " << immigrant->fitness << ")");
-
-            for(Deme *deme: demes) {
-                deme->accept_immigrant( immigrant );
+            if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
+                sim->End("MAX_FITNESS");
+                return false;
             }
+#endif
         }
 
         cout << "time to execute previous generation = " << start - prev_start << endl;
@@ -861,32 +859,68 @@ void TrialsState::end_generation() {
         prev_generation.update( deme->get_fittest() );
     }
 
-    for(int i = 0; i < prev_generation.size(); i++) {
-        FitStruct *fs = prev_generation.get(i);
-        if( elites.update(fs) >= 0 ) {
-            log_elite(fs);
-        } else {
-            break;
+    {
+        FitStruct *fs = prev_generation.get(0);
+        pwmpi::worker->send_fittest(generation_number,
+                                    fs->agentID,
+                                    fs->fitness,
+                                    fs->genes->mutable_data,
+                                    fs->genes->nbytes);
+
+        
+    }
+
+    if( pwmpi::is_master() ) {
+        pwmpi::master->update_fittest(genome_len);
+    }
+
+    {
+        long agent_id;
+        float fitness;
+        unsigned char genome[genome_len];
+
+        if( pwmpi::worker->recv_fittest(generation_number,
+                                        agent_id,
+                                        fitness,
+                                        genome,
+                                        genome_len) ) {
+            FitStruct fs = create_fit(agent_id, fitness, genome, genome_len);
+
+            prev_generation.update( &fs );
+            for(Deme *deme: demes) {
+                deme->accept_immigrant( &fs );
+            }
         }
     }
 
-    db("  Generation fitness = " << prev_generation.get(0)->fitness);
-    db("      Global fitness = " << elites.get(0)->fitness);
-
-    if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
-        char path_dir[512];
-        sprintf(path_dir, "generations/%ld", generation_number);
-        makeDirs(path_dir);
-
-        if(elites.size() > 0) {
-            char path[512];
-            sprintf(path, "%s/global-fitness.txt", path_dir);
-            log_fitness(path, elites);
+    if( pwmpi::is_master() ) {
+        for(int i = 0; i < prev_generation.size(); i++) {
+            FitStruct *fs = prev_generation.get(i);
+            if( elites.update(fs) >= 0 ) {
+                log_elite(fs);
+            } else {
+                break;
+            }
         }
-        {
-            char path[512];
-            sprintf(path, "%s/generation-fitness.txt", path_dir);
-            log_fitness(path, prev_generation);
+
+        db("  Generation fitness = " << prev_generation.get(0)->fitness);
+        db("      Global fitness = " << elites.get(0)->fitness);
+
+        if(generation_number % GENERATION_LOG_FREQUENCY == 0) {
+            char path_dir[512];
+            sprintf(path_dir, "generations/%ld", generation_number);
+            makeDirs(path_dir);
+
+            if(elites.size() > 0) {
+                char path[512];
+                sprintf(path, "%s/global-fitness.txt", path_dir);
+                log_fitness(path, elites);
+            }
+            {
+                char path[512];
+                sprintf(path, "%s/generation-fitness.txt", path_dir);
+                log_fitness(path, prev_generation);
+            }
         }
     }
 

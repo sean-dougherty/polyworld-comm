@@ -29,7 +29,7 @@ TerminalUI::TerminalUI( SimulationController *_simulationController )
 {
 	connectMonitors();
 
-    if(pwmpi::is_mpi_mode())
+    if(pwmpi::size() > 1)
         prompt = nullptr;
     else
         prompt = new Prompt();

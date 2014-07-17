@@ -27,8 +27,6 @@ static void acquire_gpu();
         fflush(stdout);                             \
     }
 
-static bool mpi_mode = false;
-
 static sem_t *sem = nullptr;
 static int gpu_index = -1;
 static int world_rank = -1;
@@ -65,8 +63,6 @@ namespace pwmpi {
     Master *master = nullptr;
 
     void init(int *argc, char ***argv) {
-        mpi_mode = true;
-
         MPI_Init(argc, argv);
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -119,14 +115,13 @@ namespace pwmpi {
         shm_unlink("/pwmpi");
 
         worker = new Worker();
+        if(is_master()) {
+            master = new Master();
+        }
     }
 
     void finalize() {
         MPI_Finalize();
-    }
-
-    bool is_mpi_mode() {
-        return mpi_mode;
     }
 
     bool is_master() {
@@ -137,35 +132,32 @@ namespace pwmpi {
         return world_rank;
     }
 
+    int size() {
+        return world_size;
+    }
+
     void bld_lock() {
-        if(mpi_mode) {
-            require( 0 == sem_wait(&shared_memory->bld_sem) );
-        }
+        require( 0 == sem_wait(&shared_memory->bld_sem) );
     }
 
     void bld_unlock() {
-        if(mpi_mode) {
-            require( 0 == sem_post(&shared_memory->bld_sem) );
-        }
+        require( 0 == sem_post(&shared_memory->bld_sem) );
     }
 
     void gpu_lock() {
-        if(mpi_mode) {
-            printf("waiting on gpu sempahore..."); fflush(stdout);
-            require( 0 == sem_wait(&shared_memory->gpu_state[gpu_index].sem) );
-            printf(" OK!\n"); fflush(stdout);
-        }
+        printf("waiting on gpu sempahore..."); fflush(stdout);
+        require( 0 == sem_wait(&shared_memory->gpu_state[gpu_index].sem) );
+        printf(" OK!\n"); fflush(stdout);
     }
 
     void gpu_unlock() {
-        if(mpi_mode) {
-            printf("posting gpu sempahore..."); fflush(stdout);
-            require( 0 == sem_post(&shared_memory->gpu_state[gpu_index].sem) );
-            printf(" OK!\n"); fflush(stdout);
-        }
+        printf("posting gpu sempahore..."); fflush(stdout);
+        require( 0 == sem_post(&shared_memory->gpu_state[gpu_index].sem) );
+        printf(" OK!\n"); fflush(stdout);
     }
 
     struct Message_Fittest {
+        long agent_id;
         float fitness;
         int genome_len;
 
@@ -185,12 +177,14 @@ namespace pwmpi {
         static void create(unsigned char **buffer,
                            int *buffer_len,
                            int genome_len,
+                           long agent_id,
                            float fitness,
                            unsigned char *genome) {
             if(*buffer == nullptr)
                 alloc(buffer, buffer_len, genome_len);
 
             Message_Fittest *header = (Message_Fittest *)*buffer;
+            header->agent_id = agent_id;
             header->fitness = fitness;
             header->genome_len = genome_len;
         
@@ -200,6 +194,10 @@ namespace pwmpi {
 
         static int get_genome_len(unsigned char *buffer) {
             return ((Message_Fittest *)buffer)->genome_len;
+        }
+
+        static long get_agent_id(unsigned char *buffer) {
+            return ((Message_Fittest *)buffer)->agent_id;
         }
 
         static float get_fitness(unsigned char *buffer) {
@@ -212,8 +210,8 @@ namespace pwmpi {
         }
     };
 
-
     void Worker::send_fittest(int generation,
+                              long agent_id,
                               float fitness,
                               unsigned char *genome,
                               int genome_len) {
@@ -246,6 +244,7 @@ namespace pwmpi {
             Message_Fittest::create(&send_buffer,
                                     &send_buffer_len,
                                     genome_len,
+                                    agent_id,
                                     fitness,
                                     genome);
 
@@ -263,7 +262,8 @@ namespace pwmpi {
     }
 
     bool Worker::recv_fittest(int generation,
-                              float *fitness,
+                              long &agent_id,
+                              float &fitness,
                               unsigned char *genome,
                               int genome_len) {
         bool received = false;
@@ -280,7 +280,8 @@ namespace pwmpi {
             last_generation_received = generation;
 
             require( Message_Fittest::get_genome_len(recv_buffer) == genome_len );
-            *fitness = Message_Fittest::get_fitness(recv_buffer);
+            agent_id = Message_Fittest::get_agent_id(recv_buffer);
+            fitness = Message_Fittest::get_fitness(recv_buffer);
             memcpy(genome, Message_Fittest::get_genome(recv_buffer), genome_len);
 
         // If there's no pending receive, then this is our first time.
@@ -301,31 +302,34 @@ namespace pwmpi {
         return received;
     }
 
-    bool Master::update_fittest(float *fitness,
-                                unsigned char *genome,
-                                int genome_len) {
-        if(recv_fittest(fitness,
+    void Master::update_fittest(int genome_len) {
+        long agent_id;
+        float fitness;
+        unsigned char genome[genome_len];
+
+        if(recv_fittest(agent_id,
+                        fitness,
                         genome,
                         genome_len)) {
 
-            send_fittest(*fitness,
+            send_fittest(agent_id,
+                         fitness,
                          genome,
                          genome_len);
-
-            return true;
-        } else {
-            return false;
         }
     }
 
-    void Master::send_fittest(float fitness,
+    void Master::send_fittest(long agent_id,
+                              float fitness,
                               unsigned char *genome,
                               int genome_len) {
         if(send_requests) {
+            dbr("Waiting on previous sends");
             // These are all complete now. We just need to clean up the MPI resources.
             for(int i = 0; i < world_size; i++) {
                 MPI_Wait(send_requests + i, MPI_STATUS_IGNORE);
             }
+            dbr("Done waiting");
         } else {
             send_requests = new MPI_Request[world_size];
         }
@@ -334,6 +338,7 @@ namespace pwmpi {
         Message_Fittest::create(&send_buffer,
                                 &send_buffer_len,
                                 genome_len,
+                                agent_id,
                                 fitness,
                                 genome);
 
@@ -351,7 +356,8 @@ namespace pwmpi {
         }
     }
 
-    bool Master::recv_fittest(float *fitness,
+    bool Master::recv_fittest(long &agent_id,
+                              float &fitness,
                               unsigned char *genome,
                               int genome_len) {
         bool received_all = false;
@@ -394,7 +400,8 @@ namespace pwmpi {
                     }
                 }
 
-                *fitness = max_fitness;
+                agent_id = Message_Fittest::get_agent_id(recv_buffers[i_max_fitness]);
+                fitness = Message_Fittest::get_fitness(recv_buffers[i_max_fitness]);
                 memcpy(genome,
                        Message_Fittest::get_genome(recv_buffers[i_max_fitness]),
                        genome_len);

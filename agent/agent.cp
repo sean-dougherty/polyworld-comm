@@ -35,6 +35,7 @@
 #include "Metabolism.h"
 #include "NervousSystem.h"
 #include "PathDistance.h"
+#include "pwmpi.h"
 #include "RandomNumberGenerator.h"
 #include "RandomSensor.h"
 #include "Resources.h"
@@ -336,7 +337,7 @@ agent* agent::getfreeagent(TSimulation* simulation, gstage* stage)
     {
         c->index = next_index++;
     }
-    c->setTypeNumber( ++agent::agentsEver );
+    c->setTypeNumber( (long(pwmpi::rank()) * 1000000000l) + (++agent::agentsEver) );
 	c->fCns->getRNG()->seedIfLocal( agent::agentsEver );
 	c->fGenome->getRNG()->seedIfLocal( agent::agentsEver );
 

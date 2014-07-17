@@ -77,6 +77,7 @@ struct TrialsState
     std::vector<agent *> generation_agents;
     FittestList elites;
     FittestList prev_generation;
+    int genome_len;
 
     long test_number = -1;
     long trial_number = -1;
