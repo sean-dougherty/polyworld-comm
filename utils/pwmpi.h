@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef INCLUDE_MPI
 #include <mpi.h>
+#else
+typedef void *MPI_Request;
+#endif
 
 namespace pwmpi {
     void init(int *argc, char ***argv);
@@ -18,6 +22,8 @@ namespace pwmpi {
 
     class Worker {
     public:
+        Worker();
+
         void send_fittest(int generation,
                           long agent_id,
                           float fitness,
@@ -29,22 +35,27 @@ namespace pwmpi {
                           float &fitness,
                           unsigned char *genome,
                           int genome_len);
-    private:
-        int last_generation_sent = 0;
-        MPI_Request send_request = MPI_REQUEST_NULL;
-        unsigned char *send_buffer = nullptr;
-        int send_buffer_len = 0;
 
-        int last_generation_received = 0;
-        MPI_Request recv_request = MPI_REQUEST_NULL;
-        unsigned char *recv_buffer = nullptr;
-        int recv_buffer_len = 0;
+        bool is_simulation_ended();
+    private:
+        int last_generation_sent;
+        MPI_Request send_request;
+        unsigned char *send_buffer;
+        int send_buffer_len;
+
+        int last_generation_received;
+        MPI_Request recv_request;
+        unsigned char *recv_buffer;
+        int recv_buffer_len;
     };
     extern Worker *worker;
 
     class Master {
     public:
+        Master();
+
         void update_fittest(int genome_len);
+        void end_simulation();
 
     private:
         void send_fittest(long agent_id,
@@ -58,14 +69,14 @@ namespace pwmpi {
                           int genome_len);
 
     private:
-        MPI_Request *send_requests = nullptr;
-        unsigned char *send_buffer = nullptr;
-        int send_buffer_len = 0;
+        MPI_Request *send_requests;
+        unsigned char *send_buffer;
+        int send_buffer_len;
 
-        MPI_Request *recv_requests = nullptr;
-        int pending_recvs_count = 0;
-        unsigned char **recv_buffers = nullptr;
-        int *recv_buffer_lens = 0;
+        MPI_Request *recv_requests;
+        int pending_recvs_count;
+        unsigned char **recv_buffers;
+        int *recv_buffer_lens;
     };
     extern Master *master;
 }

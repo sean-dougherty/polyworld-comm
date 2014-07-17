@@ -640,6 +640,10 @@ void TSimulation::Step()
 		End( "PopulationCrash" );
 		return;
 	}
+    else if( pwmpi::worker->is_simulation_ended() )
+    {
+        End( "MPI" );
+    }
 
 	fStep++;
 
@@ -855,11 +859,15 @@ void TSimulation::Step()
 //---------------------------------------------------------------------------
 void TSimulation::End( const string &reason )
 {
-	{
-		ofstream fout( "endReason.txt" );
-		fout << reason << endl;
-		fout.close();
-	}
+    if( pwmpi::is_master() ) {
+        pwmpi::master->end_simulation();
+
+        {
+            ofstream fout( "endReason.txt" );
+            fout << reason << endl;
+            fout.close();
+        }
+    }
 
 	emit ended();
 }

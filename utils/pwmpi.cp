@@ -1,3 +1,4 @@
+#define INCLUDE_MPI
 #include "pwmpi.h"
 
 #include "pwassert.h"
@@ -34,6 +35,7 @@ static int world_size = -1;
 
 const int Tag_Worker_Send_Fittest = 0;
 const int Tag_Master_Send_Fittest = 1;
+const int Tag_End_Simulation = 2;
 
 #define MIGRATION_PERIOD 2
 
@@ -145,15 +147,15 @@ namespace pwmpi {
     }
 
     void gpu_lock() {
-        printf("waiting on gpu sempahore..."); fflush(stdout);
+        //printf("waiting on gpu sempahore..."); fflush(stdout);
         require( 0 == sem_wait(&shared_memory->gpu_state[gpu_index].sem) );
-        printf(" OK!\n"); fflush(stdout);
+        //printf(" OK!\n"); fflush(stdout);
     }
 
     void gpu_unlock() {
-        printf("posting gpu sempahore..."); fflush(stdout);
+        //printf("posting gpu sempahore..."); fflush(stdout);
         require( 0 == sem_post(&shared_memory->gpu_state[gpu_index].sem) );
-        printf(" OK!\n"); fflush(stdout);
+        //printf(" OK!\n"); fflush(stdout);
     }
 
     struct Message_Fittest {
@@ -209,6 +211,18 @@ namespace pwmpi {
             return (unsigned char *)(header + 1);
         }
     };
+
+    Worker::Worker()
+        : last_generation_sent(0)
+        , send_request(MPI_REQUEST_NULL)
+        , send_buffer(nullptr)
+        , send_buffer_len(0)
+        , last_generation_received(0)
+        , recv_request(MPI_REQUEST_NULL)
+        , recv_buffer(nullptr)
+        , recv_buffer_len(0)
+    {
+    }
 
     void Worker::send_fittest(int generation,
                               long agent_id,
@@ -284,6 +298,8 @@ namespace pwmpi {
             fitness = Message_Fittest::get_fitness(recv_buffer);
             memcpy(genome, Message_Fittest::get_genome(recv_buffer), genome_len);
 
+            dbr("RECEIVED FITTEST (gen %d): %f %ld", generation, fitness, agent_id);
+
         // If there's no pending receive, then this is our first time.
         } else if(recv_buffer == nullptr) {
             Message_Fittest::alloc(&recv_buffer,
@@ -302,6 +318,27 @@ namespace pwmpi {
         return received;
     }
 
+    bool Worker::is_simulation_ended() {
+        int test;
+        MPI_Iprobe(0,
+                   Tag_End_Simulation,
+                   MPI_COMM_WORLD,
+                   &test,
+                   MPI_STATUS_IGNORE);
+        return test != 0;
+    }
+
+    Master::Master()
+        : send_requests(nullptr)
+        , send_buffer(nullptr)
+        , send_buffer_len(0)
+        , recv_requests(nullptr)
+        , pending_recvs_count(0)
+        , recv_buffers(nullptr)
+        , recv_buffer_lens(0)
+    {
+    }
+
     void Master::update_fittest(int genome_len) {
         long agent_id;
         float fitness;
@@ -316,6 +353,18 @@ namespace pwmpi {
                          fitness,
                          genome,
                          genome_len);
+        }
+    }
+
+    void Master::end_simulation() {
+        char dummy;
+        for(int i = 0; i < world_size; i++) {
+            MPI_Send(&dummy,
+                     0,
+                     MPI_CHAR,
+                     i,
+                     Tag_End_Simulation,
+                     MPI_COMM_WORLD);
         }
     }
 
@@ -375,16 +424,29 @@ namespace pwmpi {
         }
 
         if(pending_recvs_count > 0) {
+            dbr("pending_recvs_count0=%d", pending_recvs_count);
+
+            for(int i = 0; i < pending_recvs_count; i++) {
+                dbr("  %p", recv_requests[i]);
+            }
+
             int n = pending_recvs_count;
             int i_remaining = 0;
             for(int i = 0; i < n; i++) {
                 int complete;
+                dbr("  testing %p", recv_requests[i]);
                 MPI_Test(recv_requests + i, &complete, MPI_STATUS_IGNORE);
                 if(!complete) {
+                    dbr("pending");
                     recv_requests[i_remaining++] = recv_requests[i];
                 } else {
+                    dbr("COMPLETE");
                     pending_recvs_count--;
                 }
+            }
+            dbr("pending_recvs_count1=%d", pending_recvs_count);
+            for(int i = 0; i < pending_recvs_count; i++) {
+                dbr("  %p", recv_requests[i]);
             }
 
             if(pending_recvs_count == 0) {
@@ -405,6 +467,8 @@ namespace pwmpi {
                 memcpy(genome,
                        Message_Fittest::get_genome(recv_buffers[i_max_fitness]),
                        genome_len);
+
+                dbr("RECEIVED ALL FITTEST: %f %ld", fitness, agent_id);
             }
         }
 
@@ -413,7 +477,7 @@ namespace pwmpi {
                 MPI_Irecv(recv_buffers[i],
                           recv_buffer_lens[i],
                           MPI_CHAR,
-                          0,
+                          i,
                           Tag_Worker_Send_Fittest,
                           MPI_COMM_WORLD,
                           recv_requests + i);
