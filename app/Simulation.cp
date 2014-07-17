@@ -643,6 +643,7 @@ void TSimulation::Step()
     else if( pwmpi::worker->is_simulation_ended() )
     {
         End( "MPI" );
+        return;
     }
 
 	fStep++;
