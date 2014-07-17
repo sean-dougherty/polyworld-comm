@@ -30,6 +30,7 @@ static void acquire_gpu();
 
 static sem_t *sem = nullptr;
 static int gpu_index = -1;
+static bool own_gpu = false;
 static int world_rank = -1;
 static int world_size = -1;
 
@@ -37,7 +38,7 @@ const int Tag_Worker_Send_Fittest = 0;
 const int Tag_Master_Send_Fittest = 1;
 const int Tag_End_Simulation = 2;
 
-#define MIGRATION_PERIOD 2
+#define MIGRATION_PERIOD 1
 
 #define MAX_NODE_RANKS 1024
 #define MAX_GPUS 5
@@ -68,6 +69,10 @@ namespace pwmpi {
         MPI_Init(argc, argv);
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        if(!is_master()) {
+            require(-1 != nice(1));
+        }
 
         dbr("initializing mpi...");
     
@@ -123,6 +128,9 @@ namespace pwmpi {
     }
 
     void finalize() {
+        if(own_gpu)
+            gpu_unlock();
+
         MPI_Finalize();
     }
 
@@ -147,15 +155,17 @@ namespace pwmpi {
     }
 
     void gpu_lock() {
-        //printf("waiting on gpu sempahore..."); fflush(stdout);
+        assert(!own_gpu);
+        dbr("Waiting on GPU lock");
         require( 0 == sem_wait(&shared_memory->gpu_state[gpu_index].sem) );
-        //printf(" OK!\n"); fflush(stdout);
+        dbr("Got GPU lock");
+        own_gpu = true;
     }
 
     void gpu_unlock() {
-        //printf("posting gpu sempahore..."); fflush(stdout);
+        assert(own_gpu);
         require( 0 == sem_post(&shared_memory->gpu_state[gpu_index].sem) );
-        //printf(" OK!\n"); fflush(stdout);
+        own_gpu = false;
     }
 
     struct Message_Fittest {
@@ -253,7 +263,8 @@ namespace pwmpi {
         if( 1 + generation - last_generation_received >= MIGRATION_PERIOD ) {
             last_generation_sent = generation;
 
-            dbr("Sending fittest. gen=%d", generation);
+            dbr("Sending fittest. gen=%d, agent_id=%ld, fitness=%f",
+                generation, agent_id, fitness);
 
             Message_Fittest::create(&send_buffer,
                                     &send_buffer_len,

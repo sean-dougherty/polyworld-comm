@@ -3,10 +3,10 @@
 set -e
 
 processors=$( python -c 'print ",".join(map(str,range(0,12)))' )
-interval=1
+interval=2
 
 while true; do
-    mpstat -P $processors $interval 1 | tail -n 12 | awk '{print $2 "\t" $3}'
+    mpstat -P $processors $interval 1 | tail -n 12 | awk '{print $2 "\t" $3 "\t" $4}'
     echo
     sleep $interval
 done

@@ -5,6 +5,7 @@
 #include <gsl/gsl_rng.h>
 
 #include "misc.h"
+#include "pwmpi.h"
 
 RandomNumberGenerator::Type RandomNumberGenerator::types[];
 
@@ -78,6 +79,8 @@ RandomNumberGenerator::~RandomNumberGenerator()
 
 void RandomNumberGenerator::seed( long x )
 {
+    x *= pwmpi::rank() + 1;
+
 	switch( type )
 	{
 	case LOCAL:
