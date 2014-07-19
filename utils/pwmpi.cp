@@ -146,6 +146,16 @@ namespace pwmpi {
         return world_size;
     }
 
+    int get_demes_count(int max_demes) {
+/*
+        if(gpu_index == 0)
+            return max_demes;
+        else
+            return max(1, max_demes / 2);
+*/
+        return max_demes;
+    }
+
     void bld_lock() {
         require( 0 == sem_wait(&shared_memory->bld_sem) );
     }

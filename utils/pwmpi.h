@@ -14,6 +14,8 @@ namespace pwmpi {
     int rank();
     int size();
 
+    int get_demes_count(int max_demes);
+
     void bld_lock();
     void bld_unlock();
 

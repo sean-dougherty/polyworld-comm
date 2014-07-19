@@ -23,7 +23,7 @@ using namespace std;
 //#define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
-#define NDEMES 4
+#define MAX_NDEMES 4
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
@@ -473,7 +473,7 @@ Deme::Deme(TSimulation *sim_, size_t id_, size_t nagents_, size_t nelites)
     : sim( sim_ )
     , id( id_ )
     , nagents( nagents_ )
-    , elites( nelites, true)
+    , elites( nelites, true )
     , prev_generation( nagents, true)
 {
 }
@@ -586,9 +586,10 @@ void Deme::accept_immigrant(FitStruct *fs) {
 
 TrialsState::TrialsState(TSimulation *sim_)
     : sim( sim_ )
-    , agents_per_deme( sim->fMaxNumAgents / NDEMES )
+    , ndemes( pwmpi::get_demes_count(MAX_NDEMES) )
+    , agents_per_deme( sim->fMaxNumAgents / ndemes )
     , elites( 1, true )
-    , prev_generation( NDEMES + 1, true )
+    , prev_generation( ndemes + 1, true )
     , genome_len( GenomeUtil::schema->getMutableSize() )
 {
     sim = sim_;
@@ -606,11 +607,11 @@ TrialsState::TrialsState(TSimulation *sim_)
     
     sim->fMaxSteps = 0;
 
-    for(size_t i = 0; i < NDEMES; i++) {
+    for(int i = 0; i < ndemes; i++) {
         demes.push_back( new Deme(sim,
                                   i,
                                   agents_per_deme,
-                                  sim->fNumberFittest / NDEMES) );
+                                  sim->fNumberFittest / MAX_NDEMES) );
     }
 }
 
@@ -621,9 +622,9 @@ vector<agent *> TrialsState::create_generation() {
     db("CREATING NEW GENERATION");
 
     vector<agent *> agents;
-    agents.resize(NDEMES * agents_per_deme);
+    agents.resize(ndemes * agents_per_deme);
 
-    for(int i = 0; i < NDEMES; i++) {
+    for(int i = 0; i < ndemes; i++) {
         Deme *deme = demes[i];
         vector<agent *> deme_agents = deme->create_generation(generation_number);
         assert(deme_agents.size() == size_t(agents_per_deme));
@@ -780,7 +781,7 @@ bool TrialsState::new_generation() {
     prev_start = start;
 
     for(Test *t: tests) {
-        t->init(NTRIALS, sim->fMaxNumAgents);
+        t->init(NTRIALS, ndemes * agents_per_deme);
     }
 
     generation_number++;
@@ -889,6 +890,12 @@ void TrialsState::end_generation() {
             prev_generation.update( &fs );
             for(Deme *deme: demes) {
                 deme->accept_immigrant( &fs );
+            }
+        } else if(ndemes > 1) {
+            FitStruct *fs = prev_generation.get(0);
+            db("performing local migration: " << fs->agentID << " " << fs->fitness);
+            for(Deme *deme: demes) {
+                deme->accept_immigrant( fs );
             }
         }
     }
