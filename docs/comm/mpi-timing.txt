@@ -1,0 +1,118 @@
+;; This buffer is for notes you don't want to save, and for Lisp evaluation.
+;; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.
+
+----------------------------------------------------------------------------------------------------
+max agents = 500, ndemes = 2, nprocs = 4 [deme size = 250, tot demes = 8]
+
+seed = 1: 3m23, 2m24, 3m23
+seed = 2: 17m0, 3m3
+seed = 3: 7m4
+seed = 4: 16m21
+seed = 5: 3m47
+seed = 6: 5m53
+seed = 7: 10m39
+seed = 8: 7m19
+seed = 9: 2m46
+seed = 10: 5m37, 6m4.6, 4m16, 10m18, 5m59
+
+n=17, min=2m24, max=17m0, median=5m53, mean=6m47, stddev=4m18
+n=10, min=2m46, max=17m0, median=6m29, mean=7m59, stddev=4m51
+----------------------------------------------------------------------------------------------------
+max agents = 500, ndemes = 2, nprocs = 1 [deme size = 250, tot demes = 2]
+
+seed = 1:   2m9.6
+seed = 2:  54m [halted, reached 0.958333]
+seed = 10: 20m33
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 8, nprocs = 1 [deme size = 250, tot demes = 8]
+
+seed = 1: 6m10
+seed = 2: 17m45
+seed = 3: 4m28
+seed = 4: 11m29
+seed = 5: 19m43
+seed = 6: 7m23
+seed = 7: 8m20
+seed = 8: 4m22
+seed = 9: 6m2
+seed = 10: 7m3
+
+n=10, min=4m22, max=19m43, median=7m13, mean=9m17, stddev=5m7
+
+----------------------------------------------------------------------------------------------------
+max agents = 500, ndemes = 4, nprocs = 4 [deme size = 125, tot demes = 16]
+
+seed = 1: 3m9
+seed = 2: 9m34
+seed = 3: 6m22
+seed = 4: 11m20
+seed = 5: 9m23
+seed = 6: 5m19
+seed = 7: 34m3
+seed = 8: 16m11
+seed = 9: 6m13
+seed = 10: 2m42
+
+n=10, min=2m42, max=34m3, median=7m53, mean=10m26, stddev=8m45
+
+================================================================================
+local migration
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 500, ndemes = 4, nprocs = 4 [deme size = 125, tot demes = 16]
+
+seed = 1: 3m48
+seed = 2: 7m44
+seed = 3: 7m15
+seed = 4: 10m46
+seed = 5: 6m58
+seed = 6: 4m3
+seed = 7: 26m32
+
+n=7, min=3m48, max=26m32, median=7m15, mean=9m35, stddev=7m15
+
+----------------------------------------------------------------------------------------------------
+max agents = 250, ndemes = 1, nprocs = 4 [deme size = 250, tot demes = 4]
+
+seed = 1: 2m25
+seed = 2: 2m10
+seed = 3: 624m35
+seed = 10: 4m50
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4 [deme size = 250, tot demes = 16]
+
+seed = 1: 3m33
+seed = 2: 5m5
+seed = 3: 4m30
+seed = 4: 4m59
+seed = 5: 4m25
+seed = 6: 8m10
+seed = 7: 10m43
+seed = 8: 14m56
+seed = 9: 4m6
+seed = 10: 12m54
+
+n=10, min=3m33, max=14m56, median=5m2, mean=7m20, stddev=3m55
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 8, nprocs = 4 [deme size = 250, tot demes = 32]
+
+seed = 1: 9m15
+seed = 2: 18m16
+seed = 3: 11m43
+seed = 4: 50m52 [halted]
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 4, nprocs = 4 [deme size = 500, tot demes = 16]
+
+seed = 1: 5m20
+seed = 2: 6m18
+seed = 3: 7m55
+seed = 4: 15m56
+seed = 5: 12m15
+seed = 6: 13m43
+seed = 7: 8m47
