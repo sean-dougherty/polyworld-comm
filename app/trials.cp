@@ -20,10 +20,10 @@ using namespace std;
 
 #if TRIALS
 
-//#define MAX_GENERATIONS 5
+#define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
-#define MAX_NDEMES 4
+#define MAX_NDEMES 1
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true

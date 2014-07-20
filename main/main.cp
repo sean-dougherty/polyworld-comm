@@ -12,13 +12,10 @@
 #include <QApplication>
 
 // Local
-#include "MainWindow.h"
 #include "Monitor.h"
 #include "pwmpi.h"
 #include "Resources.h"
 #include "Simulation.h"
-#include "SimulationController.h"
-#include "TerminalUI.h"
 
 //#define UNIT_TESTS
 
@@ -122,18 +119,6 @@ int main( int argc, char** argv )
         rundir = path;
     }
 
-	QApplication app(argc, argv);
-
-    if (!QGLFormat::hasOpenGL())
-    {
-		qWarning("This system has no OpenGL support. Exiting.");
-		return -1;
-    }	
-
-	// Establish how our preference settings file will be named
-	QCoreApplication::setOrganizationDomain( "indiana.edu" );
-	QCoreApplication::setApplicationName( "polyworld" );
-
 	// ---
 	// --- Create the run directory and cd into it
 	// ---
@@ -154,31 +139,14 @@ int main( int argc, char** argv )
 	}
 
 	TSimulation *simulation = new TSimulation( worldfilePath, monitorPath );
-	SimulationController *simulationController = new SimulationController( simulation );
 
-	int exitval;
+    while(!simulation->isEnded()) {
+        simulation->Step();
+    }
 
-	if( ui == "gui" )
-	{
-		MainWindow *mainWindow = new MainWindow( simulationController );
-		simulationController->start();
-		exitval = app.exec();
-		delete mainWindow;
-	}
-	else if( ui == "term" )
-	{
-		TerminalUI *term = new TerminalUI( simulationController );
-		simulationController->start();
-		exitval = app.exec();
-		delete term;
-	}
-	else
-		panic();
-
-	delete simulationController;
 	delete simulation;
 
     pwmpi::finalize();
 
-	return exitval;
+	return 0;
 }

@@ -2,14 +2,10 @@
 
 #include <map>
 
-#include <QObject>
-
 #include "AgentAttachedData.h"
 
-class AgentPovRenderer : public QObject
+class AgentPovRenderer
 {
-	Q_OBJECT
-
  public:
 	AgentPovRenderer( int maxAgents,
 					  int retinaWidth,
@@ -22,13 +18,9 @@ class AgentPovRenderer : public QObject
 	void beginStep();
 	void render( class agent *a );
 	void endStep();
-	void copyTo( class QGLWidget *dst );
 
 	int getBufferWidth();
 	int getBufferHeight();
-
- signals:
-	void renderComplete();
 
  private:
 	struct Viewport
@@ -39,7 +31,6 @@ class AgentPovRenderer : public QObject
 		short width;
 		short height;
 	};
-	class QGLPixelBuffer *fPixelBuffer;
 	int fBufferWidth;
 	int fBufferHeight;
 	// This gives us a reference to a per-agent opaque pointer.

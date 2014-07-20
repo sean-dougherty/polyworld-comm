@@ -50,6 +50,7 @@ public:
 	virtual ~TSimulation();
 
 	void Step();
+    bool isEnded();
 	void End( const std::string &reason );
 	std::string EndAt( long timestep );
 
@@ -250,6 +251,8 @@ private:
 	
 	Scheduler fScheduler;
 	BusyFetchQueue<agent *> fUpdateBrainQueue;
+
+    bool fIsEnded = false;
 	
 	long fMaxSteps;
 	bool fEndOnPopulationCrash;

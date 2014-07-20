@@ -1,11 +1,7 @@
 #include "AgentPovRenderer.h"
 
-#include <assert.h>
-
-#include <QGLPixelBuffer>
-#include <QGLWidget>
-
 #include "agent.h"
+#include "pwassert.h"
 #include "Retina.h"
 
 #define CELL_PAD 2
@@ -16,7 +12,6 @@
 AgentPovRenderer::AgentPovRenderer( int maxAgents,
 									int retinaWidth,
 									int retinaHeight )
-: fPixelBuffer( NULL )
 {
 	// If we decide we want the width W (in cells) to be a multiple of N (call it I)
 	// and we want the aspect ratio of W to height H (in cells) to be at least A,
@@ -60,7 +55,6 @@ AgentPovRenderer::AgentPovRenderer( int maxAgents,
 //---------------------------------------------------------------------------
 AgentPovRenderer::~AgentPovRenderer()
 {
-	delete fPixelBuffer;
 	delete [] fViewports;
 }
 
@@ -96,26 +90,6 @@ void AgentPovRenderer::remove( agent *a )
 //---------------------------------------------------------------------------
 void AgentPovRenderer::beginStep()
 {
-	if( fPixelBuffer == NULL )
-	{
-		fPixelBuffer = new QGLPixelBuffer( fBufferWidth, fBufferHeight );
-		fPixelBuffer->makeCurrent();
-
-		glEnable( GL_DEPTH_TEST );
-		glEnable( GL_NORMALIZE );
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-	}
-	else
-	{
-		fPixelBuffer->makeCurrent();
-	}
-
-	glClearColor( 0, 0, 0, 1 );
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 //---------------------------------------------------------------------------
@@ -123,22 +97,7 @@ void AgentPovRenderer::beginStep()
 //---------------------------------------------------------------------------
 void AgentPovRenderer::render( agent *a )
 {
-	Viewport *viewport = (Viewport *)AgentAttachedData::get( a, slotHandle );
-
-	// Initialize projection
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	// Limit our drawing to this agent's small window
-	glViewport( viewport->x, viewport->y, viewport->width, viewport->height );
-
-	// Do the actual drawing
-	glPushMatrix();
-		a->GetScene().Draw();
-	glPopMatrix();
-
-	// Copy pixel data into retina
-	a->GetRetina()->updateBuffer( viewport->x, viewport->y, viewport->width, viewport->height );
+    panic();
 }
 
 //---------------------------------------------------------------------------
@@ -146,22 +105,6 @@ void AgentPovRenderer::render( agent *a )
 //---------------------------------------------------------------------------
 void AgentPovRenderer::endStep()
 {
-	fPixelBuffer->doneCurrent();
-
-	emit renderComplete();
-}
-
-//---------------------------------------------------------------------------
-// AgentPovRenderer::copyTo
-//---------------------------------------------------------------------------
-void AgentPovRenderer::copyTo( QGLWidget *dst)
-{
-	if( fPixelBuffer )
-	{
-		QImage image = fPixelBuffer->toImage();
-		QPainter painter( dst );
-		painter.drawImage( QRect(0,0,dst->width(),dst->height()), image );
-	}
 }
 
 //---------------------------------------------------------------------------

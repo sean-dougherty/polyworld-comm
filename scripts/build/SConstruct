@@ -22,7 +22,6 @@ SRCDIRS = ['src/' + x
 					 'main',
 					 'monitor',
 					 'tools',
-					 'ui',
 					 'utils']]
 
 def build():
