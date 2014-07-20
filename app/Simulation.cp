@@ -44,7 +44,6 @@
 #include "AgentPovRenderer.h"
 #include "barrier.h"
 #include "Brain.h"
-#include "CameraController.h"
 #include "debug.h"
 #include "food.h"
 #include "globals.h"
@@ -54,13 +53,11 @@
 #include "GroupsBrain.h"
 #include "Logs.h"
 #include "Metabolism.h"
-#include "MonitorManager.h"
 #include "PathDistance.h"
 #include "proplib.h"
 #include "Queue.h"
 #include "RandomNumberGenerator.h"
 #include "Resources.h"
-#include "SceneRenderer.h"
 #include "SheetsBrain.h"
 #include "SoundPatch.h"
 #include "trials.h"
@@ -442,11 +439,6 @@ TSimulation::TSimulation( string worldfilePath, string monitorPath )
     fStage.SetSet(&fWorldSet);
 
 	// ---
-	// --- Init Monitors
-	// ---
-	monitorManager = new MonitorManager( this, monitorPath );
-
-	// ---
 	// --- Init Event Filtering
 	// ---
 	if( fCalcComplexity )
@@ -536,8 +528,6 @@ TSimulation::~TSimulation()
 	}
 
     logs->postEvent( SimEndEvent() );
-
-	delete monitorManager;
 
 	// ---
 	// --- Dispose Logs
@@ -828,11 +818,6 @@ void TSimulation::Step()
 
 	fAverageFoodEnergyIn = (float(fStep - 1) * fAverageFoodEnergyIn + fFoodEnergyIn) / float(fStep);
 	fAverageFoodEnergyOut = (float(fStep - 1) * fAverageFoodEnergyOut + fFoodEnergyOut) / float(fStep);
-
-	// -------------------------
-	// ---- Update Monitors ----
-	// -------------------------
-	UpdateMonitors();
 
 	debugcheck( "after brain monitor window in step %ld", fStep );
 
@@ -3730,15 +3715,6 @@ void TSimulation::MaintainFood()
 
 
 //---------------------------------------------------------------------------
-// TSimulation::UpdateMonitors()
-//---------------------------------------------------------------------------
-void TSimulation::UpdateMonitors()
-{
-
-	monitorManager->step();
-}
-
-//---------------------------------------------------------------------------
 // TSimulation::ijfitinc
 //---------------------------------------------------------------------------
 void TSimulation::ijfitinc(short n, short* i, short* j)
@@ -5241,8 +5217,6 @@ void TSimulation::Dump()
         if (fDomains[id].fittest)
 			fDomains[id].fittest->dump( out );
     }
-
-	monitorManager->dump( out );
 
     out.flush();
     fb.close();

@@ -12,7 +12,6 @@
 #include <QApplication>
 
 // Local
-#include "Monitor.h"
 #include "pwmpi.h"
 #include "Resources.h"
 #include "Simulation.h"
