@@ -149,9 +149,6 @@ void gsquare::setradius()
 }    
 
 
-
-#pragma mark -
-
 void gbox::setradius()
 {
     if (!fRadiusFixed)  //  only set radius anew if not set manually

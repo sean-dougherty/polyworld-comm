@@ -55,14 +55,14 @@
 #include "Metabolism.h"
 #include "PathDistance.h"
 #include "proplib.h"
+#include "pwmpi.h"
 #include "Queue.h"
 #include "RandomNumberGenerator.h"
 #include "Resources.h"
 #include "SheetsBrain.h"
 #include "SoundPatch.h"
 #include "trials.h"
-#include "PwMovieUtils.h"
-#include "pwmpi.h"
+#include "timer.h"
 #include "complexity.h"
 
 #include "objectxsortedlist.h"
@@ -645,7 +645,7 @@ void TSimulation::Step()
 	debugcheck( "beginning of step %ld", fStep );
 
 	// compute some frame rates
-	timeNow = hirestime();
+	timeNow = seconds();
 	if( fStep == 1 )
 	{
 		fFramesPerSecondOverall = 0.;
@@ -1057,7 +1057,6 @@ void TSimulation::InitAgents()
 		bool isSeed = true;
 
 		c = agent::getfreeagent( this, &fStage );
-		Q_CHECK_PTR(c);
 
 		fNumberCreated++;
 		fNumberCreatedRandom++;
@@ -2194,7 +2193,6 @@ void TSimulation::MateLockstep( void )
 		ttPrint( "age %ld: agents # %ld & %ld are mating randomly\n", fStep, c->Number(), d->Number() );
 
 		agent* e = agent::getfreeagent( this, &fStage );
-		Q_CHECK_PTR(e);
 
 		e->Genes()->crossover(c->Genes().get(), d->Genes().get(), true);
 		e->setGenomeReady();
@@ -2407,8 +2405,6 @@ void TSimulation::Mate( agent *c,
 				fDomains[kd].numbornsincecreated++;
 
 				agent* e = agent::getfreeagent(this, &fStage);
-				Q_CHECK_PTR(e);
-
 				e->Genes()->crossover(c->Genes().get(), d->Genes().get(), true);
 				e->setGenomeReady();
 
@@ -3290,7 +3286,6 @@ void TSimulation::CreateAgents( void )
                 fLastCreated = fStep;
                 fDomains[id].lastcreate = fStep;
                 agent* newAgent = agent::getfreeagent(this, &fStage);
-                Q_CHECK_PTR(newAgent);
 
                 if ( fDomains[id].fittest && fDomains[id].fittest->isFull() )
                 {
@@ -3431,7 +3426,6 @@ void TSimulation::CreateAgents( void )
             fLastCreated = fStep;
 
             agent* newAgent = agent::getfreeagent(this, &fStage);
-            Q_CHECK_PTR(newAgent);
 
             if( fFittest && fFittest->isFull() )
             {
@@ -3838,7 +3832,6 @@ void TSimulation::Kill( agent* c,
 		return;
 	}
 
-	Q_CHECK_PTR(c);
 	const short id = c->Domain();
 
 	ttPrint( "age %ld: agent # %ld has died\n", fStep, c->Number() );
@@ -3908,7 +3901,6 @@ void TSimulation::Kill( agent* c,
 			else
 			{
 				food* f = new food( carcassFoodType, fStep, foodEnergy, c->x(), c->z() );
-				Q_CHECK_PTR( f );
 				gdlink<gobject*> *saveCurr = objectxsortedlist::gXSortedObjects.getcurr();
 				objectxsortedlist::gXSortedObjects.add( f );	// dead agent becomes food
 				objectxsortedlist::gXSortedObjects.setcurr( saveCurr );

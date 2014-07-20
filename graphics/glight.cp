@@ -16,7 +16,6 @@
 
 using namespace std;
 
-
 // for constructing the properties array to pass to lmdef
 float glprops[6];
 

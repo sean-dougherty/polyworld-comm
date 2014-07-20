@@ -501,7 +501,6 @@ void AbstractFile::init( ConcreteFileType type,
 			{
 				fprintf( stderr, "Unable to open file at '%s'\n", abstractPath );
 				perror( file.path );
-				system( "echo hello from file path" );
 				while( true )
 					sleep(1);
 			  #pragma omp critical(lsof)
@@ -520,7 +519,6 @@ void AbstractFile::init( ConcreteFileType type,
 			{
 				fprintf( stderr, "Unable to open file at '%s'\n", gzip.path );
 				perror( gzip.path );
-				system( "echo hello from gzip path" );
 				while( true )
 					sleep(1);
 			  #pragma omp critical(lsof)

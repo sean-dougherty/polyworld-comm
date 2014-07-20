@@ -19,7 +19,7 @@ static float initminweight = 0.0; // could read this in
 #define IsInternalNeuralGroup( group ) ( _genome->getSchema()->getNeurGroupType(group) == NGT_INTERNAL )
 
 
-#define __ALLOC_STACK_BUFFER(NAME, TYPE, N) TYPE *NAME = (TYPE *)alloca( N * sizeof(TYPE) ); Q_CHECK_PTR(NAME)
+#define __ALLOC_STACK_BUFFER(NAME, TYPE, N) TYPE *NAME = (TYPE *)alloca( N * sizeof(TYPE) )
 #define ALLOC_STACK_BUFFER(NAME, TYPE) __ALLOC_STACK_BUFFER( NAME, TYPE, __numgroups )
 
 #define ALLOC_GROW_STACK_BUFFERS()										\
@@ -29,12 +29,7 @@ static float initminweight = 0.0; // could read this in
 	ALLOC_STACK_BUFFER( eeremainder, float );							\
 	ALLOC_STACK_BUFFER( eiremainder, float );							\
 	ALLOC_STACK_BUFFER( iiremainder, float );							\
-	ALLOC_STACK_BUFFER( ieremainder, float );							\
-	__ALLOC_STACK_BUFFER( neurused,										\
-						  bool,											\
-						  max(GroupsBrain::config.maxeneurpergroup,		\
-							  GroupsBrain::config.maxineurpergroup) )
-
+	ALLOC_STACK_BUFFER( ieremainder, float );
 
 GroupsBrain::Configuration GroupsBrain::config;
 

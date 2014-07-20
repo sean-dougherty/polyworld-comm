@@ -7,10 +7,6 @@
 // STL
 #include <string>
 
-// Qt
-#include <qgl.h>
-#include <QApplication>
-
 // Local
 #include "pwmpi.h"
 #include "Resources.h"

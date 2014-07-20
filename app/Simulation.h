@@ -6,9 +6,6 @@
 
 #include <string>
 
-// qt
-#include <QObject>
-
 // Local
 #include "Domain.h"
 #include "cppprops.h"
@@ -37,9 +34,8 @@ namespace proplib { class Document; }
 // TSimulation
 //===========================================================================
 
-class TSimulation : public QObject
+class TSimulation
 {
-	Q_OBJECT
 	PROPLIB_CPP_PROPERTIES
 
 public:
@@ -142,9 +138,6 @@ public:
 	
 	Events* fEvents;
 
-signals:
-	void ended();
-	
 private:
 	void InitCppProperties( proplib::Document *docWorldFile );
 	void InitFittest();
