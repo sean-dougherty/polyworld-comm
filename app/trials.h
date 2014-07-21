@@ -10,7 +10,6 @@
 #include <random>
 
 #define TEST_INTERLUDE 10
-#define NTRIALS 6
 
 class agent;
 class TSimulation;
