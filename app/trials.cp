@@ -46,7 +46,6 @@ template<typename T>
 T mean(vector<T> scores);
 template<typename T>
 T stddev(vector<T> scores);
-float covariance(vector<float> &x, vector<float> &y);
 void shuffle(vector<int> &x, int seed);
 
 void show_color(agent *a, float r, float g, float b) {
@@ -102,6 +101,7 @@ struct Task {
     TaskCategory category;
     Sound sound;
     long timesteps;
+
     size_t ntrials;
     size_t nagents;
 
@@ -967,21 +967,6 @@ void echo(vector<float> &x) {
     for(auto v: x)
         cout << v << " ";
     cout << endl;
-}
-
-float covariance(vector<float> &x, vector<float> &y) {
-    size_t n = x.size();
-    assert(y.size() == n);
-    float xmean = mean(x);
-    float ymean = mean(y);
-
-    float result = 0.0f;
-    for(size_t i = 0; i < n; i++) {
-        result += (x[i] - xmean) * (y[i] - ymean);
-    }
-    result /= n;
-
-    return result;
 }
 
 int get_max_repeat(vector<int> &x) {
