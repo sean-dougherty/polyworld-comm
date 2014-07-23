@@ -2,6 +2,7 @@
 #include "pwmpi.h"
 
 #include "pwassert.h"
+#include "timer.h"
 
 #include <cuda_runtime_api.h>
 #include <fcntl.h>
@@ -395,11 +396,12 @@ namespace pwmpi {
                               int genome_len) {
         if(send_requests) {
             dbr("Waiting on previous sends");
+            double start = seconds();
             // These are all complete now. We just need to clean up the MPI resources.
             for(int i = 0; i < world_size; i++) {
                 MPI_Wait(send_requests + i, MPI_STATUS_IGNORE);
             }
-            dbr("Done waiting");
+            dbr("Done waiting\t%lf", seconds() - start);
         } else {
             send_requests = new MPI_Request[world_size];
         }

@@ -639,7 +639,10 @@ void TSimulation::Step()
 	fStep++;
 
 #if TRIALS
-    trials->timestep_begin();
+    if(!trials->timestep_begin()) {
+        End( "TRIALS");
+        return;
+    }
 #endif
 
 	debugcheck( "beginning of step %ld", fStep );
