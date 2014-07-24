@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <iostream>
 
+#define BRAIN_CYCLES 1
+
 #define Threads_Per_Block 512
 #define MAX_SYNAPSES_PER_THREAD 256
 #define MAX_NEURONS Threads_Per_Block
@@ -350,15 +352,17 @@ void FiringRateModel_Cuda::update_all(AgentState *agents,
                                       float *all_input,
                                       float *all_output) {
 
-    xcuda( cudaMemcpy(d_all_input,
-                      all_input,
-                      sizeof_input,
-                      cudaMemcpyHostToDevice) );
+    for(int i = 0; i < BRAIN_CYCLES; i++) {
+        xcuda( cudaMemcpy(d_all_input,
+                          all_input,
+                          sizeof_input,
+                          cudaMemcpyHostToDevice) );
 
-    ::update<<<nagents, Threads_Per_Block, sizeof_shared>>>(d_gpus);
+        ::update<<<nagents, Threads_Per_Block, sizeof_shared>>>(d_gpus);
 
-    xcuda( cudaMemcpy(all_output,
-                      d_all_output,
-                      sizeof_output,
-                      cudaMemcpyDeviceToHost) );
+        xcuda( cudaMemcpy(all_output,
+                          d_all_output,
+                          sizeof_output,
+                          cudaMemcpyDeviceToHost) );
+    }
 }

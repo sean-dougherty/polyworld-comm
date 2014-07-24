@@ -31,6 +31,12 @@ using namespace std;
 #define ALLOW_SELF_CROSSOVER true
 #define SERIAL_GENOME true
 #define SEQUENCE_LENGTH 2
+#define SEQ_TEST_ALL 1
+#define SEQ_TEST_FIRST 2
+#define SEQ_TEST_LAST 3
+#define SEQ_TEST_MODE SEQ_TEST_FIRST
+#define INTERLUDE_SHOW_BLUE true
+
 
 #define GENERATION_LOG_FREQUENCY 20
 
@@ -79,6 +85,11 @@ void show_red(agent *a) {
 void show_green(agent *a) {
     vdb("showing green");
     show_color(a, 0.0, 1.0, 0.0);
+}
+
+void show_blue(agent *a) {
+    vdb("showing blue");
+    show_color(a, 0.0, 0.0, 1.0);
 }
 
 void show_black(agent *a) {
@@ -142,6 +153,18 @@ struct Task {
     }
 
     inline int seq_index(long t_task) {
+#if SEQ_TEST_MODE == SEQ_TEST_FIRST
+        if(category == Speak) {
+            return 0;
+        }
+#elif SEQ_TEST_MODE == SEQ_TEST_LAST
+        if(category == Speak) {
+            return SEQUENCE_LENGTH - 1;
+        }
+#elif SEQ_TEST_MODE != SEQ_TEST_ALL
+        #error invalid mode
+#endif
+
         return ((t_task-1) * SEQUENCE_LENGTH) / timesteps;
     }
 
@@ -176,6 +199,7 @@ struct Task {
         // Sound
         //
         if(sound == Freq) {
+            vdb("playing freq " << freq);
             make_sound(a, freq);
         } else {
             make_silence(a);
@@ -605,7 +629,11 @@ void Deme::end_generation() {
 }
 
 FitStruct *Deme::get_fittest() {
+#if ELITES_PER_DEME > 0
+    return elites.get(0);
+#else
     return prev_generation.get(0);
+#endif
 }
 
 void Deme::accept_immigrant(FitStruct *fs) {
@@ -724,6 +752,12 @@ bool TrialsState::timestep_begin() {
         for(size_t i = 0; i < generation_agents.size(); i++) {
             test->timestep_input(trial_number, test_timestep, generation_agents[i], seq);
         }
+    } else {
+#if INTERLUDE_SHOW_BLUE
+        for(size_t i = 0; i < generation_agents.size(); i++) {
+            show_blue(generation_agents[i]);
+        }
+#endif
     }
 
     return true;
