@@ -1,0 +1,33 @@
+@version 2
+InitSeed 1
+MinMutationRate 0.005
+MaxMutationRate 0.0051
+NumberFittest 0
+MinAgents 1000
+MaxAgents 1000
+InitAgents 1000
+SeedAgents 1000
+
+StaticTimestepGeometry False
+NeuronModel T
+MaxInternalNeuralGroups 10
+
+Vision False
+
+MinCrossoverPoints 1
+MaxCrossoverPoints 4
+
+MinLifeSpan 100000
+MaxLifeSpan 100001
+
+EnableTopologicalDistortionRngSeed True
+EnableInitWeightRngSeed True
+
+EnableHearing True
+EnableVoice True
+NumSoundFrequencies 3
+
+MinAgentMaxEnergy 1000.0
+MaxAgentMaxEnergy 1000.1
+EnergyUseMultiplier 0.001
+
