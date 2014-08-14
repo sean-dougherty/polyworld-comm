@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <mpi.h>
 #include <semaphore.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -446,16 +447,16 @@ namespace pwmpi {
 
         if(pending_recvs_count > 0) {
             dbr("pending_recvs_count0=%d", pending_recvs_count);
-
+/*
             for(int i = 0; i < pending_recvs_count; i++) {
-                dbr("  %p", recv_requests[i]);
+                dbr("  %p", (void*)recv_requests[i]);
             }
-
+*/
             int n = pending_recvs_count;
             int i_remaining = 0;
             for(int i = 0; i < n; i++) {
                 int complete;
-                dbr("  testing %p", recv_requests[i]);
+//                dbr("  testing %p", (void*)recv_requests[i]);
                 MPI_Test(recv_requests + i, &complete, MPI_STATUS_IGNORE);
                 if(!complete) {
                     dbr("pending");
@@ -466,9 +467,11 @@ namespace pwmpi {
                 }
             }
             dbr("pending_recvs_count1=%d", pending_recvs_count);
+/*
             for(int i = 0; i < pending_recvs_count; i++) {
-                dbr("  %p", recv_requests[i]);
+                dbr("  %p", (void*)recv_requests[i]);
             }
+*/
 
             if(pending_recvs_count == 0) {
                 received_all = true;

@@ -10,8 +10,9 @@ import sys
 ###
 ################################################################################
 def init_env(env):
-	env.Append( LIBPATH = ['/usr/local/lib',
-						   '/usr/lib'] )
+	env.Append( LIBPATH = ['/usr/lib64',
+						   os.path.expanduser('~/lib')] )
+	env.Append( CPPPATH = ['/share/apps/gsl/include'] ) # usc cluster
 
 	if PFM == 'linux':
 		env.Append( DEFAULTFRAMEWORKPATH = [] )
@@ -32,8 +33,8 @@ def init_env(env):
 def import_cuda(env):
 	thisFile = inspect.getabsfile(import_cuda)
 	thisDir = os.path.dirname(thisFile)
-	env['CUDA_TOOLKIT_PATH'] = '/usr/lib/nvidia-319'
-	env['CUDA_SDK_PATH'] = '/usr/lib/nvidia-319'
+	env['CUDA_TOOLKIT_PATH'] = '/share/apps/cuda/cuda6'
+	env['CUDA_SDK_PATH'] = '/share/apps/cuda/cuda6'
 	env.Tool('cuda', toolpath = [os.path.join(thisDir)])	
 
 ################################################################################
@@ -114,7 +115,8 @@ def import_dlsym(env):
 def import_python(env, version=None):
 	if PFM == 'linux':
 		if not version: version='2.7'
-		env.Append( CPPPATH = ['/usr/include/python'+version] )
+		env.Append( CPPPATH = ['/usr/include/python'+version, '/usr/local/include/python'+version] )
+		env.Append( LIBPATH = ['/share/apps/python/2.7.5/lib/'] )
 	elif PFM == 'mac':
 		if not version: version='2.7'
 		env.Append( CPPPATH = ['/System/Library/Frameworks/Python.framework/Versions/'+version+'/include/python'+version] )

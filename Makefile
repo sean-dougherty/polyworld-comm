@@ -1,6 +1,6 @@
 # This file should never be executable
 
-SCONS = scons -j 8 -f scripts/build/SConstruct
+SCONS = scons -j 4 -f scripts/build/SConstruct
 
 .PHONY: all clean \
 	app Polyworld \

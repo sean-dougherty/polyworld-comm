@@ -41,7 +41,7 @@ def generate(env):
         env['NVCC'] = 'nvcc'
         
         # default flags for the NVCC compiler
-        env['NVCCFLAGS'] = '-arch=sm_21 '+' '.join( map(lambda x:'-I'+x, env['CPPPATH']) )
+        env['NVCCFLAGS'] = '-arch=sm_21 --compiler-bindir /usr/bin '+' '.join( map(lambda x:'-I'+x, env['CPPPATH']) )
         env['STATICNVCCFLAGS'] = ''
         env['SHAREDNVCCFLAGS'] = ''
         env['ENABLESHAREDNVCCFLAG'] = '-shared'
@@ -140,7 +140,7 @@ def generate(env):
         
         # add required libraries
         env.Append(CPPPATH=[cudaSDKPath + '/common/inc', cudaToolkitPath + '/include'])
-        env.Append(LIBPATH=[cudaSDKPath + '/lib', cudaSDKPath + '/common/lib' + cudaSDKSubLibDir, cudaToolkitPath + '/lib'])
+        env.Append(LIBPATH=[cudaSDKPath + '/lib64', cudaSDKPath + '/common/lib' + cudaSDKSubLibDir, cudaToolkitPath + '/lib'])
         env.Append(LIBS=['cudart'])
 
 def exists(env):
