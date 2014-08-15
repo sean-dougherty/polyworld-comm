@@ -12,7 +12,6 @@ import sys
 def init_env(env):
 	env.Append( LIBPATH = ['/usr/lib64',
 						   os.path.expanduser('~/lib')] )
-	env.Append( CPPPATH = ['/share/apps/gsl/include'] ) # usc cluster
 
 	if PFM == 'linux':
 		env.Append( DEFAULTFRAMEWORKPATH = [] )
@@ -43,12 +42,15 @@ def import_cuda(env):
 ###
 ################################################################################
 def import_OpenGL(env):
-	env.Append( CPPPATH = [which('gl.h',
-								 dir = True,
-								 path = ['/usr/include/GL',
-										 '/System/Library/Frameworks/OpenGL.framework/Versions/A/Headers',
-										 '/System/Library/Frameworks/AGL.framework/Versions/A/Headers/'],
-								 err = 'Cannot locate OpenGL')] )
+	inc = which('gl.h',
+				dir = True,
+				path = ['/share/apps/cuda/cuda6/extras/CUPTI/include/GL',
+						'/usr/include/GL',
+						'/System/Library/Frameworks/OpenGL.framework/Versions/A/Headers',
+						'/System/Library/Frameworks/AGL.framework/Versions/A/Headers/'],
+				err = 'Cannot locate OpenGL')
+	incs = [inc, os.path.join(inc, os.path.dirname(inc))]
+	env.Append( CPPPATH = incs )
 
 	if PFM == 'linux':
 		addlib(env, 'GL')
@@ -72,6 +74,10 @@ def import_OpenMP(env):
 ###
 ################################################################################
 def import_GSL(env):
+	env.Append( CPPPATH = ['/share/apps/gsl/include'] ) # usc cluster
+	env.Append( LIBPATH = ['/share/apps/gsl/lib'] ) # usc cluster
+	
+	
 	addlib(env, 'gsl')
 	addlib(env, 'gslcblas')
 
@@ -115,8 +121,10 @@ def import_dlsym(env):
 def import_python(env, version=None):
 	if PFM == 'linux':
 		if not version: version='2.7'
-		env.Append( CPPPATH = ['/usr/include/python'+version, '/usr/local/include/python'+version] )
-		env.Append( LIBPATH = ['/share/apps/python/2.7.5/lib/'] )
+		#env.Append( CPPPATH = ['/usr/include/python'+version, '/usr/local/include/python'+version] )
+		#env.Append( LIBPATH = ['/share/apps/python/2.7.5/lib/'] )
+		env.Append( CPPPATH = ['/share/apps/python/2.7.5/include/python2.7'] )
+		env.Append( LIBPATH = ['/share/apps/python/2.7.5/lib'] )
 	elif PFM == 'mac':
 		if not version: version='2.7'
 		env.Append( CPPPATH = ['/System/Library/Frameworks/Python.framework/Versions/'+version+'/include/python'+version] )
