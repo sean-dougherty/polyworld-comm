@@ -1,4 +1,5 @@
 CC=mpigxx
+NVCC=nvcc --compiler-bindir /usr/bin
 
 SRCDIRS=agent\
 		app\
@@ -15,13 +16,16 @@ SRCDIRS=agent\
 		logs\
 		main\
 		proplib\
-		tools\
 		utils
 
-CPP_FILES=$(foreach dir, ${SRCDIRS}, $(wildcard ${dir}/*.cp))
-CPP_OBJS=$(patsubst %.cp, .bldgnu/cpp/%.o, ${CPP_FILES})
+SOURCES_CPP=$(foreach dir, ${SRCDIRS}, $(wildcard ${dir}/*.cp))
+OBJS_CPP=$(patsubst %.cp, .bldgnu/obj/cpp/%.o, ${SOURCES_CPP})
 
-OBJS=${CPP_OBJS}
+SOURCES_CUDA=$(foreach dir, ${SRCDIRS}, $(wildcard ${dir}/*.cu))
+OBJS_CUDA=$(patsubst %.cu, .bldgnu/obj/cuda/%.o, ${SOURCES_CUDA})
+
+OBJS=${OBJS_CPP} ${OBJS_CUDA}
+DEPENDS=${OBJS:%.o=%.d}
 
 SYSTEM_INCLUDES= \
 /usr/include \
@@ -38,9 +42,20 @@ FLAGS_INCLUDES=$(foreach dir, ${INCLUDES}, -I${dir})
 
 LIBS=-lz -lgsl -lgslblas -lgomp
 
-./Polyworld.gnu: ${OBJS}
-	echo hi
+.PHONY: clean
 
-.bldgnu/cpp/%.o: %.cp
+./Polyworld.gnu: ${OBJS}
+	@echo ${DEPENDS}
+
+clean:
+	rm -rf .bldgnu
+
+.bldgnu/obj/cpp/%.o: %.cp
 	@mkdir -p $(dir $@)
-	${CC} -c -std=c++11 -o $@ ${FLAGS_INCLUDES} $<
+	${CC} -MMD -c -std=c++11 -o $@ ${FLAGS_INCLUDES} $<
+
+.bldgnu/obj/cuda/%.o: %.cu
+	@mkdir -p $(dir $@)
+	${NVCC} -c -arch=sm_13 -o $@ ${FLAGS_INCLUDES} $<
+
+-include ${DEPENDS}
