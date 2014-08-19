@@ -1,0 +1,20 @@
+CC=mpigxx
+NVCC=nvcc --compiler-bindir /usr/bin -arch=sm_13
+LD=mpigxx
+
+SYSTEM_INCLUDES= \
+/usr/include \
+/share/apps/cuda/cuda6/extras/CUPTI/include \
+/share/apps/cuda/cuda6/extras/CUPTI/include/GL \
+/share/apps/cuda/cuda6/include \
+/share/apps/gsl/include \
+/share/apps/python/2.7.5/include/python2.7
+
+
+LIBS_PATH= \
+${HOME}/lib \
+/usr/lib64 \
+/share/apps/gcc-4.9.1/lib64 \
+/share/apps/cuda/cuda6/lib64 \
+/share/apps/gsl/lib \
+/share/apps/python/2.7.5/lib

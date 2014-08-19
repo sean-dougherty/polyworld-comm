@@ -1,5 +1,7 @@
 /.bld/
+/.bldgnu/
 /.sconsign.dblite
+/Makefile.conf
 /bin/
 /src/
 /tmp/
