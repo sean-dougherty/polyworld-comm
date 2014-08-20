@@ -1,31 +1,14 @@
 include Makefile.conf
 
-SRCDIRS=agent\
-		app\
-		brain\
-		brain/groups\
-		brain/sheets\
-		complexity\
-		debugger\
-		environment\
-		genome\
-		genome/groups\
-		genome/sheets\
-		graphics\
-		logs\
-		main\
-		proplib\
-		utils
-
-SOURCES_CPP=$(foreach dir, ${SRCDIRS}, $(wildcard ${dir}/*.cp))
+SOURCES_CPP=$(shell find src -name "*.cp")
 OBJS_CPP=$(patsubst %.cp, .bld/obj/cpp/%.o, ${SOURCES_CPP})
 
-SOURCES_CUDA=$(foreach dir, ${SRCDIRS}, $(wildcard ${dir}/*.cu))
+SOURCES_CUDA=$(shell find src -name "*.cu")
 OBJS_CUDA=$(patsubst %.cu, .bld/obj/cuda/%.o, ${SOURCES_CUDA})
 
 OBJS=${OBJS_CPP} ${OBJS_CUDA}
 
-INCLUDES=${SRCDIRS} ${SYSTEM_INCLUDES}
+INCLUDES=$(shell find src -type d) ${SYSTEM_INCLUDES}
 FLAGS_INCLUDES=$(foreach dir, ${INCLUDES}, -I${dir})
 
 LIBS=z gsl gslcblas gomp cudart GL GLU python2.7
