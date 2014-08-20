@@ -42,7 +42,7 @@ public:
     friend class TrialsState;
     friend class Deme;
 
-	TSimulation( std::string worldfilePath, std::string monitorPath );
+	TSimulation( std::string worldfilePath );
 	virtual ~TSimulation();
 
 	void Step();

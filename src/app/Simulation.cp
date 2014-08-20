@@ -190,7 +190,7 @@ inline float AverageAngles( float a, float b )
 //---------------------------------------------------------------------------
 // TSimulation::TSimulation
 //---------------------------------------------------------------------------
-TSimulation::TSimulation( string worldfilePath, string monitorPath )
+TSimulation::TSimulation( string worldfilePath )
 	:
 		fLockStepWithBirthsDeathsLog(false),
 		fLockstepFile(NULL),

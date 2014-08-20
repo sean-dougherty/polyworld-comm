@@ -30,7 +30,7 @@ using namespace std;
 //===========================================================================
 void usage( const char* format, ... )
 {
-	printf( "Usage:  Polyworld [--ui gui|term] [-o <rundir>] [--mf <monitor_file>] <worldfile>\n" );
+	printf( "Usage:  Polyworld [-o <rundir>] <worldfile>\n" );
 	
 	if( format )
 	{
@@ -64,27 +64,13 @@ int main( int argc, char** argv )
 
     int nargs = 0;
 	string worldfilePath;
-	string ui = "term";
     string rundir = "run";
-	string monitorPath;
 	
 	for( int argi = 1; argi < argc; argi++ ) {
 		string arg = argv[argi];
 
 		if( arg[0] == '-' ) {
-			if( arg == "--ui" ) {
-				if( ++argi >= argc )
-					usage( "Missing --ui arg" );
-			
-				ui = argv[argi];
-				if( (ui != "gui") && (ui != "term") )
-					usage( "Invalid --ui arg (%s)", argv[argi] );
-            } else if( arg == "--mf" ) {
-				if( ++argi >= argc )
-					usage( "Missing --mf arg" );
-			
-				monitorPath = Resources::get_user_path(argv[argi]);
-			} else if( arg == "-o" ) {
+			if( arg == "-o" ) {
 				if( ++argi >= argc )
 					usage( "Missing -o arg" );
 				rundir = argv[argi];
@@ -100,12 +86,6 @@ int main( int argc, char** argv )
     if(nargs != 1) {
         usage( "Expecting one worldfile as argument" );
     }
-
-    if(monitorPath.empty()) {
-        monitorPath = Resources::get_user_path("./" + ui + ".mf");
-		if( !exists(monitorPath) )
-			monitorPath = Resources::get_pw_path("./etc/" + ui + ".mf");
-	}
 
     pwmpi::init(&argc, &argv);
     if( pwmpi::size() > 1) {
@@ -133,7 +113,7 @@ int main( int argc, char** argv )
         require( 0 == chdir(rundir.c_str()) );
 	}
 
-	TSimulation *simulation = new TSimulation( worldfilePath, monitorPath );
+	TSimulation *simulation = new TSimulation( worldfilePath );
 
     while(!simulation->isEnded()) {
         simulation->Step();
