@@ -3,7 +3,6 @@
 /.sconsign.dblite
 /Makefile.conf
 /bin/
-/src/
 /tmp/
 /run/
 /run_*/

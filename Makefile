@@ -11,7 +11,7 @@ OBJS=${OBJS_CPP} ${OBJS_CUDA}
 INCLUDES=$(shell find src -type d) ${SYSTEM_INCLUDES}
 FLAGS_INCLUDES=$(foreach dir, ${INCLUDES}, -I${dir})
 
-LIBS=z gsl gslcblas gomp cudart GL GLU python2.7
+LIBS=z gsl gslcblas gomp cudart GL GLU
 FLAGS_LIBS=$(foreach name, ${LIBS}, -l${name})
 FLAGS_LIBS_PATH=$(foreach dir, ${LIBS_PATH}, -L${dir})
 

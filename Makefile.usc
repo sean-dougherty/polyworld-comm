@@ -1,4 +1,4 @@
-CC=mpigxx --std=c++11 -MMD -c
+CC=mpigxx --std=c++11 -MMD -c -g -gdwarf-3
 __CC_CUDA=nvcc --compiler-bindir /usr/bin -arch=sm_13
 CC_CUDA=${__CC_CUDA} -c
 CC_CUDA_DEPENDS=${__CC_CUDA} -M
@@ -9,8 +9,7 @@ SYSTEM_INCLUDES= \
 /share/apps/cuda/cuda6/extras/CUPTI/include \
 /share/apps/cuda/cuda6/extras/CUPTI/include/GL \
 /share/apps/cuda/cuda6/include \
-/share/apps/gsl/include \
-/share/apps/python/2.7.5/include/python2.7
+/share/apps/gsl/include
 
 
 LIBS_PATH= \
@@ -18,5 +17,4 @@ ${HOME}/lib \
 /usr/lib64 \
 /share/apps/gcc-4.9.1/lib64 \
 /share/apps/cuda/cuda6/lib64 \
-/share/apps/gsl/lib \
-/share/apps/python/2.7.5/lib
+/share/apps/gsl/lib
