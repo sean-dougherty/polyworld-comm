@@ -13,16 +13,17 @@
 #include "interpreter.h"
 #include "misc.h"
 #include "parser.h"
+#include "pwmpi.h"
 #include "Resources.h"
 
 using namespace proplib;
 using namespace std;
 
-#define SrcCppprops ".bld/cppprops/generated.cpp"
+#define SrcCppprops ".cppprops/generated.cpp"
 #if __linux__
-#define LibCppprops ".bld/cppprops/libcppprops.so"
+#define LibCppprops ".cppprops/libcppprops.so"
 #else
-#define LibCppprops ".bld/cppprops/libcppprops.dylib"
+#define LibCppprops ".cppprops/libcppprops.dylib"
 #endif
 
 #define l(content) out << content << endl
@@ -69,15 +70,19 @@ void CppProperties::init( Document *doc, UpdateContext *context )
 	_doc = doc;
 	_context = context;
 
-	generateLibrarySource();
-    string libpath = Resources::get_pw_path(LibCppprops);
     {
-        string cmd = "cd " + Resources::get_pw_path("./") + "; make cppprops 1>/dev/null";
-        SYSTEM( cmd.c_str() );
+        generateLibrarySource();
+
+        char cmd[4096];
+        sprintf(cmd,
+                "rundir=$PWD; pwdir=%s; cd $pwdir; make $rundir/%s > /dev/null",
+                Resources::get_pw_path("./").c_str(),
+                LibCppprops);
+        SYSTEM( cmd );
     }
 
-	void *libHandle = dlopen( libpath.c_str(), RTLD_LAZY );
-	errif( !libHandle, "Failed opening %s. Reason=%s", libpath.c_str(), dlerror() );
+	void *libHandle = dlopen( LibCppprops, RTLD_LAZY );
+	errif( !libHandle, "Failed opening %s. Reason=%s", LibCppprops, dlerror() );
 
 	typedef void (*LibraryInit)( UpdateContext *context );
 	LibraryInit init = (LibraryInit)dlsym( libHandle, "__clink__CppProperties_Init" );
@@ -128,9 +133,12 @@ void CppProperties::generateLibrarySource()
 		}
 	}
 
-    string srcpath = Resources::get_pw_path(SrcCppprops);
-	SYSTEM( ("mkdir -p $(dirname " + srcpath + ")").c_str() );
-	ofstream out( srcpath );
+    {
+        char cmd[4096];
+        sprintf(cmd, "mkdir -p $(dirname %s)", SrcCppprops);
+        SYSTEM( cmd );
+    }
+	ofstream out( SrcCppprops );
 
 	l( "// This file is machine-generated. See " << __FILE__ );
 	l( "" );

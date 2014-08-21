@@ -25,10 +25,14 @@ clean:
 #
 # Targets
 #
+
+# The main Polyworld executable
 ./Polyworld: ${OBJS}
 	${LD} -rdynamic ${OBJS} ${FLAGS_LIBS} ${FLAGS_LIBS_PATH} -o $@
 
-.bld/cppprops/libcppprops.so: .bld/cppprops/generated.cpp
+# A dynamically generated so in the run directory, created from dynamic properties
+# in the worldfile.
+%/.cppprops/libcppprops.so: %/.cppprops/generated.cpp
 	@mkdir -p $(dir $@)
 	${CC} -fPIC -o $(dir $@)/generated.o ${FLAGS_INCLUDES} $<
 	${LD} -shared -o $@ ${FLAGS_LIBS} ${FLAGS_LIBS_PATH} $(dir $@)/generated.o

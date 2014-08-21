@@ -303,10 +303,7 @@ TSimulation::TSimulation( string worldfilePath )
 	// ---
 	// --- Init Cpp Properties
 	// ---
-    pwmpi::bld_lock();
 	InitCppProperties( worldfile );
-    pwmpi::bld_unlock();
-
 
 	 // Following is part of one way to speed up the graphics
 	 // Note:  this code must agree with the agent sizing in agent::grow()
