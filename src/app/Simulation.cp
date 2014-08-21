@@ -248,8 +248,6 @@ TSimulation::TSimulation( string worldfilePath )
     proplib::Document *worldfile;
     proplib::SchemaDocument *schema;
     {
-        pwmpi::bld_lock();
-
         proplib::Interpreter::init();
 
         // ---
@@ -272,8 +270,6 @@ TSimulation::TSimulation( string worldfilePath )
         agent::processWorldfile( *worldfile );
         GenomeSchema::processWorldfile( *worldfile );
         Brain::processWorldfile( *worldfile );
-
-        pwmpi::bld_unlock();
     }
 
     // Use 0.001f fudge factor so that voice frequency index < numSoundFrequences (see Voice())

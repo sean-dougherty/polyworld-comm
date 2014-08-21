@@ -16,9 +16,6 @@ namespace pwmpi {
 
     int get_demes_count(int max_demes);
 
-    void bld_lock();
-    void bld_unlock();
-
     void gpu_lock();
     void gpu_unlock();
 

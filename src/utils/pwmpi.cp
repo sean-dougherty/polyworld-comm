@@ -56,9 +56,6 @@ struct shared_memory_t {
         size_t process_slots_available;
     } gpu_state[MAX_GPUS];
 
-
-    sem_t bld_sem;
-
 } *shared_memory;
 
 namespace pwmpi {
@@ -107,8 +104,6 @@ namespace pwmpi {
         if(!shared_memory->initialized) {
             shared_memory->initialized = true;
 
-            require( 0 == sem_init(&shared_memory->bld_sem, 1, 1) );
-
             find_gpus();
         }
 
@@ -155,14 +150,6 @@ namespace pwmpi {
             return max(1, max_demes / 2);
 */
         return max_demes;
-    }
-
-    void bld_lock() {
-        require( 0 == sem_wait(&shared_memory->bld_sem) );
-    }
-
-    void bld_unlock() {
-        require( 0 == sem_post(&shared_memory->bld_sem) );
     }
 
     void gpu_lock() {
