@@ -13,7 +13,7 @@ FLAGS_INCLUDES=${INCLUDES:%=-I%}
 
 LIBS=z gsl gslcblas gomp cudart GL GLU
 FLAGS_LIBS=${LIBS:%=-l%}
-FLAGS_LIBS_PATH=${LIBS_PATH:%=-L%})
+FLAGS_LIBS_PATH=${LIBS_PATH:%=-L%}
 
 .PHONY: default cppprops clean
 default: ./Polyworld
