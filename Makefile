@@ -1,19 +1,19 @@
 include Makefile.conf
 
 SOURCES_CPP=$(shell find src -name "*.cp")
-OBJS_CPP=$(patsubst %.cp, .bld/obj/cpp/%.o, ${SOURCES_CPP})
+OBJS_CPP=${SOURCES_CPP:%.cp=.bld/obj/cpp/%.o}
 
 SOURCES_CUDA=$(shell find src -name "*.cu")
-OBJS_CUDA=$(patsubst %.cu, .bld/obj/cuda/%.o, ${SOURCES_CUDA})
+OBJS_CUDA=${SOURCES_CUDA:%.cu=.bld/obj/cuda/%.o}
 
 OBJS=${OBJS_CPP} ${OBJS_CUDA}
 
 INCLUDES=$(shell find src -type d) ${SYSTEM_INCLUDES}
-FLAGS_INCLUDES=$(foreach dir, ${INCLUDES}, -I${dir})
+FLAGS_INCLUDES=${INCLUDES:%=-I%}
 
 LIBS=z gsl gslcblas gomp cudart GL GLU
-FLAGS_LIBS=$(foreach name, ${LIBS}, -l${name})
-FLAGS_LIBS_PATH=$(foreach dir, ${LIBS_PATH}, -L${dir})
+FLAGS_LIBS=${LIBS:%=-l%}
+FLAGS_LIBS_PATH=${LIBS_PATH:%=-L%})
 
 .PHONY: default cppprops clean
 default: ./Polyworld
