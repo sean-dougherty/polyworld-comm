@@ -294,6 +294,7 @@ namespace genome
 #define CAST_TO(TYPE)											\
 	inline TYPE##Gene *GeneType::to_##TYPE( Gene *gene_ )       \
 	{															\
+        if(!gene_) return nullptr;                              \
 		TYPE##Gene *gene = dynamic_cast<TYPE##Gene *>( gene_ );	\
 		assert( gene ); /* catch cast failure */				\
 		return gene;											\

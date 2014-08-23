@@ -681,7 +681,8 @@ void SheetsModel::addNonCulledNeurons( SheetVector &sheets )
 			for( int b = 0; b < count.b; b++ )
 			{
 				Neuron *neuron = sheet->getNeuron( a, b );
-				if( neuron->cullState.touchedFromOutput && neuron->cullState.touchedFromInput )
+				if( (sheet->getType() == Sheet::Input) || 
+                    (neuron->cullState.touchedFromOutput && neuron->cullState.touchedFromInput) )
 				{
 					neuron->id = (int)_neurons.size();
 					_neurons.push_back( neuron );

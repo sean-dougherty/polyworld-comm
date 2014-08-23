@@ -55,7 +55,10 @@ void FiringRateModel_Cuda::init(FiringRateModel__Neuron *neurons,
     size_t partitions_count = 0;
     Synapse gpu_synapses[synapses_count];
     float efficacy[synapses_count];
-    {
+    
+    if(synapses_count == 0) {
+        gpu.partitions_count = 0;
+    } else {
         NeuronActivationPartition *currpartition = NULL;
 
         for(long i = 0; i < synapses_count; i++) {

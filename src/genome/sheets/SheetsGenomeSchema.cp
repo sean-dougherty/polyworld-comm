@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "agent.h"
+#include "HearingSensor.h"
 #include "SheetsBrain.h"
 #include "SheetsGenome.h"
 
@@ -204,21 +205,22 @@ void SheetsGenomeSchema::define()
 		const IntMinMax VisionNeuronCount( SheetsBrain::config.minVisionNeuronsPerSheet,
 										   SheetsBrain::config.maxVisionNeuronsPerSheet );
 
-        errif( agent::config.enableHearing || agent::config.enableVoice, "Implement sheets sound support." );
+        const IntMinMax HearingNeuronCount( HearingSensor::ReceptorCount * globals::numSoundFrequencies );
 
 		// If you are adding a new input, please append to this list in order to maintain stable layout.
 		vector<InputSheetDef> defs =
 			{
-				// Name					MaxWidth						NeuronCount        Enabled
-				{ "Red",				1.0,							VisionNeuronCount, true },
-				{ "Green",				1.0,							VisionNeuronCount, true },
-				{ "Blue",				1.0,							VisionNeuronCount, true },
-				{ "Random",				InputOutputSheetDefaultWidth,	1,			       true },
-				{ "Energy",				InputOutputSheetDefaultWidth,	1,			       true },
-				{ "MateWaitFeedback",	InputOutputSheetDefaultWidth,	1,			       agent::config.enableMateWaitFeedback },
-				{ "SpeedFeedback",		InputOutputSheetDefaultWidth,	1,			       agent::config.enableSpeedFeedback },
-				{ "Carrying",			InputOutputSheetDefaultWidth,	1,			       agent::config.enableCarry },
-				{ "BeingCarried",		InputOutputSheetDefaultWidth,	1,			       agent::config.enableCarry }
+				// Name					MaxWidth						NeuronCount             Enabled
+				{ "Red",				1.0,							VisionNeuronCount,      true },
+				{ "Green",				1.0,							VisionNeuronCount,      true },
+				{ "Blue",				1.0,							VisionNeuronCount,      true },
+				{ "Random",				InputOutputSheetDefaultWidth,	1,                      true },
+				{ "Energy",				InputOutputSheetDefaultWidth,	1,                      true },
+				{ "MateWaitFeedback",	InputOutputSheetDefaultWidth,	1,                      agent::config.enableMateWaitFeedback },
+				{ "SpeedFeedback",		InputOutputSheetDefaultWidth,	1,                      agent::config.enableSpeedFeedback },
+				{ "Carrying",			InputOutputSheetDefaultWidth,	1,                      agent::config.enableCarry },
+				{ "BeingCarried",		InputOutputSheetDefaultWidth,	1,                      agent::config.enableCarry },
+				{ "Hearing",            InputOutputSheetDefaultWidth,	HearingNeuronCount,		agent::config.enableHearing }
 			};
 
 		layoutInputOutputSheets( defs );
@@ -275,7 +277,8 @@ void SheetsGenomeSchema::define()
 				{ "VisionYaw",		agent::config.enableVisionYaw },
 				{ "Give",			agent::config.enableGive },
 				{ "Pickup",			agent::config.enableCarry },
-				{ "Drop",			agent::config.enableCarry }
+				{ "Drop",			agent::config.enableCarry },
+				{ "Voice",			agent::config.enableVoice }
 			};
 
 		for( OutputSheetDef &def : defs )
