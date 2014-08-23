@@ -1,0 +1,55 @@
+#!/bin/bash
+
+set -e
+
+function err() {
+    echo $* >&2
+    exit 1
+}
+
+if [[ $# != 2 ]]; then
+    err "usage: $0 runid wf"
+fi
+
+runid="$1"
+wf=$(readlink -f "$2")
+
+pw_dir=$(readlink -f $(dirname $0)/../..)
+runs_dir=$(readlink -f $pw_dir/../runs)
+run_dir=$runs_dir/$runid
+
+if [[ -e $run_dir ]]; then
+    err "Already exists: $run_dir"
+fi
+
+if [[ ! -f $wf ]]; then
+    err "File not found: $wf"
+fi
+
+mkdir -p $run_dir
+
+submit_script=$run_dir/pbs_submit.sh
+
+cat > $submit_script <<EOF
+#!/bin/sh
+
+#PBS -N pw-$runid
+#PBS -o $run_dir/pbs_out 
+#PBS -e $run_dir/pbs_err
+
+#PBS -l nodes=3:ppn=6
+#PBS -q m1060
+
+cd $pw_dir
+
+source /share/apps/Modules/3.2.10/init/sh
+module load intel/13.1.0
+module load gcc/4.9.1
+module load cuda/6.0
+module load gsl/1.16
+module load python/2.7.5
+
+time mpirun -prepend-rank -machinefile \$PBS_NODEFILE ./Polyworld -o $run_dir/run $wf &> $run_dir/mpi_out
+EOF
+
+qsub $submit_script
