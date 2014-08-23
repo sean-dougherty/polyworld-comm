@@ -20,24 +20,53 @@ using namespace std;
 
 #if TRIALS
 
-#define NTRIALS 20
+#define NTRIALS 24
 //#define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
 #define MAX_NDEMES 4
+#define ELITES_PER_DEME 5
+#define MIGRATE_ELITES false
 #define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
 #define SERIAL_GENOME true
+#define SEQUENCE_LENGTH 1
+#define SEQ_TEST_ALL 1
+#define SEQ_TEST_FIRST 2
+#define SEQ_TEST_LAST 3
+#define SEQ_TEST_MODE SEQ_TEST_ALL
+#define INTERLUDE_SHOW_BLUE true
+
+#define HIGH_MUTATE_NO_PROGRESS 0
+#define HIGH_MUTATE_RATE_MULTIPLIER 10.0f;
+
 
 #define GENERATION_LOG_FREQUENCY 20
 
 #define DEBUG true
-
+#define VERBOSE false
 #if DEBUG
 #define db(x...) cout << x << endl;
+
+template<typename T>
+void dbvec(string msg, vector<T> &x) {
+    cout << msg << ": ";
+    for(auto v: x)
+        cout << v << " ";
+    cout << endl;
+}
 #else
 #define db(x...)
+#define dbvec(x...)
+#endif
+
+#if VERBOSE
+#define vdb(x...) db(x)
+#define vdbvec(x...) dbvec(x)
+#else
+#define vdb(x...)
+#define vdbvec(x...)
 #endif
 
 TrialsState *trials = nullptr;
@@ -52,8 +81,19 @@ void show_color(agent *a, float r, float g, float b) {
     a->GetRetina()->force_color(r, g, b);
 }
 
+void show_red(agent *a) {
+    vdb("showing red");
+    show_color(a, 1.0, 0.0, 0.0);
+}
+
 void show_green(agent *a) {
+    vdb("showing green");
     show_color(a, 0.0, 1.0, 0.0);
+}
+
+void show_blue(agent *a) {
+    vdb("showing blue");
+    show_color(a, 0.0, 0.0, 1.0);
 }
 
 void show_black(agent *a) {
@@ -116,6 +156,22 @@ struct Task {
         return agent_trial_states[trial_number*nagents + a->Index()];
     }
 
+    inline int seq_index(long t_task) {
+#if SEQ_TEST_MODE == SEQ_TEST_FIRST
+        if(category == Speak) {
+            return 0;
+        }
+#elif SEQ_TEST_MODE == SEQ_TEST_LAST
+        if(category == Speak) {
+            return SEQUENCE_LENGTH - 1;
+        }
+#elif SEQ_TEST_MODE != SEQ_TEST_ALL
+        #error invalid mode
+#endif
+
+        return ((t_task-1) * SEQUENCE_LENGTH) / timesteps;
+    }
+
     map<long, AgentTrialState> agent_trial_state[NTRIALS];
 
     void init() {
@@ -138,11 +194,16 @@ struct Task {
         memset(agent_trial_states, 0, nagents * ntrials * sizeof(AgentTrialState));
     }
 
-    void timestep_input(agent *a, int freq) {
+    void timestep_input(long t_task, agent *a, const vector<int> &seq) {
+        int i = seq_index(t_task);
+        int freq = seq[i];
+        vdb("task timestep: " << t_task);
+
         //
         // Sound
         //
         if(sound == Freq) {
+            vdb("playing freq " << freq);
             make_sound(a, freq);
         } else {
             make_silence(a);
@@ -157,7 +218,16 @@ struct Task {
             show_black(a);
             break;
         case Speak:
-            show_green(a);
+            switch(i) {
+            case 0:
+                show_red(a);
+                break;
+            case 1:
+                show_green(a);
+                break;
+            default:
+                panic();
+            }
             break;
         default:
             panic();
@@ -165,9 +235,13 @@ struct Task {
     }
 
     void timestep_output(int trial_number,
+                         long t_trial,
                          agent *a,
-                         int freq) {
+                         const vector<int> &seq) {
         AgentTrialState &state = get_state(trial_number, a);
+        int i = seq_index(t_trial);
+        int freq = seq[i];
+        vdb("expecting freq " << freq);
 
         switch(category) {
         case Delay:
@@ -188,6 +262,8 @@ struct Task {
             panic();
             break;
         }
+
+        t_trial++;
     }
 
     float metric(int trial_number, agent *a, Metric m) {
@@ -216,8 +292,10 @@ struct ScoredTest : public Test {
     const char *name;
     float weight;
     vector<Task> tasks;
-    vector<long> task_ends;
+    Task *task = nullptr;
     vector<int> tasks_by_metric[int(Metric::__N)];
+    long task_timestep;
+    long timesteps;
 
 ScoredTest(const char *name_,
            float weight_,
@@ -226,12 +304,10 @@ ScoredTest(const char *name_,
         , weight(weight_)
         , tasks(tasks)
     {
-        long end = 0;
-
+        timesteps = 0;
         for(auto &t: tasks) {
             t.init();
-            end += t.timesteps;
-            task_ends.push_back(end);
+            timesteps += t.timesteps;
         }
 
         for(int i = 0; i < (int)tasks.size(); i++) {
@@ -258,36 +334,43 @@ ScoredTest(const char *name_,
         for(Task &t: tasks) {
             t.init(ntrials, nagents);
         }
+
+        task = tasks.data();
+        task_timestep = 1;
     }
 
     virtual long get_trial_timestep_count() {
-        return task_ends.back();
+        return timesteps;
+    }
+
+    virtual void timestep_begin(long test_timestep) {
+        if(test_timestep == 1) {
+            task = tasks.data();            
+            task_timestep = 1;
+        } else {
+            task_timestep++;
+            if(task_timestep > task->timesteps) {
+                task++;
+                task_timestep = 1;
+            }
+        }
+
+        assert( size_t(task - tasks.data()) < tasks.size() );
     }
 
     virtual void timestep_input(int trial_number,
                                 long test_timestep,
                                 agent *a,
-                                int freq) {
-
-        for(size_t i = 0; i < tasks.size(); i++) {
-            if(test_timestep <= task_ends[i]) {
-                tasks[i].timestep_input(a, freq);
-                break;
-            }
-        }
+                                const vector<int> &freq) {
+        task->timestep_input(task_timestep, a, freq);
     }
 
     virtual void timestep_output(int trial_number,
                                  long test_timestep,
                                  agent *a,
-                                 int freq) {
-
-        for(size_t i = 0; i < tasks.size(); i++) {
-            if(test_timestep <= task_ends[i]) {
-                tasks[i].timestep_output(trial_number, a, freq);
-                break;
-            }
-        }
+                                 const vector<int> &freq) {
+        
+        task->timestep_output(trial_number, task_timestep, a, freq);
     }
 
     float metric(agent *a, Metric m) {
@@ -318,51 +401,12 @@ ScoredTest(const char *name_,
 #define st(x...) new ScoredTest(x)
 
 vector<ScoredTest *> scored_tests = {
-/*
-    st("test1",
-       0.2f,
-       {
-           {Speak,  Freq,   10}
-       }),
-
-    st("test2",
-       0.2f,
-       {
-           {Delay,  Freq,   10},
-           {Speak,  Freq,   10}
-       }),
-
-    st("test3",
-       0.2f,
-       {
-           {Delay,  Freq,   10},
-           {Speak,  Freq,   10},
-           {Break,  Freq,    5}
-       }),
-
-    st("test4",
-       0.2f,
-       {
-           {Delay,  Freq,   10},
-           {Speak,  Silent, 10},
-           {Break,  Silent,  5}
-       }),
-
-    st("test5",
-       0.2f,
-       {
-           {Delay,   Freq,   10},
-           {Delay,   Silent,  5},
-           {Speak,   Silent, 10},
-           {Break,   Silent,  5}
-       }),
-*/
     st("test6",
        0.2f,
        {
-           {Delay,   Freq,   10},
+           {Delay,   Freq,   10 * SEQUENCE_LENGTH},
            {Delay,   Silent, 10},
-           {Speak,   Silent, 10},
+           {Speak,   Silent, 10 * SEQUENCE_LENGTH},
            {Break,   Silent,  5}
        })
 };
@@ -478,6 +522,7 @@ Deme::Deme(TSimulation *sim_, size_t id_, size_t nagents_, size_t nelites)
     , elites( nelites, true )
     , prev_generation( nagents, true)
 {
+    require(nagents > 0);
 }
 
 vector<agent *> Deme::create_generation(long generation_number_) {
@@ -541,13 +586,24 @@ void Deme::init_generation_genomes(vector<agent *> &next_generation) {
                                                                 rng);
     assert(parents.size() == nchildren);
 
+    float mutation_rate_multiplier = 1.0f;
+#if HIGH_MUTATE_NO_PROGRESS > 0
+    if( (no_progress >= HIGH_MUTATE_NO_PROGRESS) && ((generation_number - high_mutate_generation) >= HIGH_MUTATE_NO_PROGRESS) ) {
+        db("Using high mutation rate, generation=" << generation_number << ", no_progress=" << no_progress << ", high_mutate_generation=" << high_mutate_generation);
+
+        high_mutate_generation = generation_number;
+        mutation_rate_multiplier = HIGH_MUTATE_RATE_MULTIPLIER;
+    }
+#endif
+
 #if SERIAL_GENOME
     for(size_t i = 0; i < nchildren; i++) {
         pair<size_t, size_t> p = parents[i];
         
         next_generation[i]->Genes()->crossover(get_parent(p.first),
                                                get_parent(p.second),
-                                               true);
+                                               true,
+                                               mutation_rate_multiplier);
     }
 #else
 #pragma omp parallel for
@@ -556,7 +612,8 @@ void Deme::init_generation_genomes(vector<agent *> &next_generation) {
         
         next_generation[i]->Genes()->crossover(get_parent(p.first),
                                                get_parent(p.second),
-                                               true);
+                                               true,
+                                               mutation_rate_multiplier);
     }
 #endif
 }
@@ -569,16 +626,30 @@ void Deme::end_generation() {
 
     for(int i = 0; i < prev_generation.size(); i++) {
         FitStruct *fs = prev_generation.get(i);
-        if( elites.update(fs) < 0 ) {
+        if(elites.update(fs) < 0) {
             break;
         }
     }
 
     generation_agents.clear();
+
+    float gen_best_score = prev_generation.get(0)->fitness;
+    if(gen_best_score <= best_score) {
+        no_progress++;
+    } else {
+        best_score = gen_best_score;
+        no_progress = 0;
+    }
+
+    db("no_progress = " << no_progress << ", gen_best_score = " << gen_best_score << ", best_score = " << best_score);
 }
 
 FitStruct *Deme::get_fittest() {
+#if MIGRATE_ELITES && (ELITES_PER_DEME > 0)
+    return elites.get(0);
+#else
     return prev_generation.get(0);
+#endif
 }
 
 void Deme::accept_immigrant(FitStruct *fs) {
@@ -613,7 +684,7 @@ TrialsState::TrialsState(TSimulation *sim_)
         demes.push_back( new Deme(sim,
                                   i,
                                   agents_per_deme,
-                                  sim->fNumberFittest / MAX_NDEMES) );
+                                  ELITES_PER_DEME) );
     }
 }
 
@@ -654,7 +725,7 @@ vector<agent *> TrialsState::create_generation() {
     return agents;
 }
 
-void TrialsState::timestep_begin() {
+bool TrialsState::timestep_begin() {
     if(generation_number == -1) {
         db("Beginning trials");
         new_generation();
@@ -665,7 +736,9 @@ void TrialsState::timestep_begin() {
                 // End of test
                 if(test_number == int(tests.size() - 1)) {
                     // End of generation
-                    new_generation();
+                    if(!new_generation()) {
+                        return false;
+                    }
                 } else {
                     new_test();
                 }
@@ -675,24 +748,35 @@ void TrialsState::timestep_begin() {
         }
     }
 
-    //db("Sim timestep: " << sim->getStep());
+    vdb("Sim timestep: " << sim->getStep());
 
     trial_timestep++;
     
-    //db("trial timestep: " << trial_timestep);
+    vdb("trial timestep: " << trial_timestep);
 
     if(trial_timestep > TEST_INTERLUDE) {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
 
-        //db("test timestep: " << test_timestep);
-        int freq = freq_sequence[trial_number];
+        vdb("test timestep: " << test_timestep);
+        vector<int> &seq = sequences[trial_number];
+        vdbvec("seq", seq);
         auto test = tests[test_number];
+
+        test->timestep_begin(test_timestep);
 
 #pragma omp parallel for
         for(size_t i = 0; i < generation_agents.size(); i++) {
-            test->timestep_input(trial_number, test_timestep, generation_agents[i], freq);
+            test->timestep_input(trial_number, test_timestep, generation_agents[i], seq);
         }
+    } else {
+#if INTERLUDE_SHOW_BLUE
+        for(size_t i = 0; i < generation_agents.size(); i++) {
+            show_blue(generation_agents[i]);
+        }
+#endif
     }
+
+    return true;
 }
 
 void TrialsState::timestep_end() {
@@ -702,19 +786,19 @@ void TrialsState::timestep_end() {
 
     if(trial_timestep > TEST_INTERLUDE) {
         long test_timestep = trial_timestep - TEST_INTERLUDE;
-        int freq = freq_sequence[trial_number];
+        vector<int> seq = sequences[trial_number];
         auto test = tests[test_number];
 
 #pragma omp parallel for
         for(size_t i = 0; i < generation_agents.size(); i++) {
-            test->timestep_output(trial_number, test_timestep, generation_agents[i], freq);
+            test->timestep_output(trial_number, test_timestep, generation_agents[i], seq);
         }
     }
 }
 
 void TrialsState::new_trial() {
     trial_number++;
-    //db("*** Beginning trial " << trial_number << " of test " << test_number);
+    vdb("*** Beginning trial " << trial_number << " of test " << test_number);
 
     auto test = tests[test_number];
     trial_timestep = 0;
@@ -730,7 +814,7 @@ void TrialsState::new_trial() {
 
 void TrialsState::new_test() {
     test_number++;
-    //db("=== Beginning test " << test_number);
+    vdb("=== Beginning test " << test_number);
 
     trial_number = -1;
     new_trial();
@@ -760,14 +844,14 @@ bool TrialsState::new_generation() {
         if(pwmpi::is_master()) {
 #ifdef MAX_GENERATIONS
             if( generation_number == MAX_GENERATIONS ) {
-                sim->End("MAX_GENERATIONS");
+                db("REACHED MAX GENERATION");
                 return false;
             }
 #endif
 
 #ifdef MAX_FITNESS
             if( elites.get(0)->fitness >= (MAX_FITNESS - EPSILON) ) {
-                sim->End("MAX_FITNESS");
+                db("ACHIEVED MAX FITNESS: " << elites.get(0)->fitness << " " << elites.get(0)->agentID);
                 return false;
             }
 #endif
@@ -792,13 +876,28 @@ bool TrialsState::new_generation() {
 
     cout << "time to make new generation = " << seconds() - start << endl;
 
-    freq_sequence.clear();
-    for(int freq = 0; freq < 2; freq++) {
-        for(int i = 0; i < NTRIALS/2; i++) {
-            freq_sequence.push_back(freq);
+    const vector<vector<int>>seq_library = {
+#if SEQUENCE_LENGTH == 1
+        {0}, {1}, {2}
+#elif SEQUENCE_LENGTH == 2
+        {0,1}, {0,2}, {1,0}, {1,2}, {2,0}, {2,1}
+#else
+        #error Only seq len of 1 or 2 supported
+#endif
+    };
+
+    sequences.clear();
+    for(size_t seq_index = 0; seq_index < seq_library.size(); seq_index++) {
+        for(size_t i = 0; i < (NTRIALS/seq_library.size()); i++) {
+            sequences.push_back(seq_library[seq_index]);
         }
     }
-    shuffle(freq_sequence, generation_number);
+    require(sequences.size() == NTRIALS);
+    //shuffle(sequences, generation_number);
+    {
+        auto rng = std::default_random_engine(generation_number);
+        shuffle(sequences.begin(), sequences.end(), rng);
+    }
 
     test_number = -1;
     new_test();
@@ -961,12 +1060,6 @@ T stddev(vector<T> scores) {
     }
     T result = sqrt( (sum2 - (sum*sum) / N) / N );
     return result;
-}
-
-void echo(vector<float> &x) {
-    for(auto v: x)
-        cout << v << " ";
-    cout << endl;
 }
 
 int get_max_repeat(vector<int> &x) {

@@ -15,7 +15,8 @@ namespace genome
 
 		virtual void crossover( Genome *g1,
 								Genome *g2,
-								bool mutate );
+								bool mutate,
+                                float rate_multiplier = 1.0f) override;
 
 	private:
 		SheetsGenomeSchema *_schema;

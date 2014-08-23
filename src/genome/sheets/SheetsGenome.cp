@@ -27,7 +27,8 @@ Brain *SheetsGenome::createBrain( NervousSystem *cns )
 
 void SheetsGenome::crossover( Genome *g1,
 							  Genome *g2,
-							  bool mutate )
+							  bool mutate,
+                              float rate_multiplier)
 {
 	SheetsGenome *genomes[] = { dynamic_cast<SheetsGenome *>(g1),
 								dynamic_cast<SheetsGenome *>(g2) };
@@ -52,5 +53,5 @@ void SheetsGenome::crossover( Genome *g1,
 	}
 
 	if( mutate )
-		this->mutate();
+		this->mutate(rate_multiplier);
 }

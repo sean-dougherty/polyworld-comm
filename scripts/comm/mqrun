@@ -7,12 +7,13 @@ function err() {
     exit 1
 }
 
-if [[ $# != 2 ]]; then
-    err "usage: $0 runid wf"
+if [[ $# != 3 ]]; then
+    err "usage: $0 runid wf comment"
 fi
 
 runid="$1"
 wf=$(readlink -f "$2")
+comment="$3"
 
 pw_dir=$(readlink -f $(dirname $0)/../..)
 runs_dir=$(readlink -f $pw_dir/../runs)
@@ -28,6 +29,7 @@ fi
 
 mkdir -p $run_dir
 
+echo "$comment" > $run_dir/comment.txt
 submit_script=$run_dir/pbs_submit.sh
 
 cat > $submit_script <<EOF

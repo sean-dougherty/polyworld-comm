@@ -25,14 +25,16 @@ struct Test
 
     virtual long get_trial_timestep_count() = 0;
 
+    virtual void timestep_begin(long test_timestep) = 0;
+
     virtual void timestep_input(int trial_number,
                                 long test_timestep,
                                 agent *a,
-                                int freq) = 0;
+                                const std::vector<int> &seq) = 0;
     virtual void timestep_output(int trial_number,
                                  long test_timestep,
                                  agent *a,
-                                 int freq) = 0;
+                                 const std::vector<int> &seq) = 0;
 };
 
 struct Deme {
@@ -56,6 +58,10 @@ struct Deme {
     std::vector<agent *> generation_agents;
     FittestList elites;
     FittestList prev_generation;
+
+    float best_score = 0.0f;
+    long no_progress = 0;
+    long high_mutate_generation = 0;
 };
 
 struct TrialsState
@@ -63,11 +69,11 @@ struct TrialsState
     TrialsState(TSimulation *sim_);
     ~TrialsState();
 
-    void timestep_begin();
+    bool timestep_begin();
     void timestep_end();
 
     TSimulation *sim;
-    std::vector<int> freq_sequence;
+    std::vector<std::vector<int>> sequences;
 
     std::vector<Test *> tests;
 

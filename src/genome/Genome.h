@@ -52,10 +52,11 @@ namespace genome
 		void randomize( float bitonprob );
 		void randomize();
 
-		void mutate();
+		void mutate(float rate_multiplier = 1.0f);
 		virtual void crossover( Genome *g1,
 								Genome *g2,
-								bool mutate );
+								bool mutate,
+                                float rate_multiplier = 1.0f);
 		void copyFrom( Genome *g );
 		float separation( Genome *g );
 		float mateProbability( Genome *g );

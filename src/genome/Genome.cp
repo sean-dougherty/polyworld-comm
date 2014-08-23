@@ -120,9 +120,9 @@ void Genome::randomize()
 	randomize( GeneType::to_ImmutableInterpolated(gene("BitProbability"))->interpolate(rng->drand()) );
 }
 
-void Genome::mutate()
+void Genome::mutate(float rate_multiplier)
 {
-	float rate = get( "MutationRate" );
+	float rate = rate_multiplier * get( "MutationRate" );
 
     for (long byte = 0; byte < nbytes; byte++)
     {
@@ -134,7 +134,7 @@ void Genome::mutate()
     }
 }
 
-void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
+void Genome::crossover( Genome *g1, Genome *g2, bool mutate, float rate_multiplier )
 {
 	assert(g1 != NULL && g2 != NULL);
 	//assert(g1 != g2);
@@ -182,9 +182,9 @@ void Genome::crossover( Genome *g1, Genome *g2, bool mutate )
     if (mutate)
     {
         if (rng->drand() < 0.5)
-            mrate = g1->get( "MutationRate" );
+            mrate = rate_multiplier * g1->get( "MutationRate" );
         else
-            mrate = g2->get( "MutationRate" );
+            mrate = rate_multiplier * g2->get( "MutationRate" );
     }
     
     long begbyte = 0;
