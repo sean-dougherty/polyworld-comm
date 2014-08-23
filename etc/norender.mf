@@ -1,5 +1,0 @@
-@defaults term
-
-MainScene {
-    Enabled                   False
-}
