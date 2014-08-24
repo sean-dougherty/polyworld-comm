@@ -11,7 +11,7 @@ OBJS=${OBJS_CPP} ${OBJS_CUDA}
 INCLUDES=$(shell find src -type d) ${SYSTEM_INCLUDES}
 FLAGS_INCLUDES=${INCLUDES:%=-I%}
 
-LIBS=z gsl gslcblas gomp cudart GL GLU
+LIBS=z gsl gslcblas gomp cudart GL GLU rt
 FLAGS_LIBS=${LIBS:%=-l%}
 FLAGS_LIBS_PATH=${LIBS_PATH:%=-L%}
 
