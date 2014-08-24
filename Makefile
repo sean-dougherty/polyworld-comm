@@ -1,7 +1,7 @@
 include Makefile.conf
 
-SOURCES_CPP=$(shell find src -name "*.cp")
-OBJS_CPP=${SOURCES_CPP:%.cp=.bld/obj/cpp/%.o}
+SOURCES_CPP=$(shell find src -name "*.cpp")
+OBJS_CPP=${SOURCES_CPP:%.cpp=.bld/obj/cpp/%.o}
 
 SOURCES_CUDA=$(shell find src -name "*.cu")
 OBJS_CUDA=${SOURCES_CUDA:%.cu=.bld/obj/cuda/%.o}
@@ -40,7 +40,7 @@ clean:
 #
 # Patterns
 #
-.bld/obj/cpp/%.o: %.cp
+.bld/obj/cpp/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	${CC} -o $@ ${FLAGS_INCLUDES} $<
 
