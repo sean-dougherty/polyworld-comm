@@ -1,0 +1,13 @@
+CC=mpic++ --std=c++11 -MMD -c -g
+__CC_CUDA=nvcc --compiler-bindir /usr/bin -arch=sm_13
+CC_CUDA=${__CC_CUDA} -c -g
+CC_CUDA_DEPENDS=${__CC_CUDA} -M
+LD=mpic++
+
+SYSTEM_INCLUDES= \
+/usr/include \
+/usr/include/GL
+
+
+LIBS_PATH= \
+/usr/lib
