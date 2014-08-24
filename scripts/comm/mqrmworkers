@@ -1,0 +1,20 @@
+#!/bin/bash
+
+shopt -s extglob
+
+dirs=$(ls -dv run_rank!(0))
+if [[ -z "$dirs" ]]; then
+    echo "No dirs found."
+    exit 1
+fi
+
+echo "The following will be deleted:"
+echo $dirs
+read -p "Proceed? " yn
+
+if [[ $yn == "y" ]]; then
+    rm -rf $dirs
+    echo "Delete performed."
+else
+    echo "Delete not performed."
+fi
