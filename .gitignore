@@ -2,6 +2,7 @@
 /.bldgnu/
 /.sconsign.dblite
 /Makefile.conf
+/Polyworld.layout
 /bin/
 /tmp/
 /run/
