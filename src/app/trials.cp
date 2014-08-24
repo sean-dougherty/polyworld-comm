@@ -24,14 +24,13 @@ using namespace std;
 //#define MAX_GENERATIONS 5
 #define EPSILON 0.00001f
 #define MAX_FITNESS 1.0f
-#define MAX_NDEMES 4
+#define MAX_NDEMES 1
 #define ELITES_PER_DEME 5
 #define MIGRATE_ELITES false
-#define MIGRATION_PERIOD 5
 #define TOURNAMENT_SIZE 5
 #define ALLOW_SELF_CROSSOVER true
 #define SERIAL_GENOME true
-#define SEQUENCE_LENGTH 1
+#define SEQUENCE_LENGTH 2
 #define SEQ_TEST_ALL 1
 #define SEQ_TEST_FIRST 2
 #define SEQ_TEST_LAST 3
