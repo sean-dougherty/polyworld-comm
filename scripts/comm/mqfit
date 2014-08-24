@@ -1,0 +1,17 @@
+set -e
+
+source ~/.bash_aliases
+
+mpi_out=$1
+if [[ ! -f "$mpi_out" ]]; then
+    echo "Must specify mpi_out"
+    exit
+fi
+
+
+while true; do
+    clear
+    mqjobs
+    grep Global $mpi_out
+    sleep 30
+done
