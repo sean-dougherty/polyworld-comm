@@ -117,6 +117,348 @@ seed = 5: 12m15
 seed = 6: 13m43
 seed = 7: 8m47
 
+================================================================================
+support > 1 seq len (optimizes task execution)
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, seqlen = 1, ntests = 1, ntrials = 20 [deme size = 250, tot demes = 16]
+
+seed = 1: 5m4
+seed = 2: 8m16.5
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, **seqlen = 2, ntests = 1, ntrials = 20 [deme size = 250, tot demes = 16]
+
+seed = 1: 1100m0 [halted, score=0.985]
+
+================================================================================
+increase num frequencies to 3
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, seqlen = 1, ntests = 1, ntrials = 21 [deme size = 250, tot demes = 16]
+
+seed = 1: 12m30
+seed = 2: 10m48
+seed = 3: 29m30 (halted, score=0.99119)
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, **seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 61m32 [halted, score=0.82375]
+
+----------------------------------------------------------------------------------------------------
+max agents = **2000, ndemes = 4, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 500, tot demes = 16]
+
+seed = 1: 135m34 [halted, score=0.81]
+
+================================================================================
+mrate = 0.001
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, seqlen = 1, ntests = 1, ntrials = 21 [deme size = 250, tot demes = 16]
+
+seed = 1: 13m55 [halted, score=0.85]
+seed = 2: 27m24 [halted, score=0.96619]
+
+================================================================================
+3 freq world, but only 1 played (restore mrate = 0.005)
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, seqlen = 1, ntests = 1, ntrials = 20 [deme size = 250, tot demes = 16]
+
+seed = 1: 15m50
+seed = 2: 2m28
+seed = 3: 6m1 [no_progress=59]
+seed = 4: 3m10 [no_progress=7]
+seed = 5: 3m46 [no_progress=8]
+seed = 6: 2m46 [no_progress=14]
+
+================================================================================
+play 3 freq
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, seqlen = 1, ntests = 1, ntrials = 21 [deme size = 250, tot demes = 16]
+
+seed = 1: 12m48 [no_progress=41]
+seed = 2: 21m13 [no_progress=78]
+seed = 3: 10m21 [no_progress=33]
+seed = 6: 9m41 [no_progress=86]
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, nprocs = 4, **seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 47m2 [halted, score=0.83375, no_progress=379]
+
+================================================================================
+number elites = 5 per deme (hard-coded)
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, **elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 897m52 [halted, score=0.87, no_progress=10445]
+
+================================================================================
+only test last element
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 56m12 [no_progress=486]
+seed = 2: 53m44 [halted, score=0.997292, no_progress=332, gen0=326]
+
+================================================================================
+5 brain cycles
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 35m30 [halted, score=0.818438, no_progress=130
+
+================================================================================
+mrate=0.01 (from 0.005), restore 1 brain cycles
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 500, tot demes = 16]
+
+seed = 1: 32m46 [halted, score=0.875, no_progress=88]
+
+================================================================================
+interlude blue, restore mrate=0.005
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 46m35 [halted, score=0.99875, rec_no_progress=174, 1.0 reached by most demes long ago!]
+
+================================================================================
+send elite
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 50m13 [rec_no_progress=208, gen0=231]
+
+================================================================================
+test first element
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 96m25 [rec_no_progress=190, gen0=395]
+seed = 2: 103m59 [rec_no_progress=948, gen0=324]
+seed = 3: 108m3 [halted, score=0.9125, rec_no_progress=1307, gen0=644]
+
+================================================================================
+dyn mutate, no_progress=30, mult=5.0
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 57m55 [halted, score=0.820625, rec_no_progress=388, gen0=593]
+
+================================================================================
+no_progress=10, mult=5.0
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 906m25 [rec_no_progress=5745, score=0.97625]
+
+================================================================================
+don't send elites, mult=10.0
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 224m53 [halted, score=0.9875]
+
+      1 [1,0]<stdout>:      Global fitness = 0.598958
+      1 [1,0]<stdout>:      Global fitness = 0.600833
+      1 [1,0]<stdout>:      Global fitness = 0.681146
+      3 [1,0]<stdout>:      Global fitness = 0.719375
+      1 [1,0]<stdout>:      Global fitness = 0.723958
+     10 [1,0]<stdout>:      Global fitness = 0.74375
+     10 [1,0]<stdout>:      Global fitness = 0.76875
+      6 [1,0]<stdout>:      Global fitness = 0.77875
+    126 [1,0]<stdout>:      Global fitness = 0.82875
+      2 [1,0]<stdout>:      Global fitness = 0.833958
+      2 [1,0]<stdout>:      Global fitness = 0.854167
+      8 [1,0]<stdout>:      Global fitness = 0.879583
+      4 [1,0]<stdout>:      Global fitness = 0.888646
+      4 [1,0]<stdout>:      Global fitness = 0.890938
+      2 [1,0]<stdout>:      Global fitness = 0.89375
+     32 [1,0]<stdout>:      Global fitness = 0.92
+      2 [1,0]<stdout>:      Global fitness = 0.929167
+      6 [1,0]<stdout>:      Global fitness = 0.944375
+     10 [1,0]<stdout>:      Global fitness = 0.947917
+    430 [1,0]<stdout>:      Global fitness = 0.97125
+    387 [1,0]<stdout>:      Global fitness = 0.97375
+      1 [1,0]<stdout>:      Global fitness = 0.97875
+     34 [1,0]<stdout>:      Global fitness = 0.98
+     74 [1,0]<stdout>:      Global fitness = 0.98125
+     98 [1,0]<stdout>:      Global fitness = 0.9875
+
+================================================================================
+disable high mutate
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 1000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 250, tot demes = 16]
+
+seed = 1: 98m36
+      1       Global fitness = 0.598958
+      1       Global fitness = 0.600833
+      1       Global fitness = 0.681146
+      1       Global fitness = 0.707396
+      9       Global fitness = 0.709583
+     23       Global fitness = 0.77125
+     17       Global fitness = 0.77625
+    131       Global fitness = 0.82125
+     66       Global fitness = 0.875938
+      3       Global fitness = 0.88875
+     15       Global fitness = 0.922917
+     52       Global fitness = 0.9375
+     33       Global fitness = 0.939063
+     58       Global fitness = 0.960521
+      8       Global fitness = 0.964167
+      8       Global fitness = 0.971042
+     16       Global fitness = 0.97375
+     38       Global fitness = 0.981146
+     38       Global fitness = 0.987083
+      7       Global fitness = 0.990937
+    110       Global fitness = 0.99375
+     56       Global fitness = 0.993854
+     76       Global fitness = 0.994479
+      1       Global fitness = 1
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 500, tot demes = 16]
+
+seed = 1: 116m27
+
+      1       Global fitness = 0.61625
+      1       Global fitness = 0.617917
+      1       Global fitness = 0.626042
+      2       Global fitness = 0.649583
+      1       Global fitness = 0.66375
+      5       Global fitness = 0.705521
+      2       Global fitness = 0.713854
+      8       Global fitness = 0.73875
+     15       Global fitness = 0.7475
+     14       Global fitness = 0.7725
+      1       Global fitness = 0.775
+      4       Global fitness = 0.785
+      1       Global fitness = 0.802917
+      4       Global fitness = 0.810208
+      4       Global fitness = 0.839167
+      2       Global fitness = 0.843333
+      7       Global fitness = 0.87625
+      4       Global fitness = 0.892917
+      7       Global fitness = 0.89375
+     18       Global fitness = 0.90625
+     31       Global fitness = 0.935833
+     33       Global fitness = 0.949583
+    105       Global fitness = 0.97375
+     26       Global fitness = 0.98
+     62       Global fitness = 0.98125
+    111       Global fitness = 0.9975
+      1       Global fitness = 1
+
+================================================================================
+full seq
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 500, tot demes = 16]
+
+seed = 1: 1421m27 [halted, score=0.8975]
+
+      1       Global fitness = 0.599583
+      1       Global fitness = 0.60875
+      2       Global fitness = 0.62625
+      2       Global fitness = 0.64625
+      2       Global fitness = 0.663333
+      3       Global fitness = 0.68
+      4       Global fitness = 0.69375
+      4       Global fitness = 0.72
+      4       Global fitness = 0.730833
+      3       Global fitness = 0.74
+      6       Global fitness = 0.7625
+     34       Global fitness = 0.77375
+     22       Global fitness = 0.78625
+      4       Global fitness = 0.787396
+     28       Global fitness = 0.78875
+      6       Global fitness = 0.795
+      6       Global fitness = 0.797917
+     14       Global fitness = 0.80125
+     22       Global fitness = 0.80375
+     12       Global fitness = 0.814167
+     70       Global fitness = 0.82
+    152       Global fitness = 0.82625
+    408       Global fitness = 0.837292
+   1216       Global fitness = 0.8375
+     36       Global fitness = 0.8475
+     42       Global fitness = 0.8625
+    252       Global fitness = 0.875833
+   1366       Global fitness = 0.8775
+    813       Global fitness = 0.8975
+
+================================================================================
+big brain
+================================================================================
+
+----------------------------------------------------------------------------------------------------
+max agents = 2000, ndemes = 4, elites=5, nprocs = 4, seqlen = 2, ntests = 1, ntrials = 24 [deme size = 500, tot demes = 16]
+
+seed = 1: 1175m49 [halted, score=0.881667]
+
+      1 [1,0]<stdout>:      Global fitness = 0.5625
+      1 [1,0]<stdout>:      Global fitness = 0.6
+      1 [1,0]<stdout>:      Global fitness = 0.625833
+      3 [1,0]<stdout>:      Global fitness = 0.654583
+      1 [1,0]<stdout>:      Global fitness = 0.66375
+      1 [1,0]<stdout>:      Global fitness = 0.6775
+      2 [1,0]<stdout>:      Global fitness = 0.691667
+     31 [1,0]<stdout>:      Global fitness = 0.71125
+      1 [1,0]<stdout>:      Global fitness = 0.727708
+     42 [1,0]<stdout>:      Global fitness = 0.745
+     48 [1,0]<stdout>:      Global fitness = 0.759479
+     15 [1,0]<stdout>:      Global fitness = 0.76
+      2 [1,0]<stdout>:      Global fitness = 0.761875
+      3 [1,0]<stdout>:      Global fitness = 0.771563
+     11 [1,0]<stdout>:      Global fitness = 0.775
+     26 [1,0]<stdout>:      Global fitness = 0.7775
+     13 [1,0]<stdout>:      Global fitness = 0.7875
+     28 [1,0]<stdout>:      Global fitness = 0.789583
+      4 [1,0]<stdout>:      Global fitness = 0.7925
+    132 [1,0]<stdout>:      Global fitness = 0.81125
+     47 [1,0]<stdout>:      Global fitness = 0.822292
+     70 [1,0]<stdout>:      Global fitness = 0.822708
+      7 [1,0]<stdout>:      Global fitness = 0.8325
+     10 [1,0]<stdout>:      Global fitness = 0.834167
+    258 [1,0]<stdout>:      Global fitness = 0.84625
+     88 [1,0]<stdout>:      Global fitness = 0.850417
+     16 [1,0]<stdout>:      Global fitness = 0.855833
+    136 [1,0]<stdout>:      Global fitness = 0.858125
+   1023 [1,0]<stdout>:      Global fitness = 0.875
+   1812 [1,0]<stdout>:      Global fitness = 0.881667
+
+
 ********************************************************************************
 ***
 *** USC CLUSTER
@@ -157,7 +499,6 @@ SEQUENCE sheets, based on mb1000_nolog
 --------------------------------------------------------------------------------
 len=1, nfreqs=3
 
-seed = 0: 
 seed = 9: 32m46
 
 --------------------------------------------------------------------------------
