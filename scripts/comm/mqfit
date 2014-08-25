@@ -4,10 +4,10 @@ source ~/.bash_aliases
 
 mpi_out=$1
 if [[ ! -f "$mpi_out" ]]; then
-    echo "Must specify mpi_out"
-    exit
+    mpi_out=$(dirname $0)/../../mpi_out
 fi
 
+[ -f $mpi_out ] || (echo "Cannot find $mpi_out"; exit 1)
 
 while true; do
     clear

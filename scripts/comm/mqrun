@@ -28,6 +28,9 @@ if [[ ! -f $wf ]]; then
 fi
 
 mkdir -p $run_dir
+touch $run_dir/mpi_out
+rm -f $pw_dir/mpi_out
+ln -s $run_dir/mpi_out $pw_dir/mpi_out
 
 echo "$comment" > $run_dir/comment.txt
 submit_script=$run_dir/pbs_submit.sh
