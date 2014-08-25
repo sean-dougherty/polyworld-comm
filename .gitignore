@@ -2,6 +2,7 @@
 /.bldgnu/
 /.sconsign.dblite
 /Makefile.conf
+/Polyworld.layout
 /bin/
 /tmp/
 /run/
@@ -12,3 +13,7 @@
 /*.wf
 /genomeSeeds.txt
 /seedPositions.txt
+/GPATH
+/GRTAGS
+/GSYMS
+/GTAGS

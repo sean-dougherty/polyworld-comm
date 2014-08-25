@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 function install() {
     if dpkg -s $1 > /dev/null 2>&1 ; then
@@ -11,12 +11,12 @@ function install() {
 packages="\
 	g++ \
 	libgsl0-dev \
-	libqt4-opengl-dev \
-	scons \
 	gnuplot \
 	zlib1g-dev \
-	python2.7-dev \
 	python-scipy \
+    mesa-common-dev \
+    libglu1-mesa-dev \
+    nvidia-cuda-toolkit
 "
 
 for pkg in $packages; do
