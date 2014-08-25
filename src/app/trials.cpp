@@ -34,7 +34,7 @@ using namespace std;
 #define SEQ_TEST_ALL 1
 #define SEQ_TEST_FIRST 2
 #define SEQ_TEST_LAST 3
-#define SEQ_TEST_MODE SEQ_TEST_ALL
+#define SEQ_TEST_MODE SEQ_TEST_FIRST
 #define INTERLUDE_SHOW_BLUE true
 
 #define HIGH_MUTATE_NO_PROGRESS 0
