@@ -1,7 +1,5 @@
 set -e
 
-source ~/.bash_aliases
-
 mpi_out=$1
 if [[ ! -f "$mpi_out" ]]; then
     mpi_out=$(dirname $0)/../../mpi_out
@@ -10,8 +8,8 @@ fi
 [ -f $mpi_out ] || (echo "Cannot find $mpi_out"; exit 1)
 
 while true; do
-    clear
-    mqjobs
+    clear || echo "--------------------------------------------------------------------------------"
+    qselect -u dougher1
     tail -n 1000 | grep Global $mpi_out | tail -n 200
     sleep 30
 done
