@@ -1,0 +1,6 @@
+#!/bin/bash
+
+pw_dir=$(readlink -f $(dirname $0)/../..)
+run_dir=$(dirname $(readlink $pw_dir/mpi_out))
+
+echo $run_dir

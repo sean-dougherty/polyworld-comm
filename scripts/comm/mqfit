@@ -7,9 +7,13 @@ fi
 
 [ -f $mpi_out ] || (echo "Cannot find $mpi_out"; exit 1)
 
+rundir=$(dirname $(readlink $mpi_out))
+
 while true; do
     clear || echo "--------------------------------------------------------------------------------"
     qselect -u dougher1
-    tail -n 1000 | grep Global $mpi_out | tail -n 200
+    stat -c "%z" $rundir/comment.txt
+    stat -c "%z" $rundir/mpi_out
+    tail -n 10000 $mpi_out | grep Global | tail -n 40
     sleep 30
 done
