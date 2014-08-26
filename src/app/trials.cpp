@@ -234,11 +234,11 @@ struct Task {
     }
 
     void timestep_output(int trial_number,
-                         long t_trial,
+                         long t_task,
                          agent *a,
                          const vector<int> &seq) {
         AgentTrialState &state = get_state(trial_number, a);
-        int i = seq_index(t_trial);
+        int i = seq_index(t_task);
         int freq = seq[i];
         vdb("expecting freq " << freq);
 
@@ -261,8 +261,6 @@ struct Task {
             panic();
             break;
         }
-
-        t_trial++;
     }
 
     float metric(int trial_number, agent *a, Metric m) {
