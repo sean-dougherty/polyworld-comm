@@ -1,10 +1,10 @@
-CC=mpigxx --std=c++11 -MMD -c -g -gdwarf-3
+CC=mpigxx --std=c++11 -MMD -c -g -gdwarf-3 -fPIC
 
 __CC_CUDA=nvcc --compiler-bindir /usr/bin -arch=sm_13
 CC_CUDA=${__CC_CUDA} -c -g
 CC_CUDA_DEPENDS=${__CC_CUDA} -M
 
-LD=mpigxx
+LD=mpigxx -rdynamic
 
 SYSTEM_INCLUDES= \
 /usr/include \

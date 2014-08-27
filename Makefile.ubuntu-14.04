@@ -1,10 +1,10 @@
-CC=mpic++ --std=c++11 -MMD -c -g
+CC=mpic++ --std=c++11 -MMD -c -g -fPIC
 
-__CC_CUDA=nvcc --compiler-bindir /usr/bin -arch=sm_13
+__CC_CUDA=nvcc -arch=sm_13
 CC_CUDA=${__CC_CUDA} -c -g
 CC_CUDA_DEPENDS=${__CC_CUDA} -M
 
-LD=mpic++
+LD=mpic++ -rdynamic
 
 SYSTEM_INCLUDES=/usr/include
 LIBS_PATH=/usr/lib
