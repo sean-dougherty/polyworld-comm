@@ -11,7 +11,7 @@
 
 // System
 #include <iostream>
-#include <gl.h>
+#include <GL/gl.h>
 
 // Local
 #include "gcamera.h"

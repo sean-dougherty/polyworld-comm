@@ -3,7 +3,7 @@
 #include "gline.h"
 
 // System
-#include <gl.h>
+#include <GL/gl.h>
 #include <fstream>
 #include <ostream>
 

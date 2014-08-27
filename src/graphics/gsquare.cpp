@@ -3,7 +3,7 @@
 #include "gsquare.h"
 
 // System
-#include <gl.h>
+#include <GL/gl.h>
 
 // Local
 #include "gmisc.h"

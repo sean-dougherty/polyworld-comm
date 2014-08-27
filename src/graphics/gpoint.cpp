@@ -1,6 +1,6 @@
 
 // System
-#include <gl.h>
+#include <GL/gl.h>
 
 // Self
 #include "gpoint.h"

@@ -1,13 +1,14 @@
 CC=mpigxx --std=c++11 -MMD -c -g -gdwarf-3
+
 __CC_CUDA=nvcc --compiler-bindir /usr/bin -arch=sm_13
 CC_CUDA=${__CC_CUDA} -c -g
 CC_CUDA_DEPENDS=${__CC_CUDA} -M
+
 LD=mpigxx
 
 SYSTEM_INCLUDES= \
 /usr/include \
 /share/apps/cuda/cuda6/extras/CUPTI/include \
-/share/apps/cuda/cuda6/extras/CUPTI/include/GL \
 /share/apps/cuda/cuda6/include \
 /share/apps/gsl/include
 

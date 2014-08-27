@@ -1,6 +1,6 @@
 #include "Retina.h"
 
-#include <gl.h>
+#include <GL/gl.h>
 #include <stdio.h>
 #include <stdlib.h>
 

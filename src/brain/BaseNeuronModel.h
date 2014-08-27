@@ -1,7 +1,7 @@
 #pragma once
 
 #include <assert.h>
-#include <gl.h>
+#include <GL/gl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>

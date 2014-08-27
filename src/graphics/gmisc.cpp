@@ -8,7 +8,7 @@
 #define DebugFrustum 0
 
 // System
-#include <gl.h>
+#include <GL/gl.h>
 #include <math.h>
 
 // Local
